@@ -1,7 +1,20 @@
 {% extends 'base.html' %}
 {% load static %}
 {%block content%}
-{%if no_faces%}
+{% if error %}
+<div class="container">
+  <div class="logo text-center mb-3"><img src="{% static 'images/logo1.png'%}" alt="Logo" ></div>
+  <hr />
+  <div class="alert alert-danger">
+    {{ error }}
+  </div>
+  {% if available_models %}
+  <div class="alert alert-info mt-2">
+    Found model files: <strong>{{ available_models|join:", " }}</strong>
+  </div>
+  {% endif %}
+</div>
+{% elif no_faces %}
 <div class="container">
   <div class="logo text-center mb-3"><img src="{% static 'images/logo1.png'%}" alt="Logo" ></div>
   <hr />
@@ -9,7 +22,7 @@
     No faces detected. Cannot process the video.
   </div>
 </div>
-{%else%}
+{% else %}
 <div class="container">
   <div class="logo text-center mb-3"><img src="{% static 'images/logo1.png'%}" alt="Logo" ></div>
   <hr />

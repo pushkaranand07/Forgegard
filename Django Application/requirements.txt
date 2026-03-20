@@ -46,7 +46,7 @@ jupyterlab==4.2.2
 jupyterlab-server==2.27.2
 kiwisolver==1.4.5
 MarkupSafe==2.1.5
-matplotlib==3.9.0
+# matplotlib==3.9.0  # disabled for now due to build issues on Windows/Python 3.13
 mistune==3.0.2
 nbconvert==7.16.4
 nbformat==5.10.4

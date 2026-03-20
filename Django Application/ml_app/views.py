@@ -1,4 +1,6 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 import torch
 import torchvision
 from torchvision import transforms, models
@@ -7,8 +9,16 @@ from torch.utils.data.dataset import Dataset
 import os
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
-import face_recognition
+import threading
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+
+try:
+    import face_recognition
+except ImportError:
+    face_recognition = None
 from torch.autograd import Variable
 import time
 import sys
@@ -27,15 +37,22 @@ index_template_name = 'index.html'
 predict_template_name = 'predict.html'
 about_template_name = "about.html"
 
+# Ensure required folders exist (models, uploads, etc.)
+required_dirs = [
+    os.path.join(settings.PROJECT_DIR, 'models'),
+    os.path.join(settings.PROJECT_DIR, 'uploaded_images'),
+    os.path.join(settings.PROJECT_DIR, 'uploaded_videos'),
+]
+for _dir in required_dirs:
+    os.makedirs(_dir, exist_ok=True)
+
 im_size = 112
 mean=[0.485, 0.456, 0.406]
 std=[0.229, 0.224, 0.225]
-sm = nn.Softmax()
+sm = nn.Softmax(dim=1)
 inv_normalize =  transforms.Normalize(mean=-1*np.divide(mean,std),std=np.divide([1,1,1],std))
-if torch.cuda.is_available():
-    device = 'gpu'
-else:
-    device = 'cpu'
+# Use a proper torch.device so tensors and model are always on the same device
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 train_transforms = transforms.Compose([
                                         transforms.ToPILImage(),
@@ -52,7 +69,9 @@ class Model(nn.Module):
         self.lstm = nn.LSTM(latent_dim,hidden_dim, lstm_layers,  bidirectional)
         self.relu = nn.LeakyReLU()
         self.dp = nn.Dropout(0.4)
-        self.linear1 = nn.Linear(2048,num_classes)
+        # LSTM output dim depends on bidirectionality
+        lstm_out_dim = hidden_dim * (2 if bidirectional else 1)
+        self.linear1 = nn.Linear(lstm_out_dim, num_classes)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
 
     def forward(self, x):
@@ -60,7 +79,9 @@ class Model(nn.Module):
         x = x.view(batch_size * seq_length, c, h, w)
         fmap = self.model(x)
         x = self.avgpool(fmap)
-        x = x.view(batch_size,seq_length,2048)
+        # avgpool -> (batch*seq, channels, 1, 1)
+        channels = x.shape[1]
+        x = x.view(batch_size,seq_length,channels)
         x_lstm,_ = self.lstm(x,None)
         return fmap,self.dp(self.linear1(x_lstm[:,-1,:]))
 
@@ -75,19 +96,23 @@ class validation_dataset(Dataset):
         return len(self.video_names)
 
     def __getitem__(self,idx):
+        if face_recognition is None:
+            raise RuntimeError("face_recognition library is not installed. Install dependencies to enable face cropping.")
         video_path = self.video_names[idx]
         frames = []
         a = int(100/self.count)
         first_frame = np.random.randint(0,a)
         for i,frame in enumerate(self.frame_extract(video_path)):
             #if(i % a == first_frame):
-            faces = face_recognition.face_locations(frame)
-            try:
-              top,right,bottom,left = faces[0]
-              frame = frame[top:bottom,left:right,:]
-            except:
-              pass
-            frames.append(self.transform(frame))
+            # OpenCV gives BGR, but face_recognition expects RGB.
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            faces = face_recognition.face_locations(rgb_frame)
+            if faces:
+                top, right, bottom, left = faces[0]
+                # Crop using the original frame coordinates
+                frame = frame[top:bottom, left:right, :]
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frames.append(self.transform(rgb_frame))
             if(len(frames) == self.count):
                 break
         """
@@ -99,8 +124,17 @@ class validation_dataset(Dataset):
         #   for i in range(self.count-len(frames)):
         #         frames.append(self.transform(frame))
         #print("no of frames", self.count)
-        frames = torch.stack(frames)
-        frames = frames[:self.count]
+        if len(frames) == 0:
+            raise ValueError(f"No frames extracted from video: {video_path}")
+
+        # If the video has fewer frames than requested, pad by repeating the last frame.
+        # This prevents torch.stack([]) and keeps the input shape stable for the model.
+        if len(frames) < self.count:
+            last = frames[-1]
+            while len(frames) < self.count:
+                frames.append(last.clone())
+
+        frames = torch.stack(frames[:self.count])
         return frames.unsqueeze(0)
     
     def frame_extract(self,path):
@@ -124,6 +158,8 @@ def im_convert(tensor, video_file_name):
     return image
 
 def im_plot(tensor):
+    if plt is None:
+        return
     image = tensor.cpu().numpy().transpose(1,2,0)
     b,g,r = cv2.split(image)
     image = cv2.merge((r,g,b))
@@ -134,14 +170,12 @@ def im_plot(tensor):
 
 
 def predict(model,img,path = './', video_file_name=""):
-  fmap,logits = model(img.to(device))
-  img = im_convert(img[:,-1,:,:,:], video_file_name)
-  params = list(model.parameters())
-  weight_softmax = model.linear1.weight.detach().cpu().numpy()
+  with torch.no_grad():
+    _,logits = model(img.to(device))
   logits = sm(logits)
   _,prediction = torch.max(logits,1)
   confidence = logits[:,int(prediction.item())].item()*100
-  print('confidence of prediction:',logits[:,int(prediction.item())].item()*100)  
+  print('confidence of prediction:',confidence)
   return [int(prediction.item()),confidence]
 
 def plot_heat_map(i, model, img, path = './', video_file_name=''):
@@ -174,36 +208,90 @@ def plot_heat_map(i, model, img, path = './', video_file_name=''):
 
 # Model Selection
 def get_accurate_model(sequence_length):
-    model_name = []
-    sequence_model = []
-    final_model = ""
+    """Return the model filename that best matches the requested sequence_length.
+
+    Filename format expected: <something>_<something>_<something>_<sequence>_<...>.pt (e.g. model_84_acc_10_frames_final_data.pt)
+    If no matching model is found, returns an empty string.
+    """
+
     list_models = glob.glob(os.path.join(settings.PROJECT_DIR, "models", "*.pt"))
+    model_names = [os.path.basename(p) for p in list_models]
 
-    for model_path in list_models:
-        model_name.append(os.path.basename(model_path))
-
-    for model_filename in model_name:
+    # Try to find models with sequence length in filename
+    matching_models = []
+    for model_filename in model_names:
         try:
             seq = model_filename.split("_")[3]
             if int(seq) == sequence_length:
-                sequence_model.append(model_filename)
-        except IndexError:
-            pass  # Handle cases where the filename format doesn't match expected
+                matching_models.append(model_filename)
+        except (IndexError, ValueError):
+            continue
 
-    if len(sequence_model) > 1:
-        accuracy = []
-        for filename in sequence_model:
-            acc = filename.split("_")[1]
-            accuracy.append(acc)  # Convert accuracy to float for proper comparison
-        max_index = accuracy.index(max(accuracy))
-        final_model = os.path.join(settings.PROJECT_DIR, "models", sequence_model[max_index])
-    elif len(sequence_model) == 1:
-        final_model = os.path.join(settings.PROJECT_DIR, "models", sequence_model[0])
+    # If we found multiple models for this length, pick the one with highest accuracy in filename
+    if len(matching_models) > 1:
+        accuracy_models = []
+        for filename in matching_models:
+            try:
+                # expecting filename like model_84_acc_10_frames_final_data.pt
+                accuracy = float(filename.split("_")[1])
+            except Exception:
+                accuracy = 0.0
+            accuracy_models.append((accuracy, filename))
+        accuracy_models.sort(reverse=True)
+        return accuracy_models[0][1]
+
+    if len(matching_models) == 1:
+        return matching_models[0]
+
+    # If no exact match, return the first model found as a fallback (if any)
+    if model_names:
+        return model_names[0]
+
+    return ""
+
+MODEL_CACHE = {}
+MODEL_CACHE_LOCK = threading.Lock()
+
+def get_cached_model(sequence_length: int):
+    """
+    Load (and cache) the correct trained model for the requested `sequence_length`.
+    Caching avoids re-downloading/loading ResNeXt and reloading weights each request.
+    """
+    selected_model_name = get_accurate_model(sequence_length)
+    if not selected_model_name:
+        return None, ""
+
+    model_path = os.path.join(settings.PROJECT_DIR, 'models', selected_model_name)
+    if not os.path.isfile(model_path):
+        return None, selected_model_name
+
+    cache_key = (selected_model_name, device.type)
+    with MODEL_CACHE_LOCK:
+        if cache_key in MODEL_CACHE:
+            return MODEL_CACHE[cache_key], selected_model_name
+
+        model = Model(2).to(device)
+        state_dict = torch.load(model_path, map_location=device)
+        model.load_state_dict(state_dict)
+        model.eval()
+        MODEL_CACHE[cache_key] = model
+        return model, selected_model_name
+
+def _save_uploaded_video_to_project(video_file):
+    """
+    Save uploaded video into `uploaded_videos` and return absolute path and basename.
+    """
+    video_file_ext = video_file.name.split('.')[-1].lower()
+    saved_video_file = f"uploaded_file_{int(time.time())}.{video_file_ext}"
+    if settings.DEBUG:
+        target_dir = os.path.join(settings.PROJECT_DIR, 'uploaded_videos')
     else:
-        print("No model found for the specified sequence length.")  # Handle no models found case
-
-    return final_model
-
+        target_dir = os.path.join(settings.PROJECT_DIR, 'uploaded_videos', 'app', 'uploaded_videos')
+    os.makedirs(target_dir, exist_ok=True)
+    saved_path = os.path.join(target_dir, saved_video_file)
+    with open(saved_path, 'wb') as vFile:
+        shutil.copyfileobj(video_file, vFile)
+    return saved_path, saved_video_file
 ALLOWED_VIDEO_EXTENSIONS = set(['mp4','gif','webm','avi','3gp','wmv','flv','mkv'])
 
 def allowed_video_file(filename):
@@ -275,17 +363,35 @@ def predict_page(request):
         else:
             production_video_name = video_file_name
 
+        if face_recognition is None:
+            return render(request, predict_template_name, {
+                'error': 'Missing dependency: face_recognition. Install project dependencies to enable face detection/cropping.',
+            })
+
         # Load validation dataset
         video_dataset = validation_dataset(path_to_videos, sequence_length=sequence_length, transform=train_transforms)
 
-        # Load model
-        if(device == "gpu"):
-            model = Model(2).cuda()  # Adjust the model instantiation according to your model structure
-        else:
-            model = Model(2).cpu()  # Adjust the model instantiation according to your model structure
-        model_name = os.path.join(settings.PROJECT_DIR, 'models', get_accurate_model(sequence_length))
-        path_to_model = os.path.join(settings.PROJECT_DIR, model_name)
-        model.load_state_dict(torch.load(path_to_model, map_location=torch.device('cpu')))
+        # Ensure models folder contains at least one .pt model
+        model_files = glob.glob(os.path.join(settings.PROJECT_DIR, 'models', '*.pt'))
+        if len(model_files) == 0:
+            return render(request, predict_template_name, {
+                'error': 'No model files (.pt) found in models folder. Please download the trained model and place it in the models directory.',
+                'available_models': [],
+            })
+
+        # Load model (choose best matching model for required sequence length)
+        # Instantiate model on the selected device
+        model = Model(2).to(device)
+
+        selected_model_name = get_accurate_model(sequence_length)
+        model_path = os.path.join(settings.PROJECT_DIR, 'models', selected_model_name)
+        if not os.path.isfile(model_path):
+            return render(request, predict_template_name, {
+                'error': f'Could not find model "{selected_model_name}". Available models: {model_files}',
+                'available_models': model_files,
+            })
+
+        model.load_state_dict(torch.load(model_path, map_location=device))
         model.eval()
         start_time = time.time()
         # Display preprocessing images
@@ -293,23 +399,15 @@ def predict_page(request):
         preprocessed_images = []
         faces_cropped_images = []
         cap = cv2.VideoCapture(video_file)
-        frames = []
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if ret:
-                frames.append(frame)
-            else:
-                break
-        cap.release()
-
-        print(f"Number of frames: {len(frames)}")
-        # Process each frame for preprocessing and face cropping
+        # Process each frame for preprocessing and face cropping (only first `sequence_length` frames)
         padding = 40
         faces_found = 0
+        processed_frames = 0
         for i in range(sequence_length):
-            if i >= len(frames):
+            ret, frame = cap.read()
+            if not ret:
                 break
-            frame = frames[i]
+            processed_frames += 1
 
             # Convert BGR to RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -327,7 +425,14 @@ def predict_page(request):
                 continue
 
             top, right, bottom, left = face_locations[0]
-            frame_face = frame[top - padding:bottom + padding, left - padding:right + padding]
+            h, w = frame.shape[:2]
+            y1 = max(0, top - padding)
+            y2 = min(h, bottom + padding)
+            x1 = max(0, left - padding)
+            x2 = min(w, right + padding)
+            if y2 <= y1 or x2 <= x1:
+                continue
+            frame_face = frame[y1:y2, x1:x2]
 
             # Convert cropped face image to RGB and save
             rgb_face = cv2.cvtColor(frame_face, cv2.COLOR_BGR2RGB)
@@ -337,13 +442,16 @@ def predict_page(request):
             img_face_rgb.save(image_path)
             faces_found += 1
             faces_cropped_images.append(image_name)
+        cap.release()
+
+        print(f"Number of processed frames: {processed_frames}")
 
         print("<=== | Videos Splitting and Face Cropping Done | ===>")
         print("--- %s seconds ---" % (time.time() - start_time))
 
         # No face detected
         if faces_found == 0:
-            return render(request, 'predict_template_name.html', {"no_faces": True})
+            return render(request, predict_template_name, {"no_faces": True})
 
         # Perform prediction
         try:
@@ -383,6 +491,59 @@ def predict_page(request):
         except Exception as e:
             print(f"Exception occurred during prediction: {e}")
             return render(request, 'cuda_full.html')
+
+@require_POST
+def api_predict(request):
+    """
+    JSON endpoint for AJAX uploads.
+    Returns output/confidence plus the saved video basename (for MEDIA_URL).
+    """
+    video_upload_form = VideoUploadForm(request.POST, request.FILES)
+    if not video_upload_form.is_valid():
+        return JsonResponse({"error": "Invalid form submission", "details": video_upload_form.errors}, status=400)
+
+    video_file = video_upload_form.cleaned_data['upload_video_file']
+    sequence_length = int(video_upload_form.cleaned_data['sequence_length'])
+
+    if sequence_length <= 0:
+        return JsonResponse({"error": "Sequence Length must be greater than 0"}, status=400)
+
+    if allowed_video_file(video_file.name) is False:
+        return JsonResponse({"error": "Only video files are allowed"}, status=400)
+
+    if video_file.size > int(settings.MAX_UPLOAD_SIZE):
+        return JsonResponse({"error": "Maximum file size 100 MB"}, status=400)
+
+    saved_path, saved_basename = _save_uploaded_video_to_project(video_file)
+
+    try:
+        if face_recognition is None:
+            return JsonResponse(
+                {"error": "Missing dependency: face_recognition. Install project dependencies to enable face detection/cropping."},
+                status=500,
+            )
+
+        # Inference-only: avoids generating preview images on the server.
+        video_dataset = validation_dataset([saved_path], sequence_length=sequence_length, transform=train_transforms)
+        model, selected_model_name = get_cached_model(sequence_length)
+        if model is None:
+            return JsonResponse(
+                {"error": f"Model not found for sequence length {sequence_length}", "model": selected_model_name},
+                status=500,
+            )
+
+        prediction = predict(model, video_dataset[0], './', os.path.splitext(saved_basename)[0])
+        confidence = round(prediction[1], 1)
+        output = "REAL" if prediction[0] == 1 else "FAKE"
+
+        return JsonResponse({
+            "output": output,
+            "confidence": confidence,
+            "original_video": saved_basename,
+            "model_used": selected_model_name,
+        })
+    except Exception as e:
+        return JsonResponse({"error": f"Prediction failed: {str(e)}"}, status=500)
 def about(request):
     return render(request, about_template_name)
 
