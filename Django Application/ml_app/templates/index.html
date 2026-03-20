@@ -1,71 +1,109 @@
 {% extends 'base.html' %}
-{%load static%}
-{%block content%}
-<div class="bg" >
-<div class="container">
-    
-    <div class="row align-items-center justify-content-center">
-        <div class="col-12 my-auto">
-            <div class="logo text-center mb-3"><img src="{% static 'images/logo1.png'%}" alt="Logo" ></div>
-            <div class="width-400">
-                <video width="100%" controls id="videos">
-                    <source src="" id="video_source">
-                    Your browser does not support HTML5 video.
-                </video>
-                <form class="form" method="POST" enctype="multipart/form-data" name="video-upload" id="video-upload"
-                    class="text-center mt-3">
-                    {%csrf_token%}
-                    <div class="form-group">
-                        <label>{{form.upload_video_file.widget}}</label>
-                        {{form.upload_video_file}}
-                        <!-- <input type="file" id="{{form.upload_video_file.id_for_label}}" name="{{form.upload_video_file.name}}" /> -->
-                        {%if form.upload_video_file.errors%}
-                        {%for each_error in form.upload_video_file.errors%}
-                        <div class="alert alert-danger mt-1 {{form.upload_video_file.id_for_label}}">
-                            {{each_error}}
-                        </div>
-                        {%endfor%}
-                        {%endif%}
-                    </div>
-                    <div class="form-group">
-                        <label for="{{form.sequence_length.id_for_label}}">{{form.sequence_length.label}}: </label><span
-                            id="slider-value"></span>
-                        <input type="number" hidden="hidden" id="{{form.sequence_length.id_for_label}}"
-                            name="{{form.sequence_length.name}}"></input>
-                        <div id='slider'></div>
-                        {%if form.sequence_length.errors%}
-                        {%for each_error in form.sequence_length.errors%}
-                        <div class="alert alert-danger mt-1 {{form.sequence_length.id_for_label}}">
-                            {{each_error}}
-                        </div>
-                        {%endfor%}
-                        {%endif%}
-                    </div>
-                    <button id="videoUpload" type="submit" name="submit" class="btn btn-success mt-3 btn-block">Upload</button>
-                </form>
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <div class="text-center mb-3">
+            <img src="{% static 'images/logo1.png' %}" alt="Logo" class="mb-2" style="max-height: 70px;">
+          </div>
+
+          <h1 class="h4 text-center mb-4">Deepfake Detection</h1>
+
+          <video width="100%" controls id="videos" class="rounded d-none mb-3">
+            <source src="" id="video_source" />
+            Your browser does not support HTML5 video.
+          </video>
+
+          <form method="POST" enctype="multipart/form-data" id="uploadForm" class="mt-2">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Upload video</label>
+              <div id="dropzone" class="dropzone border border-2 border-dashed rounded-4 p-4 text-center bg-light">
+                <div class="fw-semibold">Drag & drop your video</div>
+                <div class="text-muted small">or click to browse</div>
+                <button type="button" id="browseBtn" class="btn btn-sm btn-primary mt-3">Choose file</button>
+                <div id="fileMeta" class="text-muted small mt-2"></div>
+              </div>
+
+              <div class="d-none">
+                {{ form.upload_video_file }}
+              </div>
+
+              <div id="uploadError" class="alert alert-danger mt-2 d-none"></div>
             </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold" for="{{ form.sequence_length.id_for_label }}">
+                {{ form.sequence_length.label }}
+              </label>
+              <div id="slider" class="mt-2"></div>
+              <div class="text-center mt-2">
+                Selected: <span id="slider-value" class="fw-semibold">10</span>
+              </div>
+
+              <div class="d-none">
+                {{ form.sequence_length }}
+              </div>
+
+              {% if form.sequence_length.errors %}
+                {% for each_error in form.sequence_length.errors %}
+                  <div class="alert alert-danger mt-2">{{ each_error }}</div>
+                {% endfor %}
+              {% endif %}
+            </div>
+
+            <div class="d-grid gap-2 mt-3">
+              <button id="videoUpload" type="submit" class="btn btn-success btn-lg">
+                Detect
+              </button>
+            </div>
+
+            <div id="loading" class="mt-3 d-none">
+              <div class="d-flex align-items-center gap-2">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="text-muted">Processing video (this can take a while on CPU)...</div>
+              </div>
+              <div class="progress mt-2" style="height: 10px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 30%"></div>
+              </div>
+            </div>
+
+            <div id="result" class="mt-4 d-none"></div>
+            <button id="tryAgain" type="button" class="btn btn-outline-secondary mt-3 d-none">Try another video</button>
+          </form>
         </div>
+      </div>
     </div>
+  </div>
 </div>
-</div>
-{%endblock%}
-{%block js_cripts%}
-<script src="{%static 'js/script.js'%}"></script>
+{% endblock %}
+
+{% block js_cripts %}
+<script src="{% static 'js/upload_ajax.js' %}"></script>
 <script>
-    $(function () {
-        var sliderSequenceNumbers = [10,20,40,60,80,100];
-        var slider = $("div#slider").slider({
-            value: 1,
-            min: 0,
-            max: sliderSequenceNumbers.length-1,
-            slide: function (event, ui) {
-                $('#{{form.sequence_length.id_for_label}}').val(sliderSequenceNumbers[ui.value]);
-                $('#{{form.sequence_length.id_for_label}}').val(sliderSequenceNumbers[ui.value]);
-                $('#slider-value').html(sliderSequenceNumbers[ui.value]);
-            }
-        });
-        $("#{{form.sequence_length.id_for_label}}").val(sliderSequenceNumbers[$("#slider").slider("value")]);
-        $('#slider-value').html(sliderSequenceNumbers[$("#slider").slider("value")]);
+  $(function () {
+    var sliderSequenceNumbers = [10, 20, 40, 60, 80, 100];
+    var $seq = $('#{{ form.sequence_length.id_for_label }}');
+
+    $("div#slider").slider({
+      value: 0,
+      min: 0,
+      max: sliderSequenceNumbers.length - 1,
+      slide: function (event, ui) {
+        var selected = sliderSequenceNumbers[ui.value];
+        $seq.val(selected);
+        $('#slider-value').html(selected);
+      }
     });
+
+    var initVal = sliderSequenceNumbers[$("#slider").slider("value")];
+    $seq.val(initVal);
+    $('#slider-value').html(initVal);
+  });
 </script>
-{%endblock%}
+{% endblock %}
