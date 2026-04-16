@@ -1,37 +1,42 @@
 """
-Django settings for project_settings project.
+Django settings for the DeepGuard Deepfake Detection web application.
 """
 
 import os
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+# Absolute path to the Django project directory (one level above this file)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Build paths inside the project like this: os.path.join(PROJECT_DIR, ...)
+# PROJECT_DIR is the same as BASE_DIR here; kept as a separate name to make
+# path construction in views.py more explicit and readable.
 PROJECT_DIR = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
+# ─────────────────────────────────────────────
+# Security
+# ─────────────────────────────────────────────
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '@)0qp0!&-vht7k0wyuihr+nk-b8zrvb5j^1d@vl84cd1%)f=dz'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# SECURITY WARNING: do not run with DEBUG=True in production!
 DEBUG = True
 
-# Change and set this to correct IP/Domain
+# Set to your actual domain or IP in production
 ALLOWED_HOSTS = ["*"]
 
 
-# Application definition
+# ─────────────────────────────────────────────
+# Application Definition
+# ─────────────────────────────────────────────
 
 INSTALLED_APPS = [
+    'django.contrib.auth',          # Required by MessageMiddleware and auth context processors
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'ml_app.apps.MlAppConfig'
+    'ml_app.apps.MlAppConfig',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +60,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.media'
+                'django.template.context_processors.media',
             ],
         },
     },
@@ -64,8 +69,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'project_settings.wsgi.application'
 
 
+# ─────────────────────────────────────────────
 # Database
-# https://docs.djangoproject.com/en/3.0/ref/settings/#databases
+# ─────────────────────────────────────────────
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     "default": {
@@ -75,44 +82,65 @@ DATABASES = {
 }
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/3.0/topics/i18n/
+# ─────────────────────────────────────────────
+# Internationalisation
+# ─────────────────────────────────────────────
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# IST – Indian Standard Time (UTC+5:30)
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = False
 
-USE_L10N = False
-
+# USE_TZ = False keeps naive datetime behaviour (no timezone wrapping)
 USE_TZ = False
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.0/howto/static-files/
+# ─────────────────────────────────────────────
+# Static Files
+# ─────────────────────────────────────────────
+# https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-#used in production to serve static files
-STATIC_ROOT = "/home/app/staticfiles/"
+# Directory where `collectstatic` gathers files for production deployments
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-#url for static files
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
+    # uploaded_images is served as a static directory so the results pages can
+    # render frame previews and face-crop thumbnails by filename.
     os.path.join(PROJECT_DIR, 'uploaded_images'),
     os.path.join(PROJECT_DIR, 'static'),
-    os.path.join(PROJECT_DIR, 'models'),
+    # NOTE: models/ is intentionally excluded — .pt weight files are large
+    # binary assets and must NOT be exposed over HTTP.
 ]
 
+
+# ─────────────────────────────────────────────
+# Upload Limits
+# ─────────────────────────────────────────────
+
+# Only 'video' content-type is accepted on the video upload endpoint
 CONTENT_TYPES = ['video']
+
+# Maximum permitted upload size: 100 MB = 100 × 1024 × 1024 bytes
 MAX_UPLOAD_SIZE = "104857600"
 
-MEDIA_URL = "/media/"
 
+# ─────────────────────────────────────────────
+# Media Files (uploaded videos)
+# ─────────────────────────────────────────────
+
+MEDIA_URL  = "/media/"
 MEDIA_ROOT = os.path.join(PROJECT_DIR, 'uploaded_videos')
 
-#for extra logging in production environment
-if DEBUG == False:
+
+# ─────────────────────────────────────────────
+# Logging (production only)
+# ─────────────────────────────────────────────
+
+if not DEBUG:
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -120,15 +148,15 @@ if DEBUG == False:
             'console': {
                 'class': 'logging.StreamHandler',
             },
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'log.django',
-        },
+            'file': {
+                'level': 'DEBUG',
+                'class': 'logging.FileHandler',
+                'filename': 'deepguard.log',
+            },
         },
         'loggers': {
             'django': {
-                'handlers': ['console','file'],
+                'handlers': ['console', 'file'],
                 'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
             },
         },
