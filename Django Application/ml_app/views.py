@@ -7,6 +7,7 @@ and the JSON API endpoints.
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 import torch
 import torchvision
 from torchvision import transforms, models
@@ -1082,6 +1083,7 @@ def predict_page(request):
         return render(request, 'cuda_full.html')
 
 
+@csrf_exempt
 @require_POST
 def api_predict(request):
     """
@@ -1255,6 +1257,7 @@ def predict_image_page(request):
         })
 
 
+@csrf_exempt
 @require_POST
 def api_predict_image(request):
     """
@@ -1384,6 +1387,7 @@ def _classification_metrics(y_true: list, y_pred: list) -> dict:
     }
 
 
+@csrf_exempt
 @require_POST
 def api_calibrate_image_threshold(request):
     """
