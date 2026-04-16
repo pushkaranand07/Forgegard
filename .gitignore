@@ -1,3 +1,52 @@
+# Python
 .venv/
+venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.pkl
+*.joblib
+
+# Django / local runtime outputs
+db.sqlite3
+*.sqlite3
+.DS_Store
+*.log
+*.pot
+*.py[cod]
+staticfiles/
+uploaded_videos/
+uploaded_images/
+calibration/
+
+# Environment files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# ML / training artifacts (potentially huge)
+GenImage_download/
+data/
+artifacts/
+checkpoints/
+models/
+
+# Large model weights (not for GitHub unless you use LFS and are sure about size)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Dataset archives / downloads
+*.zip
+*.tar.gz
+*.tar
+
+# Notebook files frequently contain local paths/secrets
+*.ipynb
+
+# IDE/editor
+.vscode/
+.idea/
+.cursor/

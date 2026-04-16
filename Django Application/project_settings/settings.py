@@ -17,13 +17,19 @@ PROJECT_DIR = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__
 # ─────────────────────────────────────────────
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '@)0qp0!&-vht7k0wyuihr+nk-b8zrvb5j^1d@vl84cd1%)f=dz'
+# This project expects SECRET_KEY/DEBUG/ALLOWED_HOSTS to be provided via
+# environment variables for safety in public deployments.
+#
+# For local development, you can use `.env` + `django-environ` or simply set
+# environment variables in your shell.
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-change-me")
 
 # SECURITY WARNING: do not run with DEBUG=True in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "false").strip().lower() in ("1", "true", "yes", "on")
 
 # Set to your actual domain or IP in production
-ALLOWED_HOSTS = ["*"]
+allowed_hosts_raw = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
+ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_raw.split(",") if h.strip()]
 
 
 # ─────────────────────────────────────────────
