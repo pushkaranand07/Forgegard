@@ -925,10 +925,9 @@ def index(request):
 
     # Persist the file and store its path for the results view
     saved_name = f"uploaded_video_{int(time.time())}.{video_ext}"
-    if settings.DEBUG:
-        save_dir  = os.path.join(settings.PROJECT_DIR, 'uploaded_videos')
-    else:
-        save_dir  = os.path.join(settings.PROJECT_DIR, 'uploaded_videos', 'app', 'uploaded_videos')
+    # Always store uploads under MEDIA_ROOT so Django can serve them consistently.
+    # (The UI playback uses `MEDIA_URL` + the uploaded filename.)
+    save_dir = os.path.join(settings.PROJECT_DIR, 'uploaded_videos')
 
     os.makedirs(save_dir, exist_ok=True)
     saved_path = os.path.join(save_dir, saved_name)
@@ -961,8 +960,9 @@ def predict_page(request):
     video_basename  = os.path.basename(video_path)
     video_stem      = os.path.splitext(video_basename)[0]
 
-    # In production the video is served from a different static path
-    display_video_name = video_basename if settings.DEBUG else os.path.join('/home/app/staticfiles/', video_basename.split('/')[3])
+    # The browser uses MEDIA_URL to retrieve the uploaded file.
+    # The value passed here should be the uploaded filename/basename.
+    display_video_name = video_basename
 
     if face_recognition is None:
         return render(request, VIDEO_RESULT_TEMPLATE, {
