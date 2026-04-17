@@ -3,8 +3,7 @@ forms.py – Django form definitions for the DeepGuard deepfake detection app.
 
 Provides two forms:
   VideoUploadForm – accepts a video file and a frame sequence length.
-  ImageUploadForm – accepts a photo and a frame sequence length for the
-                    replicated-frame inference pipeline.
+  ImageUploadForm – accepts an image file for manipulation detection.
 """
 
 from django import forms
@@ -31,21 +30,16 @@ class VideoUploadForm(forms.Form):
 
 
 class ImageUploadForm(forms.Form):
-    """Form for uploading a single photo to be analysed for deepfake content."""
+    """Form for uploading an image file to be analysed for manipulation (deepfake)."""
 
     upload_image_file = forms.FileField(
-        label="Select photo",
+        label="Select image",
         required=True,
-        widget=forms.FileInput(attrs={"accept": "image/jpeg,image/jpg,image/png,image/webp"}),
+        widget=forms.FileInput(attrs={"accept": "image/*"}),
     )
     sequence_length = forms.IntegerField(
         label="Sequence length",
-        required=True,
+        required=False,
         initial=100,
-        min_value=1,
-        help_text=(
-            "The uploaded photo is replicated this many times to form a "
-            "pseudo-video sequence that the model can process. "
-            "Set this to match your trained model (typically 100)."
-        ),
+        widget=forms.HiddenInput(),
     )

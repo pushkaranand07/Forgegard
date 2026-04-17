@@ -1,13 +1,50 @@
+# Virtual environments
 .venv/
 venv/
+
+# Python cache
 __pycache__/
 *.pyc
-.vs
-.vscode
+
+# IDEs
+.vs/
+.vscode/
+
+# Environment variables (IMPORTANT)
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large compressed files (CRITICAL)
+*.zip
+*.tar.gz
+*.7z
+*.rar
+
+# ML model files (CRITICAL)
+*.pt
+*.pth
+*.h5
+*.onnx
+*.pkl
+
+# Data / datasets
+data/
+datasets/
+GenImage_download/
+
+# Your project-specific folders (keep structure, ignore contents)
 models/*
 !models/Readme.txt
+
 uploaded_images/*
 !uploaded_images/Readme.txt
+
 uploaded_videos/*
 !uploaded_videos/Readme.txt
-
