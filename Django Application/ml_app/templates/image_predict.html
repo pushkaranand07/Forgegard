@@ -44,8 +44,8 @@
             <div class="badge bg-warning text-dark mb-3">⚠️ No face detected — analysed full image</div>
             {% endif %}
 
-            <div class="display-6 fw-bold mt-4 mb-4 {% if output == 'REAL' %}text-success{% else %}text-danger{% endif %}">
-              {% if output == 'REAL' %}✔ REAL{% else %}✖ FAKE{% endif %}
+            <div class="display-6 fw-bold mt-4 mb-4 {% if output == 'AUTHENTIC' %}text-success{% else %}text-danger{% endif %}">
+              {% if output == 'AUTHENTIC' %}✔ REAL{% else %}✖ FAKE{% endif %}
             </div>
 
             <div class="mt-4">
@@ -55,7 +55,7 @@
               </div>
               <div class="progress" style="height:20px;">
                 <div id="resultBar"
-                     class="progress-bar {% if output == 'REAL' %}bg-success{% else %}bg-danger{% endif %} progress-bar-striped progress-bar-animated"
+                     class="progress-bar {% if output == 'AUTHENTIC' %}bg-success{% else %}bg-danger{% endif %} progress-bar-striped progress-bar-animated"
                      role="progressbar"
                      style="width: {{ confidence }}%"
                      aria-valuenow="{{ confidence }}"
