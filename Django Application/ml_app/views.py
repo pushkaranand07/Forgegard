@@ -551,7 +551,10 @@ def load_model_cached(sequence_length: int):
         checkpoint = torch.load(weights_path, map_location=device)
 
         model = DeepfakeDetectorModel(num_classes=2).to(device)
-        model.load_state_dict(checkpoint)
+        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            model.load_state_dict(checkpoint)
 
         model.eval()
         _MODEL_CACHE[cache_key] = model
@@ -714,7 +717,11 @@ def predict_page(request):
 
     # MARK: Model instantiated and loaded here
     model = DeepfakeDetectorModel(num_classes=2).to(device)
-    model.load_state_dict(torch.load(weights_path, map_location=device))
+    checkpoint = torch.load(weights_path, map_location=device)
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        model.load_state_dict(checkpoint)
     model.eval()
 
     # ── Frame extraction and face detection ──────────────────────────────────
