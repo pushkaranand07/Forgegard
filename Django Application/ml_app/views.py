@@ -30,7 +30,6 @@ except ImportError:
 
 from torch.autograd import Variable
 import time
-import sys
 from torch import nn
 import json
 import glob
