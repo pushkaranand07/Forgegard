@@ -6,6 +6,14 @@ import sys
 
 def main():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project_settings.settings')
+    os.environ["PYTORCH_JIT"] = "0"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    
+    # Add project root to sys.path so ml_core can be imported
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
