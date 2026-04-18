@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ForgeGuard — Minimal Working Dependencies (Windows Python 3.13)
+# Install via: pip install -r requirements_minimal.txt
+#
+# ⚠️  IMPORTANT: PyTorch must be installed via Conda, NOT pip!
+#     conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
+#
+# This file focuses on wheel-available packages for Windows compatibility
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Core Web Framework
+Django==5.0.6
+asgiref==3.8.1
+sqlparse==0.5.0
+
+# Data Processing
+numpy>=2.0.0,<3.0.0
+pandas==2.2.2
+
+# Image & Video Processing
+opencv-python==4.10.0.84
+Pillow==10.3.0
+
+# Deep Learning (MUST BE INSTALLED VIA CONDA!)
+# torch==2.3.1  # ← Install via: conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
+# torchvision==0.18.1  # ← Same as above
+facenet-pytorch>=0.2.2.post4
+
+# Face Detection Models
+# (facenet-pytorch includes MTCNN and InceptionResnetV1)
+
+# Utilities
+requests==2.32.3
+tqdm>=4.66.0
+pyYAML==6.0.1
+
+# Development/Jupyter Support (Optional)
+ipython==8.12.3
+jupyter==1.0.0
+notebook>=7.0.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# INSTALLATION INSTRUCTIONS
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# 1. Activate virtual environment:
+#    .venv\Scripts\Activate.ps1
+#
+# 2. Install PyTorch via conda (CRITICAL!):
+#    conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
+#
+# 3. Install other dependencies:
+#    pip install -r requirements_minimal.txt
+#
+# 4. Verify installation:
+#    python -c "import torch; import cv2; import django; print('✓ All OK')"
+#
+# ─────────────────────────────────────────────────────────────────────────────

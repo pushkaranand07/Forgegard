@@ -6,16 +6,6 @@
   <div class="row justify-content-center">
     <div class="col-12 col-lg-7">
 
-      <!-- Mode tabs: Video / Photo -->
-      <ul class="nav nav-pills mb-3 justify-content-center">
-        <li class="nav-item">
-          <a class="nav-link active" href="{% url 'ml_app:home' %}">🎬 Video</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'ml_app:predict_image' %}">🖼️ Photo</a>
-        </li>
-      </ul>
-
       <div class="card shadow-sm border-0">
         <div class="card-body p-4">
 
@@ -23,31 +13,92 @@
             <img src="{% static 'images/logo1.png' %}" alt="DeepGuard Logo" class="mb-2" style="max-height: 70px;">
           </div>
 
-          <h1 class="h4 text-center mb-1">Video Deepfake Analysis</h1>
+          <h1 class="h4 text-center mb-1">Image Manipulation Detection</h1>
+          <p class="text-center text-muted mb-4">Analyze images for manipulation and deepfake artifacts</p>
 
-          <!-- Inline video preview (populated by JS after file selection) -->
-          <video width="100%" controls id="videos" class="rounded d-none mb-3">
-            <source src="" id="video_source" />
-            Your browser does not support HTML5 video.
-          </video>
-
-          <form method="POST" enctype="multipart/form-data" id="uploadForm" class="mt-2">
+          <form method="POST" enctype="multipart/form-data" id="uploadForm" class="mt-2" action="{% url 'ml_app:home' %}">
             {% csrf_token %}
 
             <!-- File drop-zone -->
             <div class="mb-3">
-              <label class="form-label fw-semibold">Upload video</label>
+              <label class="form-label fw-semibold">Upload Image</label>
               <div id="dropzone" class="dropzone border border-2 border-dashed rounded-4 p-4 text-center bg-light">
-                <div class="fw-semibold">Drag &amp; drop your video here</div>
-                <div class="text-muted small">or click to browse (mp4, avi, mkv, …)</div>
+                <div class="fw-semibold">Drag &amp; drop your image here</div>
+                <div class="text-muted small">or click to browse (jpg, png, bmp, …)</div>
                 <button type="button" id="browseBtn" class="btn btn-sm btn-primary mt-3">Choose file</button>
                 <div id="fileMeta" class="text-muted small mt-2"></div>
               </div>
 
               <!-- Hidden Django file input -->
               <div class="d-none">
-                {{ form.upload_video_file }}
+                {{ form.upload_image_file }}
               </div>
+            </div>
+
+            <!-- Submit button -->
+            <button type="submit" class="btn btn-primary w-100 mt-4" id="submitBtn">
+              🔍 Analyze Image
+            </button>
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger mt-3" role="alert">
+                <strong>Error:</strong>
+                {% for error in form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </form>
+
+          <hr class="my-4">
+
+          <div class="text-center text-muted small">
+            <p><strong>About this tool:</strong></p>
+            <p>This detector uses Error Level Analysis (ELA) combined with deep learning to identify potential manipulations in images, including deepfake artifacts.</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.querySelector('input[name="upload_image_file"]');
+  const fileMeta = document.getElementById('fileMeta');
+  const browseBtn = document.getElementById('browseBtn');
+
+  browseBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      fileMeta.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+    }
+  });
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.style.backgroundColor = '#e9ecef';
+  });
+
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.style.backgroundColor = 'transparent';
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.style.backgroundColor = 'transparent';
+    if (e.dataTransfer.files.length > 0) {
+      fileInput.files = e.dataTransfer.files;
+      const file = e.dataTransfer.files[0];
+      fileMeta.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+    }
+  });
+</script>
+{% endblock %}
 
               <div id="uploadError" class="alert alert-danger mt-2 d-none"></div>
             </div>
