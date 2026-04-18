@@ -24,10 +24,9 @@ I selected the EfficientNet B7 backbone because of its mathematically proven eff
 - **Edge case exception framework**: Built from scratch for robust client-facing error structures.
 
 ## Installation & Setup
-1. Clone the repository and configure the python environment.
+1. Clone the repository and install the dependencies in your preferred virtual environment.
 ```bash
-conda env create -f environment.yml
-conda activate ForgeGuard
+pip install -r requirements.txt
 ```
 2. Download and place the model weights inside the `weights/` directory.
 3. Apply Django database migrations.
