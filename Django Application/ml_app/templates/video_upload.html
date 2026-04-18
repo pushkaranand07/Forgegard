@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Video Deepfake Detection{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold mb-2">🎬 Deepfake Detection</h1>
+                <p class="lead text-muted">Analyze videos for deepfake artifacts using AI</p>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body p-5">
+                    
+                    <h5 class="mb-4">Video Deepfake Analysis</h5>
+                    
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+
+                        <!-- File drop-zone -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Upload video</label>
+                            <div id="dropzone" class="dropzone border-3 border-dashed rounded-3 p-5 text-center bg-light cursor-pointer" style="cursor: pointer;">
+                                <div class="mb-3">
+                                    <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                                </div>
+                                <div class="fw-semibold text-dark">Drag & drop your video here</div>
+                                <div class="text-muted small">or click to browse (mp4, avi, mkv, ...)</div>
+                                <button type="button" id="browseBtn" class="btn btn-sm btn-primary mt-3">Choose file</button>
+                                <div id="fileMeta" class="text-muted small mt-3"></div>
+                            </div>
+
+                            <!-- Hidden Django file input -->
+                            <div class="d-none">
+                                {% if form %}
+                                    {{ form.upload_video_file }}
+                                {% else %}
+                                    <input type="file" id="id_upload_video_file" name="upload_video_file" accept="video/*">
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Video Preview -->
+                        <div id="videoPreview" class="mb-4 d-none">
+                            <video id="videoPlayer" class="w-100 rounded" controls style="max-height: 300px;">
+                                <source id="videoSource" type="video/mp4">
+                                Your browser does not support HTML5 video.
+                            </video>
+                        </div>
+
+                        <!-- Frame Count Slider -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Number of frames to analyse</label>
+                            <input type="range" class="form-range" id="frameCount" name="num_frames" min="5" max="64" value="32" style="cursor: pointer;">
+                            <div class="text-muted small mt-2">
+                                Selected: <strong id="frameCountDisplay">32</strong> frames
+                            </div>
+                        </div>
+
+                        <!-- Submit button -->
+                        <button type="submit" class="btn btn-success w-100 btn-lg" id="submitBtn">
+                            🔍 Detect
+                        </button>
+
+                        <!-- Error display -->
+                        <div id="uploadError" class="alert alert-danger mt-3 d-none" role="alert"></div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="result" class="card shadow-lg border-0 d-none">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <h5 class="card-title">Prediction: <span id="predictionText"></span></h5>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Confidence</h6>
+                            <div class="d-flex align-items-end">
+                                <span id="confidencePercent" class="display-6 fw-bold me-2">0</span>
+                                <span class="text-muted mb-1">%</span>
+                            </div>
+                            <div class="progress mt-3" style="height: 10px;">
+                                <div id="confidenceBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-6">Frames Analyzed:</dt>
+                                <dd class="col-sm-6" id="framesAnalyzed">-</dd>
+                                
+                                <dt class="col-sm-6">Processing Time:</dt>
+                                <dd class="col-sm-6" id="processingTime">-</dd>
+                                
+                                <dt class="col-sm-6">Device:</dt>
+                                <dd class="col-sm-6"><code id="deviceUsed">-</code></dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <button type="button" id="tryAgain" class="btn btn-primary w-100 mt-3">
+                        ← Try Another Video
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading indicator -->
+            <div id="loading" class="d-none text-center mt-5">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Processing...</span>
+                </div>
+                <p class="text-muted mt-3">Analyzing video... This may take a minute.</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.querySelector('input[name="upload_video_file"]');
+    const fileMeta = document.getElementById('fileMeta');
+    const browseBtn = document.getElementById('browseBtn');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const videoSource = document.getElementById('videoSource');
+    const videoPreview = document.getElementById('videoPreview');
+    const frameCountSlider = document.getElementById('frameCount');
+    const frameCountDisplay = document.getElementById('frameCountDisplay');
+    const uploadForm = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadError = document.getElementById('uploadError');
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('result');
+    const tryAgain = document.getElementById('tryAgain');
+
+    const ALLOWED_FORMATS = ['mp4', 'avi', 'webm', 'mov', 'mkv', 'flv', '3gp', 'wmv'];
+    const MAX_SIZE = 100 * 1024 * 1024; // 100 MB
+
+    function showError(msg) {
+        uploadError.textContent = msg;
+        uploadError.classList.remove('d-none');
+    }
+
+    function clearError() {
+        uploadError.classList.add('d-none');
+        uploadError.textContent = '';
+    }
+
+    function getFileExtension(filename) {
+        return filename.split('.').pop().toLowerCase();
+    }
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function validateFile(file) {
+        if (!file) return 'Please select a video file.';
+        const ext = getFileExtension(file.name);
+        if (!ALLOWED_FORMATS.includes(ext)) {
+            return `Invalid format. Allowed: ${ALLOWED_FORMATS.join(', ')}`;
+        }
+        if (file.size > MAX_SIZE) {
+            return `File too large. Max size: ${formatBytes(MAX_SIZE)}`;
+        }
+        return null;
+    }
+
+    function handleFileSelect(file) {
+        const err = validateFile(file);
+        if (err) {
+            clearError();
+            showError(err);
+            return;
+        }
+
+        clearError();
+        fileMeta.textContent = `${file.name} (${formatBytes(file.size)})`;
+
+        // Show video preview
+        const url = URL.createObjectURL(file);
+        videoSource.src = url;
+        videoPreview.classList.remove('d-none');
+        videoPlayer.load();
+    }
+
+    browseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-primary');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('border-primary');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-primary');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const dt = new DataTransfer();
+            dt.items.add(files[0]);
+            fileInput.files = dt.files;
+            handleFileSelect(files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    frameCountSlider.addEventListener('change', (e) => {
+        frameCountDisplay.textContent = e.target.value;
+    });
+
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const file = fileInput.files[0];
+        const err = validateFile(file);
+        if (err) {
+            clearError();
+            showError(err);
+            return;
+        }
+
+        clearError();
+        result.classList.add('d-none');
+        loading.classList.remove('d-none');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+
+        try {
+            const formData = new FormData(uploadForm);
+            const response = await fetch('/api/detect-video/', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                let errorMsg = data.error || 'Detection failed';
+                
+                // Special handling for model not found
+                if (data.status === 'model_not_found') {
+                    errorMsg = (
+                        '⚠️ Video Deepfake Detection Model Not Found\n\n' +
+                        'The AI model for video analysis is not installed. ' +
+                        'To enable this feature, download and set up the model weights.\n\n' +
+                        'See SETUP_VIDEO_MODEL.md in the project root for detailed instructions.'
+                    );
+                }
+                
+                throw new Error(errorMsg);
+            }
+
+            // Display results
+            loading.classList.add('d-none');
+            result.classList.remove('d-none');
+
+            document.getElementById('predictionText').textContent = data.label || 'UNKNOWN';
+            const predictionElement = document.getElementById('predictionText');
+            predictionElement.className = data.label === 'REAL' ? 'text-success' : 'text-danger';
+
+            const confidence = Math.round((data.fake_prob || 0) * 100);
+            document.getElementById('confidencePercent').textContent = confidence;
+            document.getElementById('confidenceBar').style.width = confidence + '%';
+            document.getElementById('confidenceBar').className = 
+                confidence > 70 ? 'progress-bar bg-danger' : 'progress-bar bg-success';
+
+            document.getElementById('framesAnalyzed').textContent = data.num_frames_processed || '-';
+            document.getElementById('processingTime').textContent = 
+                data.processing_time_ms ? (data.processing_time_ms / 1000).toFixed(1) + 's' : '-';
+            document.getElementById('deviceUsed').textContent = data.device || '-';
+
+            tryAgain.classList.remove('d-none');
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            loading.classList.add('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '🔍 Detect';
+        }
+    });
+
+    tryAgain.addEventListener('click', () => {
+        result.classList.add('d-none');
+        uploadError.classList.add('d-none');
+        fileMeta.textContent = '';
+        videoPreview.classList.add('d-none');
+        videoSource.src = '';
+        fileInput.value = '';
+        frameCountSlider.value = '32';
+        frameCountDisplay.textContent = '32';
+    });
+</script>
+{% endblock %}

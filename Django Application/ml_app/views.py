@@ -7,7 +7,6 @@ and the JSON API endpoints.
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 import torch
 import torchvision
 from torchvision import transforms, models
@@ -30,38 +29,41 @@ except ImportError:
 
 from torch.autograd import Variable
 import time
+import sys
 from torch import nn
 import json
 import glob
 import copy
 import shutil
 import re
-import uuid
 from PIL import Image as pImage
 from django.conf import settings
-from .forms import VideoUploadForm
+from .forms import VideoUploadForm, ImageUploadForm
 
 # ─────────────────────────────────────────────
 # Template names
 # ─────────────────────────────────────────────
 HOME_TEMPLATE          = 'index.html'
 VIDEO_RESULT_TEMPLATE  = 'predict.html'
+IMAGE_RESULT_TEMPLATE  = 'image_predict.html'
 ABOUT_TEMPLATE         = 'about.html'
 
 # Legacy aliases kept for any external references
 index_template_name        = HOME_TEMPLATE
 predict_template_name      = VIDEO_RESULT_TEMPLATE
+image_predict_template_name = IMAGE_RESULT_TEMPLATE
 about_template_name        = ABOUT_TEMPLATE
 
 # ─────────────────────────────────────────────
 # Allowed file extensions
 # ─────────────────────────────────────────────
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}
 ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'gif', 'webm', 'avi', '3gp', 'wmv', 'flv', 'mkv'}
 
 # ─────────────────────────────────────────────
 # Pre-processing constants
 # ─────────────────────────────────────────────
-FRAME_SIZE = 224  # Height and width each frame is resized to before being fed into the model
+FRAME_SIZE = 112  # Height and width each frame is resized to before being fed into the model
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD  = [0.229, 0.224, 0.225]
@@ -90,6 +92,7 @@ _required_dirs = [
     os.path.join(settings.PROJECT_DIR, 'models'),
     os.path.join(settings.PROJECT_DIR, 'uploaded_images'),
     os.path.join(settings.PROJECT_DIR, 'uploaded_videos'),
+    os.path.join(settings.PROJECT_DIR, 'calibration'),
 ]
 for _d in _required_dirs:
     os.makedirs(_d, exist_ok=True)
@@ -253,27 +256,6 @@ class VideoFrameDataset(Dataset):
 # Utility Functions
 # ─────────────────────────────────────────────
 
-def make_artifact_map(img_bgr: np.ndarray) -> np.ndarray:
-    """
-    Generate a single-channel 'artifact map' emphasizing high-frequency
-    and residual noise patterns typical of AI generation/GANs.
-    """
-    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
-    # Edge-preserving denoising to isolate residuals
-    denoised = cv2.bilateralFilter(gray, d=7, sigmaColor=30, sigmaSpace=30)
-    residual = np.abs(gray - denoised)
-
-    # Frequency-domain magnitude proxy
-    fft = np.fft.fftshift(np.fft.fft2(gray))
-    mag = np.log1p(np.abs(fft))
-    mag = (mag - mag.min()) / (mag.max() - mag.min() + 1e-8)
-
-    # Blend residual and magnitude into final map
-    residual = (residual - residual.min()) / (residual.max() - residual.min() + 1e-8)
-    artifact = 0.6 * residual + 0.4 * mag
-    return artifact.astype(np.float32)
-
-
 def tensor_to_numpy_image(tensor: torch.Tensor, video_stem: str = "") -> np.ndarray:
     """
     Convert a CxHxW tensor (normalised to ImageNet stats) back into a NumPy
@@ -327,37 +309,29 @@ def run_inference(model: DeepfakeDetectorModel, img_tensor: torch.Tensor,
     return [int(predicted_class.item()), confidence_pct]
 
 
-def run_inference_with_probs(model: nn.Module, img_tensor: torch.Tensor,
-                             art_tensor: torch.Tensor = None) -> dict:
+def run_inference_with_probs(model: DeepfakeDetectorModel, img_tensor: torch.Tensor) -> dict:
     """
-    Run a forward pass through the DeepfakeDetectorModel and return
-    calibrated per-class probabilities.
-
-    Args:
-        model:      Loaded DeepfakeDetectorModel in eval mode.
-        img_tensor: RGB video sequence tensor of shape (1, seq, C, H, W).
-        art_tensor: Unused — kept for API compatibility only.
+    Run inference and return calibrated per-class probabilities.
 
     Returns:
         {
-            "predicted_class": int   (1 = REAL, 0 = FAKE),
-            "confidence_pct":  float,
-            "real_prob":       float in [0, 1],
-            "fake_prob":       float in [0, 1],
+            "predicted_class": int,
+            "confidence_pct": float,
+            "real_prob": float,
+            "fake_prob": float,
         }
     """
-    model.eval()
     with torch.no_grad():
         _, logits = model(img_tensor.to(device))
-        probabilities = softmax_fn(logits).squeeze(0).detach().cpu()
-        real_idx = int(getattr(settings, 'REAL_CLASS_INDEX', 1))
-        fake_idx = int(getattr(settings, 'FAKE_CLASS_INDEX', 0))
-        real_prob = float(probabilities[real_idx].item())
-        fake_prob = float(probabilities[fake_idx].item())
 
-    predicted_class = 1 if real_prob >= 0.5 else 0
+    probabilities = softmax_fn(logits).squeeze(0).detach().cpu()
+    real_idx = int(getattr(settings, 'REAL_CLASS_INDEX', 1))
+    fake_idx = int(getattr(settings, 'FAKE_CLASS_INDEX', 0))
+    real_prob = float(probabilities[real_idx].item())
+    fake_prob = float(probabilities[fake_idx].item())
+
+    predicted_class = int(real_idx if real_prob >= fake_prob else fake_idx)
     confidence_pct = max(real_prob, fake_prob) * 100.0
-
     return {
         "predicted_class": predicted_class,
         "confidence_pct": confidence_pct,
@@ -526,6 +500,48 @@ def get_default_sequence_length(default: int = 100) -> int:
     return default
 
 
+def get_calibration_file_path() -> str:
+    """Path to persisted image-threshold calibration JSON."""
+    return os.path.join(settings.PROJECT_DIR, 'calibration', 'image_threshold_config.json')
+
+
+def load_calibration_config() -> dict:
+    """Load calibration config from disk if available."""
+    path = get_calibration_file_path()
+    if not os.path.isfile(path):
+        return {}
+
+    try:
+        with open(path, 'r', encoding='utf-8') as in_file:
+            data = json.load(in_file)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_calibration_config(config: dict) -> None:
+    """Persist calibration config for future inference requests."""
+    path = get_calibration_file_path()
+    with open(path, 'w', encoding='utf-8') as out_file:
+        json.dump(config, out_file, indent=2)
+
+
+def get_base_image_fake_threshold() -> float:
+    """
+    Fetch calibrated threshold if present, otherwise use settings/default.
+    """
+    configured = float(getattr(settings, 'IMAGE_FAKE_THRESHOLD', 0.45))
+    calibration = load_calibration_config()
+    calibrated = calibration.get('image_fake_threshold')
+    if calibrated is None:
+        return configured
+
+    try:
+        return float(calibrated)
+    except (TypeError, ValueError):
+        return configured
+
+
 # Thread-safe in-memory cache so we don't reload weights on every request
 _MODEL_CACHE: dict = {}
 _MODEL_CACHE_LOCK = threading.Lock()
@@ -533,7 +549,15 @@ _MODEL_CACHE_LOCK = threading.Lock()
 
 def load_model_cached(sequence_length: int):
     """
-    Return a loaded and cached DeepfakeDetectorModel for video inference.
+    Return a loaded and cached ``DeepfakeDetectorModel`` for the given
+    sequence length, together with the filename of the selected weights file.
+
+    The model is loaded once and stored in memory.  Subsequent calls with the
+    same ``(weights_file, device)`` key return the cached model instantly,
+    avoiding expensive I/O and re-initialisation of the ResNeXt backbone.
+
+    Returns:
+        (model, model_filename) where model is None if no weights file exists.
     """
     selected_weights_file = select_best_model_file(sequence_length)
     if not selected_weights_file:
@@ -548,14 +572,10 @@ def load_model_cached(sequence_length: int):
         if cache_key in _MODEL_CACHE:
             return _MODEL_CACHE[cache_key], selected_weights_file
 
-        checkpoint = torch.load(weights_path, map_location=device)
-
+        # MARK: Model instantiated and loaded here
         model = DeepfakeDetectorModel(num_classes=2).to(device)
-        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['model_state_dict'])
-        else:
-            model.load_state_dict(checkpoint)
-
+        state_dict = torch.load(weights_path, map_location=device)
+        model.load_state_dict(state_dict)
         model.eval()
         _MODEL_CACHE[cache_key] = model
         return model, selected_weights_file
@@ -564,6 +584,14 @@ def load_model_cached(sequence_length: int):
 # ─────────────────────────────────────────────
 # File Validation Helpers
 # ─────────────────────────────────────────────
+
+def allowed_image_file(filename: str) -> bool:
+    """Return True when the file's extension is a supported image format."""
+    if '.' not in filename:
+        return False
+    ext = filename.rsplit('.', 1)[-1].lower()
+    return ext in ALLOWED_IMAGE_EXTENSIONS
+
 
 def allowed_video_file(filename: str) -> bool:
     """Return True when the file's extension is a supported video format."""
@@ -599,6 +627,254 @@ def _persist_uploaded_video(video_file) -> tuple:
         shutil.copyfileobj(video_file, out_file)
 
     return saved_path, saved_name
+
+
+# ─────────────────────────────────────────────
+# Image Tensor Builder
+# ─────────────────────────────────────────────
+
+def _build_image_tensor(image_path: str, sequence_length: int, use_face_crop: bool = True) -> tuple:
+    """
+    Load a single image from disk, optionally crop the detected face, and
+    replicate the result ``sequence_length`` times to form a video-like tensor
+    that the DeepfakeDetectorModel can ingest without modification.
+
+    Args:
+        image_path:      Absolute path to the saved image file.
+        sequence_length: How many times to replicate the frame.
+
+    Returns:
+        (tensor of shape (1, seq, C, H, W), face_was_found: bool)
+    """
+    img_bgr = cv2.imread(image_path)
+    if img_bgr is None:
+        raise ValueError(f"Could not read image file: {image_path}")
+
+    img_rgb   = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    face_crop = None
+
+    if face_recognition is not None:
+        detected_faces = face_recognition.face_locations(img_rgb)
+        if detected_faces:
+            top, right, bottom, left = detected_faces[0]
+            padding = 40
+            img_h, img_w = img_rgb.shape[:2]
+            y1 = max(0, top    - padding)
+            y2 = min(img_h, bottom + padding)
+            x1 = max(0, left   - padding)
+            x2 = min(img_w, right  + padding)
+            if y2 > y1 and x2 > x1:
+                face_crop = img_rgb[y1:y2, x1:x2]
+
+    # Use the face crop when available (unless explicitly disabled).
+    input_frame = img_rgb
+    if use_face_crop and face_crop is not None:
+        input_frame = face_crop
+
+    frame_tensor = frame_transforms(input_frame)          # (C, H, W)
+    frames       = [frame_tensor.clone() for _ in range(sequence_length)]
+    seq_tensor   = torch.stack(frames).unsqueeze(0)       # (1, seq, C, H, W)
+
+    return seq_tensor, (face_crop is not None)
+
+
+def _normalize_score(value: float, low: float, high: float) -> float:
+    """Normalize a raw metric into [0, 1]."""
+    if high <= low:
+        return 0.0
+    return float(np.clip((value - low) / (high - low), 0.0, 1.0))
+
+
+def extract_generation_artifact_features(image_path: str) -> dict:
+    """
+    Extract lightweight artifact cues correlated with AI-generated imagery.
+
+    Features:
+      - high_frequency_ratio: excess high-frequency FFT energy
+      - residual_noise_std: denoise residual strength
+      - checkerboard_score: aliasing/upscale grid inconsistency
+      - blockiness_score: compression/grid edge discontinuities
+      - laplacian_variance: sharpness/texture irregularity signal
+    """
+    img_bgr = cv2.imread(image_path)
+    if img_bgr is None:
+        raise ValueError(f"Could not read image file: {image_path}")
+
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    h, w = gray.shape[:2]
+
+    # Frequency-domain high-pass energy ratio.
+    fft = np.fft.fftshift(np.fft.fft2(gray))
+    magnitude = np.abs(fft)
+    y, x = np.indices((h, w))
+    cy, cx = h // 2, w // 2
+    radius = np.sqrt((y - cy) ** 2 + (x - cx) ** 2)
+    hp_mask = radius > (min(h, w) * 0.20)
+    total_energy = float(np.mean(magnitude) + 1e-8)
+    high_freq_energy = float(np.mean(magnitude[hp_mask])) if np.any(hp_mask) else total_energy
+    high_frequency_ratio = high_freq_energy / total_energy
+
+    # Noise residual after edge-preserving smoothing.
+    denoised = cv2.bilateralFilter(gray, d=7, sigmaColor=30, sigmaSpace=30)
+    residual = gray - denoised
+    residual_noise_std = float(np.std(residual))
+
+    # Checkerboard/aliasing proxy from parity mismatch.
+    odd_h = (h // 2) * 2
+    odd_w = (w // 2) * 2
+    tiled = gray[:odd_h, :odd_w]
+    if tiled.size > 0:
+        even_even = tiled[0::2, 0::2]
+        odd_even = tiled[1::2, 0::2]
+        checkerboard_score = float(np.mean(np.abs(even_even - odd_even)))
+    else:
+        checkerboard_score = 0.0
+
+    # JPEG/block boundary inconsistency proxy.
+    grad_x = np.abs(np.diff(gray, axis=1))
+    grad_y = np.abs(np.diff(gray, axis=0))
+    if grad_x.shape[1] > 16:
+        grid_cols = np.arange(7, grad_x.shape[1], 8)
+        non_grid_cols = np.setdiff1d(np.arange(grad_x.shape[1]), grid_cols)
+        edge_grid = float(np.mean(grad_x[:, grid_cols])) if grid_cols.size else 0.0
+        edge_non_grid = float(np.mean(grad_x[:, non_grid_cols])) if non_grid_cols.size else 1.0
+        blockiness_score = edge_grid / (edge_non_grid + 1e-6)
+    else:
+        blockiness_score = 0.0
+
+    laplacian_variance = float(cv2.Laplacian(gray, cv2.CV_32F).var())
+
+    # Normalize to a robust [0,1] scale and fuse.
+    norm_high_freq = _normalize_score(high_frequency_ratio, 0.90, 1.35)
+    norm_noise = _normalize_score(residual_noise_std, 2.5, 18.0)
+    norm_checker = _normalize_score(checkerboard_score, 1.0, 18.0)
+    norm_block = _normalize_score(blockiness_score, 0.95, 1.35)
+    norm_lap = _normalize_score(laplacian_variance, 60.0, 1400.0)
+
+    artifact_fake_score = float(np.clip(
+        0.30 * norm_high_freq +
+        0.20 * norm_noise +
+        0.25 * norm_checker +
+        0.15 * norm_block +
+        0.10 * norm_lap,
+        0.0,
+        1.0,
+    ))
+
+    return {
+        'high_frequency_ratio': high_frequency_ratio,
+        'residual_noise_std': residual_noise_std,
+        'checkerboard_score': checkerboard_score,
+        'blockiness_score': blockiness_score,
+        'laplacian_variance': laplacian_variance,
+        'artifact_fake_score': artifact_fake_score,
+    }
+
+
+def compute_dynamic_fake_threshold(base_threshold: float, uncertainty: float, artifact_score: float) -> float:
+    """
+    Dynamically adjust threshold per image using uncertainty + artifacts.
+    """
+    uncertainty_shift = float(getattr(settings, 'IMAGE_THRESHOLD_UNCERTAINTY_SHIFT', 0.08))
+    artifact_shift = float(getattr(settings, 'IMAGE_THRESHOLD_ARTIFACT_SHIFT', 0.06))
+    min_threshold = float(getattr(settings, 'IMAGE_MIN_FAKE_THRESHOLD', 0.20))
+    max_threshold = float(getattr(settings, 'IMAGE_MAX_FAKE_THRESHOLD', 0.80))
+
+    dynamic = (
+        base_threshold
+        - (uncertainty_shift * uncertainty)
+        - (artifact_shift * (artifact_score - 0.5))
+    )
+    return float(np.clip(dynamic, min_threshold, max_threshold))
+
+
+def score_image_fake_probability(model: DeepfakeDetectorModel, image_path: str, sequence_length: int) -> dict:
+    """
+    Produce model probability + artifact-aware adjusted probability.
+    """
+    views = []
+    face_tensor, face_found = _build_image_tensor(image_path, sequence_length, use_face_crop=True)
+    full_tensor, _ = _build_image_tensor(image_path, sequence_length, use_face_crop=False)
+    views.extend([face_tensor, full_tensor])
+
+    fake_probs = []
+    real_probs = []
+    for tensor_view in views:
+        normal_pred = run_inference_with_probs(model, tensor_view)
+        fake_probs.append(normal_pred['fake_prob'])
+        real_probs.append(normal_pred['real_prob'])
+
+        flipped = torch.flip(tensor_view, dims=[4])
+        flipped_pred = run_inference_with_probs(model, flipped)
+        fake_probs.append(flipped_pred['fake_prob'])
+        real_probs.append(flipped_pred['real_prob'])
+
+    base_fake_prob = float(np.mean(fake_probs))
+    base_real_prob = float(np.mean(real_probs))
+
+    # Uncertainty measured as normalized binary entropy.
+    eps = 1e-8
+    uncertainty = float(
+        -(
+            base_fake_prob * np.log2(base_fake_prob + eps) +
+            base_real_prob * np.log2(base_real_prob + eps)
+        )
+    )
+    uncertainty = float(np.clip(uncertainty, 0.0, 1.0))
+
+    artifact = extract_generation_artifact_features(image_path)
+    artifact_score = float(artifact['artifact_fake_score'])
+    artifact_weight = float(getattr(settings, 'IMAGE_ARTIFACT_BLEND_WEIGHT', 0.30))
+    combined_fake_prob = float(np.clip(
+        (1.0 - artifact_weight) * base_fake_prob + artifact_weight * artifact_score,
+        0.0,
+        1.0,
+    ))
+
+    return {
+        'base_fake_prob': base_fake_prob,
+        'base_real_prob': base_real_prob,
+        'combined_fake_prob': combined_fake_prob,
+        'uncertainty': uncertainty,
+        'face_found': face_found,
+        'artifact_features': artifact,
+    }
+
+
+def infer_image_with_ensemble(model: DeepfakeDetectorModel, image_path: str, sequence_length: int) -> dict:
+    """
+    Infer a single image using multi-view + TTA aggregation.
+
+    We average fake probability across:
+      - face-crop view (if face exists)
+      - full-image view
+      - horizontal flip for each view
+    """
+    score = score_image_fake_probability(model, image_path, sequence_length)
+    avg_fake_prob = float(score['combined_fake_prob'])
+    avg_real_prob = float(1.0 - avg_fake_prob)
+    base_threshold = get_base_image_fake_threshold()
+    fake_threshold = compute_dynamic_fake_threshold(
+        base_threshold=base_threshold,
+        uncertainty=score['uncertainty'],
+        artifact_score=score['artifact_features']['artifact_fake_score'],
+    )
+    is_fake = avg_fake_prob >= fake_threshold
+    output_label = 'FAKE' if is_fake else 'REAL'
+    confidence_pct = round((avg_fake_prob if is_fake else avg_real_prob) * 100.0, 1)
+
+    return {
+        'output_label': output_label,
+        'confidence_pct': confidence_pct,
+        'fake_prob': avg_fake_prob,
+        'real_prob': avg_real_prob,
+        'base_fake_prob': score['base_fake_prob'],
+        'uncertainty': score['uncertainty'],
+        'face_found': score['face_found'],
+        'artifact_features': score['artifact_features'],
+        'base_fake_threshold': base_threshold,
+        'fake_threshold': fake_threshold,
+    }
 
 
 # ─────────────────────────────────────────────
@@ -648,9 +924,10 @@ def index(request):
 
     # Persist the file and store its path for the results view
     saved_name = f"uploaded_video_{int(time.time())}.{video_ext}"
-    # Always store uploads under MEDIA_ROOT so Django can serve them consistently.
-    # (The UI playback uses `MEDIA_URL` + the uploaded filename.)
-    save_dir = os.path.join(settings.PROJECT_DIR, 'uploaded_videos')
+    if settings.DEBUG:
+        save_dir  = os.path.join(settings.PROJECT_DIR, 'uploaded_videos')
+    else:
+        save_dir  = os.path.join(settings.PROJECT_DIR, 'uploaded_videos', 'app', 'uploaded_videos')
 
     os.makedirs(save_dir, exist_ok=True)
     saved_path = os.path.join(save_dir, saved_name)
@@ -683,9 +960,8 @@ def predict_page(request):
     video_basename  = os.path.basename(video_path)
     video_stem      = os.path.splitext(video_basename)[0]
 
-    # The browser uses MEDIA_URL to retrieve the uploaded file.
-    # The value passed here should be the uploaded filename/basename.
-    display_video_name = video_basename
+    # In production the video is served from a different static path
+    display_video_name = video_basename if settings.DEBUG else os.path.join('/home/app/staticfiles/', video_basename.split('/')[3])
 
     if face_recognition is None:
         return render(request, VIDEO_RESULT_TEMPLATE, {
@@ -717,11 +993,7 @@ def predict_page(request):
 
     # MARK: Model instantiated and loaded here
     model = DeepfakeDetectorModel(num_classes=2).to(device)
-    checkpoint = torch.load(weights_path, map_location=device)
-    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-        model.load_state_dict(checkpoint['model_state_dict'])
-    else:
-        model.load_state_dict(checkpoint)
+    model.load_state_dict(torch.load(weights_path, map_location=device))
     model.eval()
 
     # ── Frame extraction and face detection ──────────────────────────────────
@@ -810,7 +1082,6 @@ def predict_page(request):
         return render(request, 'cuda_full.html')
 
 
-@csrf_exempt
 @require_POST
 def api_predict(request):
     """
@@ -882,6 +1153,12 @@ def about(request):
     return render(request, ABOUT_TEMPLATE)
 
 
+def video_home(request):
+    """Render the video deepfake detection upload page."""
+    context = {'form': VideoUploadForm()}
+    return render(request, 'video_upload.html', context)
+
+
 def handler404(request, exception):
     """Custom 404 error page."""
     return render(request, '404.html', status=404)
@@ -890,3 +1167,346 @@ def handler404(request, exception):
 def cuda_full(request):
     """Error page shown when inference fails (e.g. out of CUDA memory)."""
     return render(request, 'cuda_full.html')
+
+
+# ─────────────────────────────────────────────
+# Image / Photo Detection Views
+# ─────────────────────────────────────────────
+
+def predict_image_page(request):
+    """
+    Photo deepfake analysis page.
+
+    GET:  Render the image upload form.
+    POST: Validate the uploaded image, save it to disk, build a video-like
+          tensor by replicating the single frame, run inference with the same
+          model used for videos, and render the result.
+    """
+    if request.method == 'GET':
+        initial_sequence = get_default_sequence_length()
+        form = ImageUploadForm(initial={'sequence_length': initial_sequence})
+        return render(request, IMAGE_RESULT_TEMPLATE, {
+            'form': form,
+            'default_sequence_length': initial_sequence,
+        })
+
+    form = ImageUploadForm(request.POST, request.FILES)
+    if not form.is_valid():
+        return render(request, IMAGE_RESULT_TEMPLATE, {'form': form})
+
+    image_file      = form.cleaned_data['upload_image_file']
+    sequence_length = form.cleaned_data['sequence_length']
+
+    if not allowed_image_file(image_file.name):
+        form.add_error('upload_image_file', 'Only jpg, jpeg, png, and webp images are supported.')
+        return render(request, IMAGE_RESULT_TEMPLATE, {'form': form})
+
+    if sequence_length <= 0:
+        form.add_error('sequence_length', 'Sequence length must be at least 1.')
+        return render(request, IMAGE_RESULT_TEMPLATE, {'form': form})
+
+    # Save the uploaded image
+    ext        = image_file.name.rsplit('.', 1)[-1].lower() if '.' in image_file.name else 'jpg'
+    saved_name = f"uploaded_image_{int(time.time())}.{ext}"
+    saved_path = os.path.join(settings.PROJECT_DIR, 'uploaded_images', saved_name)
+    os.makedirs(os.path.dirname(saved_path), exist_ok=True)
+    with open(saved_path, 'wb') as out_file:
+        shutil.copyfileobj(image_file, out_file)
+
+    if face_recognition is None:
+        return render(request, IMAGE_RESULT_TEMPLATE, {
+            'form': form,
+            'error': 'face_recognition library is not installed. Install the project dependencies.',
+        })
+
+    model_files = glob.glob(os.path.join(settings.PROJECT_DIR, 'models', '*.pt'))
+    if not model_files:
+        return render(request, IMAGE_RESULT_TEMPLATE, {
+            'form': form,
+            'error': 'No trained model files (.pt) found. Please place a model in the models/ directory.',
+        })
+
+    try:
+        # MARK: Model loaded from cache here
+        model, selected_model_name = load_model_cached(sequence_length)
+        if model is None:
+            return render(request, IMAGE_RESULT_TEMPLATE, {
+                'form': form,
+                'error': f'No model found for sequence length {sequence_length}.',
+            })
+
+        t_start = time.time()
+        image_result = infer_image_with_ensemble(model, saved_path, sequence_length)
+        elapsed = round(time.time() - t_start, 2)
+        output_label = image_result['output_label']
+        confidence_pct = image_result['confidence_pct']
+        face_found = image_result['face_found']
+        print(f"[Image] {output_label}  confidence={confidence_pct}%  ({elapsed}s)")
+
+        return render(request, IMAGE_RESULT_TEMPLATE, {
+            'form':           form,
+            'output':         output_label,
+            'confidence':     confidence_pct,
+            'original_image': saved_name,
+            'face_found':     face_found,
+            'model_used':     selected_model_name,
+            'elapsed':        elapsed,
+        })
+
+    except Exception as exc:
+        print(f"Image inference error: {exc}")
+        return render(request, IMAGE_RESULT_TEMPLATE, {
+            'form':  form,
+            'error': f'Analysis failed: {exc}',
+        })
+
+
+@require_POST
+def api_predict_image(request):
+    """
+    JSON API endpoint for image deepfake detection.
+
+    Accepts a multipart POST with ``upload_image_file`` and
+    ``sequence_length`` and returns a JSON response containing the prediction
+    label, confidence score, whether a face was detected, the saved image
+    filename, and the model file used.
+    """
+    form = ImageUploadForm(request.POST, request.FILES)
+    if not form.is_valid():
+        return JsonResponse({'error': 'Invalid form data.', 'details': form.errors}, status=400)
+
+    image_file      = form.cleaned_data['upload_image_file']
+    sequence_length = int(form.cleaned_data['sequence_length'])
+
+    if not allowed_image_file(image_file.name):
+        return JsonResponse({'error': 'Only jpg, jpeg, png, and webp images are supported.'}, status=400)
+
+    if sequence_length <= 0:
+        return JsonResponse({'error': 'Sequence length must be at least 1.'}, status=400)
+
+    ext        = image_file.name.rsplit('.', 1)[-1].lower() if '.' in image_file.name else 'jpg'
+    saved_name = f"uploaded_image_{int(time.time())}.{ext}"
+    saved_path = os.path.join(settings.PROJECT_DIR, 'uploaded_images', saved_name)
+    os.makedirs(os.path.dirname(saved_path), exist_ok=True)
+    with open(saved_path, 'wb') as out_file:
+        shutil.copyfileobj(image_file, out_file)
+
+    try:
+        if face_recognition is None:
+            return JsonResponse({'error': 'face_recognition library is not installed.'}, status=500)
+
+        # MARK: Model loaded from cache here
+        model, selected_model_name = load_model_cached(sequence_length)
+        if model is None:
+            return JsonResponse(
+                {'error': f'No model found for sequence length {sequence_length}.'},
+                status=500,
+            )
+
+        image_result = infer_image_with_ensemble(model, saved_path, sequence_length)
+        confidence_pct = image_result['confidence_pct']
+        output_label = image_result['output_label']
+        face_found = image_result['face_found']
+
+        return JsonResponse({
+            'output':         output_label,
+            'confidence':     confidence_pct,
+            'face_found':     face_found,
+            'original_image': saved_name,
+            'model_used':     selected_model_name,
+            'fake_probability': round(float(image_result['fake_prob']), 4),
+            'base_fake_probability': round(float(image_result['base_fake_prob']), 4),
+            'dynamic_threshold': round(float(image_result['fake_threshold']), 4),
+            'base_threshold': round(float(image_result['base_fake_threshold']), 4),
+            'uncertainty': round(float(image_result['uncertainty']), 4),
+            'artifact_features': image_result['artifact_features'],
+        })
+
+    except Exception as exc:
+        return JsonResponse({'error': f'Analysis failed: {exc}'}, status=500)
+
+
+def _collect_calibration_images(validation_dir: str) -> list:
+    """
+    Gather labeled images from validation directory.
+
+    Expected structure:
+      validation_dir/
+        real/
+        fake/   (or ai/, generated/)
+    """
+    if not os.path.isdir(validation_dir):
+        return []
+
+    positive_dirs = ('fake', 'ai', 'generated')
+    negative_dirs = ('real',)
+    samples = []
+
+    def _append_from_subdir(subdir: str, label: int) -> None:
+        folder = os.path.join(validation_dir, subdir)
+        if not os.path.isdir(folder):
+            return
+        for entry in os.listdir(folder):
+            path = os.path.join(folder, entry)
+            if not os.path.isfile(path):
+                continue
+            if not allowed_image_file(entry):
+                continue
+            samples.append((path, label))
+
+    for sub in negative_dirs:
+        _append_from_subdir(sub, 0)
+    for sub in positive_dirs:
+        _append_from_subdir(sub, 1)
+
+    return samples
+
+
+def _classification_metrics(y_true: list, y_pred: list) -> dict:
+    """Compute precision/recall/f1/accuracy and confusion counts."""
+    tp = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 1)
+    tn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 0)
+    fp = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 1)
+    fn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 0)
+
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) else 0.0
+    specificity = tn / (tn + fp) if (tn + fp) else 0.0
+    accuracy = (tp + tn) / max(1, (tp + tn + fp + fn))
+    youden_j = recall + specificity - 1.0
+
+    return {
+        'precision': precision,
+        'recall': recall,
+        'specificity': specificity,
+        'f1': f1,
+        'accuracy': accuracy,
+        'youden_j': youden_j,
+        'tp': tp,
+        'tn': tn,
+        'fp': fp,
+        'fn': fn,
+    }
+
+
+@require_POST
+def api_calibrate_image_threshold(request):
+    """
+    Calibrate base image fake threshold from labeled validation folder.
+
+    POST JSON body:
+      {
+        "validation_dir": ".../validation",
+        "sequence_length": 100,          # optional
+        "metric": "f1" or "youden_j",    # optional, default f1
+        "save": true                     # optional, default true
+      }
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON body.'}, status=400)
+
+    validation_dir = payload.get('validation_dir', '')
+    if not validation_dir:
+        return JsonResponse({'error': 'validation_dir is required.'}, status=400)
+
+    sequence_length = int(payload.get('sequence_length') or get_default_sequence_length())
+    metric_name = str(payload.get('metric', 'f1')).lower()
+    if metric_name not in ('f1', 'youden_j'):
+        return JsonResponse({'error': 'metric must be one of: f1, youden_j.'}, status=400)
+    should_save = bool(payload.get('save', True))
+
+    samples = _collect_calibration_images(validation_dir)
+    if len(samples) < 6:
+        return JsonResponse({
+            'error': (
+                'Validation folder must contain at least 6 images across '
+                '`real/` and `fake/` (or `ai/`, `generated/`) subfolders.'
+            )
+        }, status=400)
+
+    model, selected_model_name = load_model_cached(sequence_length)
+    if model is None:
+        return JsonResponse(
+            {'error': f'No model found for sequence length {sequence_length}.'},
+            status=500,
+        )
+
+    scored = []
+    y_true = []
+    for path, label in samples:
+        try:
+            score = score_image_fake_probability(model, path, sequence_length)
+        except Exception:
+            continue
+        scored.append(score)
+        y_true.append(label)
+
+    if len(scored) < 6:
+        return JsonResponse({'error': 'Too few valid images could be processed.'}, status=400)
+
+    best_threshold = 0.45
+    best_metrics = None
+    best_score = -1.0
+
+    for threshold in np.linspace(0.2, 0.8, 121):
+        preds = []
+        for score in scored:
+            dynamic_threshold = compute_dynamic_fake_threshold(
+                base_threshold=float(threshold),
+                uncertainty=float(score['uncertainty']),
+                artifact_score=float(score['artifact_features']['artifact_fake_score']),
+            )
+            pred = 1 if float(score['combined_fake_prob']) >= dynamic_threshold else 0
+            preds.append(pred)
+
+        metrics = _classification_metrics(y_true, preds)
+        candidate = metrics[metric_name]
+        if candidate > best_score:
+            best_score = candidate
+            best_threshold = float(threshold)
+            best_metrics = metrics
+
+    response_payload = {
+        'image_fake_threshold': round(best_threshold, 4),
+        'metric_used': metric_name,
+        'metric_value': round(best_score, 4),
+        'metrics': {k: round(v, 4) if isinstance(v, float) else v for k, v in best_metrics.items()},
+        'num_images_used': len(scored),
+        'sequence_length': sequence_length,
+        'model_used': selected_model_name,
+        'saved': False,
+    }
+
+    if should_save:
+        config = {
+            'image_fake_threshold': best_threshold,
+            'metric_used': metric_name,
+            'metric_value': best_score,
+            'metrics': best_metrics,
+            'num_images_used': len(scored),
+            'sequence_length': sequence_length,
+            'model_used': selected_model_name,
+            'calibrated_at_unix': int(time.time()),
+        }
+        save_calibration_config(config)
+        response_payload['saved'] = True
+        response_payload['config_path'] = get_calibration_file_path()
+
+    return JsonResponse(response_payload)
+
+
+def api_image_calibration_status(request):
+    """Return currently active calibration configuration."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Only GET is supported.'}, status=405)
+
+    config = load_calibration_config()
+    return JsonResponse({
+        'configured': bool(config),
+        'active_base_threshold': round(get_base_image_fake_threshold(), 4),
+        'config': config,
+        'config_path': get_calibration_file_path(),
+    })

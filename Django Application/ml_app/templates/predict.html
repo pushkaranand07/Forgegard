@@ -1,154 +1,119 @@
 {% extends 'base.html' %}
-{% load static %}
+
+{% block title %}Video Analysis Result{% endblock %}
+
 {% block content %}
-
-{% if error %}
-<!-- ── Error state ─────────────────────────────────────── -->
-<div class="container py-4">
-  <div class="text-center mb-3">
-    <img src="{% static 'images/logo1.png' %}" alt="Logo">
-  </div>
-  <hr />
-  <div class="alert alert-danger">{{ error }}</div>
-  {% if available_models %}
-  <div class="alert alert-info mt-2">
-    Model files found: <strong>{{ available_models|join:", " }}</strong>
-  </div>
-  {% endif %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Video Analysis Result</h1>
+            
+            {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            {% else %}
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Deepfake Detection Results</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if result %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <h6>Status:</h6>
+                                                <p class="lead">
+                                                    {% if result.label == "REAL" %}
+                                                        <span class="badge badge-success">{{ result.label }}</span>
+                                                    {% else %}
+                                                        <span class="badge badge-danger">{{ result.label }}</span>
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <h6>Confidence:</h6>
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         style="width: {{ result.confidence_pct }}%"
+                                                         aria-valuenow="{{ result.confidence_pct }}" 
+                                                         aria-valuemin="0" aria-valuemax="100">
+                                                        {{ result.confidence_pct|floatformat:1 }}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            {% if result.num_frames_processed %}
+                                                <div class="mb-3">
+                                                    <h6>Frames Processed:</h6>
+                                                    <p>{{ result.num_frames_processed }}</p>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            {% if result.processing_time_ms %}
+                                                <div class="mb-3">
+                                                    <h6>Processing Time:</h6>
+                                                    <p>{{ result.processing_time_ms|floatformat:0 }} ms</p>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            {% if result.device %}
+                                                <div class="mb-3">
+                                                    <h6>Device:</h6>
+                                                    <p><code>{{ result.device }}</code></p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if result.frame_predictions %}
+                                        <div class="mt-4">
+                                            <h6>Per-Frame Analysis:</h6>
+                                            <div style="max-height: 300px; overflow-y: auto;">
+                                                <table class="table table-sm table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Frame</th>
+                                                            <th>Prediction</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for frame_pred in result.frame_predictions %}
+                                                            <tr>
+                                                                <td>{{ forloop.counter }}</td>
+                                                                <td>
+                                                                    <div class="progress">
+                                                                        <div class="progress-bar" role="progressbar" 
+                                                                             style="width: {{ frame_pred|floatformat:1 }}%"
+                                                                             aria-valuenow="{{ frame_pred|floatformat:1 }}" 
+                                                                             aria-valuemin="0" aria-valuemax="100">
+                                                                            {{ frame_pred|floatformat:3 }}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <a href="{% url 'ml_app:home' %}" class="btn btn-primary">Back Home</a>
+            </div>
+        </div>
+    </div>
 </div>
-
-{% elif no_faces %}
-<!-- ── No face detected ───────────────────────────────── -->
-<div class="container py-4">
-  <div class="text-center mb-3">
-    <img src="{% static 'images/logo1.png' %}" alt="Logo">
-  </div>
-  <hr />
-  <div class="alert alert-warning">
-    <strong>No faces detected</strong> in the uploaded video.
-    The model relies on face crops for its analysis — please try a video that
-    contains a clearly visible human face.
-  </div>
-  <a href="{% url 'ml_app:home' %}" class="btn btn-outline-secondary mt-2">
-    ← Try a different video
-  </a>
-</div>
-
-{% else %}
-<!-- ── Results ────────────────────────────────────────── -->
-<div class="container py-4">
-  <div class="text-center mb-3">
-    <img src="{% static 'images/logo1.png' %}" alt="Logo">
-  </div>
-  <hr />
-
-  <!-- Extracted frame previews -->
-  <h3 class="mt-3">Extracted Video Frames</h3>
-  <p class="text-muted small">Raw frames sampled from the uploaded video at the chosen sequence length.</p>
-  <div id="extracted_frames" class="col-12 mt-2 mb-3">
-    {% for frame_image in preprocessed_images %}
-    <img src="{% static frame_image %}" class="preprocess" width="auto" height="250" alt="Frame preview" />
-    {% endfor %}
-  </div>
-
-  <!-- Face crop thumbnails -->
-  <h3>Detected Face Crops</h3>
-  <p class="text-muted small">Faces detected per frame and cropped before being passed to the model.</p>
-  <div id="face_crops" class="col-12 mb-3">
-    {% for face_image in faces_cropped_images %}
-    <img src="{% static face_image %}" class="faces" width="auto" height="150" alt="Face crop" />
-    {% endfor %}
-  </div>
-
-  <!-- Prediction result -->
-  <div class="result text-center mt-4">
-    <h3>Analysis Result</h3>
-    <video height="320" width="640" id="predict-media" controls class="rounded mb-3">
-      <source src="{{ MEDIA_URL }}{{ original_video }}" type="video/mp4" />
-    </video>
-
-    {% if output == "REAL" %}
-    <h4 class="mx-auto">
-      Verdict: <span class="text-success fw-bold">{{ output }}</span>
-      <img src="{% static 'images/thumpup.png' %}" alt="Thumbs up – Real" height="100px" width="auto">
-    </h4>
-    {% else %}
-    <h4 class="mx-auto">
-      Verdict: <span class="text-danger fw-bold">{{ output }}</span>
-      <img src="{% static 'images/thumpdown.png' %}" alt="Thumbs down – Fake" height="100px" width="auto">
-    </h4>
-    {% endif %}
-
-    <p class="text-muted mt-2">Model confidence: <strong>{{ confidence }}%</strong></p>
-
-    <a href="{% url 'ml_app:home' %}" class="btn btn-outline-secondary mt-3">
-      ← Analyse another video
-    </a>
-  </div>
-
-</div><!-- /container -->
-{% endif %}
-
-{% endblock %}
-
-{% block js_cripts %}
-<script src="{% static 'js/face-api.min.js' %}"></script>
-<script>
-  $(document).ready(function () {
-    var video = document.getElementById("predict-media");
-
-    // Pre-load the face-api.js detection models from the local static folder
-    Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromUri('/static/json'),
-      faceapi.nets.tinyFaceDetector.loadFromUri('/static/json'),
-    ]);
-
-    var detectionInterval;
-
-    video.addEventListener("playing", () => {
-      // Create an overlay canvas if one doesn't already exist
-      var canvas;
-      if ($('canvas').length < 1) {
-        canvas = faceapi.createCanvasFromMedia(video);
-        canvas.style.top  = video.offsetTop  + "px";
-        canvas.style.left = video.offsetLeft + "px";
-        document.body.append(canvas);
-      }
-
-      var displaySize = { width: video.width, height: video.height - 60 };
-      faceapi.matchDimensions(canvas, displaySize);
-
-      var verdictLabel    = '{{ output }}';
-      var verdictConfidence = '{{ confidence }}';
-      var boxColour = verdictLabel === 'REAL' ? '#00cc44' : '#ff3333';
-
-      detectionInterval = setInterval(async () => {
-        const detections        = await faceapi.detectAllFaces(video);
-        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-
-        canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-        canvas.style.top  = video.offsetTop  + "px";
-        canvas.style.left = video.offsetLeft + "px";
-
-        resizedDetections.forEach((detection, i) => {
-          var drawOptions = {
-            label:    verdictLabel + "  " + verdictConfidence + "%",
-            boxColor: boxColour,
-          };
-          var box = {
-            x:      resizedDetections[i].box.x,
-            y:      resizedDetections[i].box.y,
-            height: 100,
-            width:  100,
-          };
-          new faceapi.draw.DrawBox(box, drawOptions).draw(canvas);
-        });
-      }, 100); // check every 100 ms
-    });
-
-    video.addEventListener("paused", () => {
-      clearInterval(detectionInterval);
-    });
-  });
-</script>
 {% endblock %}
