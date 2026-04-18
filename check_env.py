@@ -59,9 +59,9 @@ try:
 except ImportError:
     print(f"     {FAIL}  torchvision is NOT installed")
 
-# ── 4. Core image/video dependencies ─────────────────────────────────────────
+# ── 4. Core image detection dependencies ─────────────────────────────────────
 print("\n[4] Core deps")
-for pkg_name, import_name in [("Pillow", "PIL"), ("opencv-python", "cv2"), ("numpy", "numpy")]:
+for pkg_name, import_name in [("Pillow", "PIL"), ("numpy", "numpy")]:
     try:
         mod = __import__(import_name)
         ver = getattr(mod, "__version__", "?")
@@ -87,22 +87,9 @@ for pkg in ("huggingface_hub", "datasets", "tqdm", "pyarrow"):
     except ImportError:
         print(f"     {WARN}  {pkg} not installed  (run: pip install {pkg})")
 
-# ── 7. Optional: face_recognition ────────────────────────────────────────────
-print("\n[7] face_recognition (required for video pipeline)")
-try:
-    import face_recognition  # noqa: F401
-    print(f"     {PASS}  face_recognition available")
-except ImportError:
-    print(f"     {WARN}  face_recognition NOT installed")
-    print("          Fix: conda install -c conda-forge dlib")
-    print("               pip install face-recognition")
-
-# ── 8. Model weight files ─────────────────────────────────────────────────────
-print("\n[8] Model weight files")
+# ── 7. Model weight files ────────────────────────────────────────────────────
+print("\n[7] Model weight files")
 models = {
-    "Video model (ResNeXt+LSTM) [REQUIRED]": os.path.join(
-        DJANGO_APP, "models", "model_97_acc_100_frames_FF_data.pt"
-    ),
     "Image model (IMDModel)     [REQUIRED]": os.path.join(
         ROOT, "external", "image_detection", "model", "model_c1.pth"
     ),
