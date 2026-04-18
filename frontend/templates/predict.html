@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Video Analysis Result{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Video Analysis Result</h1>
+            
+            {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            {% else %}
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Deepfake Detection Results</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if result %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <h6>Status:</h6>
+                                                <p class="lead">
+                                                    {% if result.label == "REAL" %}
+                                                        <span class="badge badge-success">{{ result.label }}</span>
+                                                    {% else %}
+                                                        <span class="badge badge-danger">{{ result.label }}</span>
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <h6>Confidence:</h6>
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         style="width: {{ result.confidence_pct }}%"
+                                                         aria-valuenow="{{ result.confidence_pct }}" 
+                                                         aria-valuemin="0" aria-valuemax="100">
+                                                        {{ result.confidence_pct|floatformat:1 }}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            {% if result.num_frames_processed %}
+                                                <div class="mb-3">
+                                                    <h6>Frames Processed:</h6>
+                                                    <p>{{ result.num_frames_processed }}</p>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            {% if result.processing_time_ms %}
+                                                <div class="mb-3">
+                                                    <h6>Processing Time:</h6>
+                                                    <p>{{ result.processing_time_ms|floatformat:0 }} ms</p>
+                                                </div>
+                                            {% endif %}
+                                            
+                                            {% if result.device %}
+                                                <div class="mb-3">
+                                                    <h6>Device:</h6>
+                                                    <p><code>{{ result.device }}</code></p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if result.frame_predictions %}
+                                        <div class="mt-4">
+                                            <h6>Per-Frame Analysis:</h6>
+                                            <div style="max-height: 300px; overflow-y: auto;">
+                                                <table class="table table-sm table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Frame</th>
+                                                            <th>Prediction</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for frame_pred in result.frame_predictions %}
+                                                            <tr>
+                                                                <td>{{ forloop.counter }}</td>
+                                                                <td>
+                                                                    <div class="progress">
+                                                                        <div class="progress-bar" role="progressbar" 
+                                                                             style="width: {{ frame_pred|floatformat:1 }}%"
+                                                                             aria-valuenow="{{ frame_pred|floatformat:1 }}" 
+                                                                             aria-valuemin="0" aria-valuemax="100">
+                                                                            {{ frame_pred|floatformat:3 }}
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <a href="{% url 'api:home' %}" class="btn btn-primary">Back Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
