@@ -19,7 +19,6 @@ import threading
 import logging
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Dict, Any
-from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
@@ -40,23 +39,21 @@ except ImportError:
     MTCNN = None
 
 try:
-    from timm.models.efficientnet import (
-        tf_efficientnet_b4_ns, tf_efficientnet_b5_ns,
-        tf_efficientnet_b6_ns, tf_efficientnet_b7_ns
-    )
+    import timm as _timm
+    _TIMM_AVAILABLE = True
 except ImportError:
-    # Fallback for older timm versions or if timm is not installed
-    try:
-        from timm.models import (
-            tf_efficientnet_b4_ns, tf_efficientnet_b5_ns,
-            tf_efficientnet_b6_ns, tf_efficientnet_b7_ns
-        )
-    except ImportError:
-        # If timm is not available, these will be set when model is loaded
-        tf_efficientnet_b4_ns = None
-        tf_efficientnet_b5_ns = None
-        tf_efficientnet_b6_ns = None
-        tf_efficientnet_b7_ns = None
+    _TIMM_AVAILABLE = False
+
+
+def _make_efficientnet(model_name: str, drop_path_rate: float = 0.2):
+    """Factory using timm.create_model() — works across all timm versions."""
+    if not _TIMM_AVAILABLE:
+        return None
+    return lambda: _timm.create_model(
+        model_name,
+        pretrained=False,
+        drop_path_rate=drop_path_rate
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -72,24 +69,31 @@ normalize_transform = Normalize(IMAGENET_MEAN, IMAGENET_STD)
 # Encoder parameters mapping
 # ─────────────────────────────────────────────────────────────────────────────
 
+# timm 1.0+ renamed _ns models to dot notation (e.g. tf_efficientnet_b7_ns → tf_efficientnet_b7.ns_jft_in1k)
+# Keep old keys as aliases so existing checkpoints and configs continue to work.
 encoder_params = {
-    "tf_efficientnet_b4_ns": {
-        "features": 1792,
-        "init_op": partial(tf_efficientnet_b4_ns, pretrained=True, drop_path_rate=0.5) if tf_efficientnet_b4_ns else None
-    },
-    "tf_efficientnet_b5_ns": {
-        "features": 2048,
-        "init_op": partial(tf_efficientnet_b5_ns, pretrained=True, drop_path_rate=0.2) if tf_efficientnet_b5_ns else None
-    },
-    "tf_efficientnet_b6_ns": {
-        "features": 2304,
-        "init_op": partial(tf_efficientnet_b6_ns, pretrained=True, drop_path_rate=0.2) if tf_efficientnet_b6_ns else None
-    },
-    "tf_efficientnet_b7_ns": {
+    "tf_efficientnet_b7.ns_jft_in1k": {
         "features": 2560,
-        "init_op": partial(tf_efficientnet_b7_ns, pretrained=True, drop_path_rate=0.2) if tf_efficientnet_b7_ns else None
+        "init_op": _make_efficientnet("tf_efficientnet_b7.ns_jft_in1k", drop_path_rate=0.2)
+    },
+    "tf_efficientnet_b6.ns_jft_in1k": {
+        "features": 2304,
+        "init_op": _make_efficientnet("tf_efficientnet_b6.ns_jft_in1k", drop_path_rate=0.2)
+    },
+    "tf_efficientnet_b5.ns_jft_in1k": {
+        "features": 2048,
+        "init_op": _make_efficientnet("tf_efficientnet_b5.ns_jft_in1k", drop_path_rate=0.2)
+    },
+    "tf_efficientnet_b4.ns_jft_in1k": {
+        "features": 1792,
+        "init_op": _make_efficientnet("tf_efficientnet_b4.ns_jft_in1k", drop_path_rate=0.5)
     },
 }
+# Backward-compatible aliases (deprecated _ns names still accepted)
+encoder_params["tf_efficientnet_b7_ns"] = encoder_params["tf_efficientnet_b7.ns_jft_in1k"]
+encoder_params["tf_efficientnet_b6_ns"] = encoder_params["tf_efficientnet_b6.ns_jft_in1k"]
+encoder_params["tf_efficientnet_b5_ns"] = encoder_params["tf_efficientnet_b5.ns_jft_in1k"]
+encoder_params["tf_efficientnet_b4_ns"] = encoder_params["tf_efficientnet_b4.ns_jft_in1k"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

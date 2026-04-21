@@ -22,7 +22,7 @@ PROJECT_DIR = BASE_DIR
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-change-me")
 
 # SECURITY WARNING: do not run with DEBUG=True in production!
-DEBUG = os.getenv("DJANGO_DEBUG", "false").strip().lower() in ("1", "true", "yes", "on")
+DEBUG = os.getenv("DJANGO_DEBUG", "true").strip().lower() in ("1", "true", "yes", "on")
 
 # Set to your actual domain or IP in production
 allowed_hosts_raw = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
@@ -111,9 +111,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
-    # uploaded_images is served as a static directory so the results pages can
-    # render frame previews and face-crop thumbnails by filename.
-    os.path.join(PROJECT_DIR, 'uploaded_images'),
     os.path.join(PROJECT_DIR, 'frontend', 'static'),
 ]
 
@@ -134,7 +131,7 @@ MAX_UPLOAD_SIZE = "104857600"
 # ─────────────────────────────────────────────
 
 MEDIA_URL  = "/media/"
-MEDIA_ROOT = os.path.join(PROJECT_DIR, 'uploaded_videos')
+MEDIA_ROOT = os.path.join(PROJECT_DIR, 'uploaded_images')
 
 
 # ─────────────────────────────────────────────

@@ -208,7 +208,7 @@ def predict_image(request):
             context.update({
                 "output": result.label,
                 "confidence": round(max(result.tampered_prob, result.authentic_prob) * 100, 2),
-                "original_image": f"uploaded_images/{saved_name}",
+                "original_image": saved_name,
                 "face_found": False,
                 "model_used": f"IMDModel Level-2 ({result.device})",
                 "elapsed": round(time.time() - start_time, 2),
