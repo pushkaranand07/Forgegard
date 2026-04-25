@@ -2672,10 +2672,12 @@
         
         <p>To mitigate domain shift, ForgeGuard’s foundational data strategy requires datasets that are inherently diverse across four crucial axes: (1) <strong>Generative Diversity</strong>: The dataset must include media created by multiple distinct algorithmic families (Autoencoders, GANs, Diffusion Models); (2) <strong>Subject Diversity</strong>: The dataset must encompass a wide variance in skin tones, facial structures, ages, and genders to prevent the model from learning demographic biases; (3) <strong>Environmental Diversity</strong>: The source videos must feature varying lighting conditions, background complexities, and camera qualities; and (4) <strong>Degradation Diversity</strong>: The dataset must include media at various compression levels and resolutions, simulating the lossy nature of internet distribution. The datasets chosen for ForgeGuard—DFDC and CASIA—were selected specifically because they maximize variance across these four axes.</p>
 
-        <div style="background-color:#f9f9f9; border-left:4px solid #0056b3; padding:15px; margin:20px 0;">
-            <p style="margin:0; font-weight:bold; color:#0056b3;">[IMAGE PLACEHOLDER: Figure 5.1 - Domain Shift Visualization]</p>
-            <p style="margin-top:10px; font-size:0.9em; color:#555;"><strong>Required Content:</strong> A conceptual graph or 3D scatter plot illustrating the "Domain Shift" problem in deepfake detection. The image should show two distinct clusters representing the "Training Data Distribution" (e.g., high-quality studio fakes) and the "Real-World Deployment Distribution" (e.g., highly compressed social media fakes). A decision boundary (representing the model) should be drawn that perfectly separates the training data but fails to correctly classify a significant portion of the real-world deployment data.<br>
-            <strong>Purpose:</strong> To visually explain why high training accuracy does not guarantee high real-world forensic accuracy, justifying the need for highly diverse and degraded datasets.</p>
+        
+        <div class="figure-container" style="text-align: center; margin: 24pt 0;">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="image/5.1.png" alt="Figure 5.1" style="max-width: 600px; width:100%; display: block; margin: 0 auto;">
+            </div>
+            <p class="caption" style="text-align: center; font-style: italic; margin-top: 12pt;">Figure 5.1: Domain Shift Visualization illustrating the discrepancy between training distributions and real-world deployment data.</p>
         </div>
 
     </div>
@@ -2697,10 +2699,12 @@
 
         <p>Furthermore, the dataset includes videos designed to actively attack detection algorithms. Some videos feature text overlays moving across the face, extreme partial occlusions (hands covering the mouth), and dramatic, rapid changes in illumination. By validating ForgeGuard’s performance against these adversarial examples, we ensure that the MTCNN face detection pipeline and the subsequent classification backbone are resilient against deliberate obfuscation attempts. The ability to maintain high AUC scores across these degraded subsets is the primary technical justification for deploying ForgeGuard in uncontrolled internet environments.</p>
         
-        <div style="background-color:#f9f9f9; border-left:4px solid #0056b3; padding:15px; margin:20px 0;">
-            <p style="margin:0; font-weight:bold; color:#0056b3;">[IMAGE PLACEHOLDER: Figure 5.2 - DFDC Dataset Variance]</p>
-            <p style="margin-top:10px; font-size:0.9em; color:#555;"><strong>Required Content:</strong> A grid of simulated video frames illustrating the diversity of the DFDC dataset. The grid should show four columns representing different challenges: (1) Extreme lighting/shadows, (2) Partial facial occlusion (e.g., a hand or microphone), (3) Multiple faces in a single frame, and (4) Heavy compression artifacts/blurring.<br>
-            <strong>Purpose:</strong> To visually demonstrate the "in-the-wild" complexity of the dataset, proving that the system is trained on realistic, highly degraded footage rather than pristine, center-framed studio shots.</p>
+        
+        <div class="figure-container" style="text-align: center; margin: 24pt 0;">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="image/5.2.png" alt="Figure 5.2" style="max-width: 600px; width:100%; display: block; margin: 0 auto;">
+            </div>
+            <p class="caption" style="text-align: center; font-style: italic; margin-top: 12pt;">Figure 5.2: DFDC Dataset Variance highlighting extreme lighting, partial occlusions, and heavy compression artifacts in "in-the-wild" conditions.</p>
         </div>
     </div>
 
@@ -2716,10 +2720,12 @@
 
         <p>The manipulated images in CASIA v2.0 were created using Adobe Photoshop and saved at various quality levels, preserving the exact types of compression inconsistencies that ELA is mathematically designed to highlight. Furthermore, the dataset includes manipulations of varying sizes—from large, obvious splices to tiny, subtle copy-move operations. This forces the ForgeGuard IMDModel (Image Manipulation Detection Model) to learn scale-invariant features. By processing the CASIA dataset through the ELA preprocessing script, the model learns to correlate the bright, high-intensity regions of an ELA map with the binary ground truth of manipulation, effectively automating the visual inspection process traditionally performed by human forensic analysts.</p>
 
-        <div style="background-color:#f9f9f9; border-left:4px solid #0056b3; padding:15px; margin:20px 0;">
-            <p style="margin:0; font-weight:bold; color:#0056b3;">[IMAGE PLACEHOLDER: Figure 5.3 - Traditional Image Forgery Types]</p>
-            <p style="margin-top:10px; font-size:0.9em; color:#555;"><strong>Required Content:</strong> A diagram defining the two primary types of traditional image forgery evaluated in the CASIA dataset. Top row: "Splicing Forgery" showing an object from Source Image A being pasted into Source Image B. Bottom row: "Copy-Move Forgery" showing an object within Source Image A being duplicated and pasted to a different location within the same Image A to cover up an element.<br>
-            <strong>Purpose:</strong> To clearly define the specific classes of spatial manipulations that the image pipeline is designed to detect, distinguishing them from generative deepfakes.</p>
+        
+        <div class="figure-container" style="text-align: center; margin: 24pt 0;">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="image/5.3.png" alt="Figure 5.3" style="max-width: 600px; width:100%; display: block; margin: 0 auto;">
+            </div>
+            <p class="caption" style="text-align: center; font-style: italic; margin-top: 12pt;">Figure 5.3: Traditional Image Forgery Types comparing splicing and copy-move manipulations.</p>
         </div>
 
         <div class="section-heading">5.5 Supplementary Validation Datasets</div>
@@ -2738,10 +2744,12 @@
 
         <p>In ForgeGuard, the preprocessing philosophy is governed by the principle of <strong>Forensic Signal Preservation</strong>. Standard computer vision preprocessing pipelines—such as those used for facial recognition or object detection—often apply aggressive downsampling, blurring, or color normalization to make images more uniform and easier to process. However, in forensics, the "noise" is the signal. Generative artifacts, compression inconsistencies, and blending boundaries often exist in the highest-frequency spatial domains. A naive preprocessing step, such as a lossy bilinear resize or an aggressive Gaussian blur, can permanently destroy these microscopic artifacts before the neural network ever analyzes the image. Consequently, every step in ForgeGuard’s preprocessing pipeline is mathematically optimized to preserve high-frequency information and maintain the integrity of the original pixel data.</p>
         
-        <div style="background-color:#f9f9f9; border-left:4px solid #0056b3; padding:15px; margin:20px 0;">
-            <p style="margin:0; font-weight:bold; color:#0056b3;">[IMAGE PLACEHOLDER: Figure 5.4 - Signal Preservation Concept]</p>
-            <p style="margin-top:10px; font-size:0.9em; color:#555;"><strong>Required Content:</strong> A visual comparison showing the difference between standard computer vision preprocessing and forensic preprocessing. The left side ("Standard Vision") should show a high-res face being aggressively downsampled and blurred, highlighting that the semantic identity remains but fine details are lost. The right side ("Forensic Preprocessing") should show careful, high-resolution cropping and mathematically lossless tensor conversion, preserving microscopic noise patterns and blending edges.<br>
-            <strong>Purpose:</strong> To visually underscore the theoretical necessity of the highly optimized preprocessing pipeline detailed in this chapter.</p>
+        
+        <div class="figure-container" style="text-align: center; margin: 24pt 0;">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="image/5.4.png" alt="Figure 5.4" style="max-width: 600px; width:100%; display: block; margin: 0 auto;">
+            </div>
+            <p class="caption" style="text-align: center; font-style: italic; margin-top: 12pt;">Figure 5.4: Signal Preservation Concept contrasting standard computer vision downsampling with lossless forensic preprocessing.</p>
         </div>
 
         <div class="section-heading">5.7 Image Preprocessing: Error Level Analysis (ELA) Pipeline</div>
@@ -2759,11 +2767,7 @@
         <div class="sub-section-heading">5.7.2 ELA Output Normalization</div>
         <p>The resulting ELA map <em>E</em> is not a standard photograph; it is a false-color representation of mathematical residuals. Before being passed to the PyTorch IMDModel, this map is resized to a fixed square resolution (e.g., 256x256) using interpolation methods that preserve sharp intensity transitions. The tensor is then normalized to a <code>[0, 1]</code> floating-point range and standardized using ImageNet mean and standard deviation vectors. This ensures that the numerical gradients flowing through the CNN during both training and inference remain stable, preventing the vanishing or exploding gradient problems common in deep networks.</p>
         
-        <div style="background-color:#f9f9f9; border-left:4px solid #0056b3; padding:15px; margin:20px 0;">
-            <p style="margin:0; font-weight:bold; color:#0056b3;">[IMAGE PLACEHOLDER: Figure 5.5 - ELA Generation Pipeline]</p>
-            <p style="margin-top:10px; font-size:0.9em; color:#555;"><strong>Required Content:</strong> A flowchart detailing the four-step ELA algorithm. It should display a sample "Original Image," an arrow pointing to "Re-compression (JPEG q=90)," a subtraction node ("|Original - Re-compressed|"), an amplification multiplier ("x10"), and the final "ELA Map" showing the bright, high-contrast residuals where an image has been manipulated.<br>
-            <strong>Purpose:</strong> To provide a clear, step-by-step visualization of the mathematical operations driving the image forgery detection preprocessing.</p>
-        </div>
+        
     </div>
 
     <div class="page">
@@ -2778,10 +2782,12 @@
         <div class="sub-section-heading">5.8.2 Frame Decoding and Integrity Validation</div>
         <p>The extraction process operates strictly in the RGB color space. When OpenCV decodes a frame, it natively defaults to the BGR format. A mandatory <code>cv2.cvtColor</code> operation converts this to standard RGB to match the expectations of the pre-trained PyTorch models. Immediately following decoding, each extracted frame undergoes an integrity validation check. Frames that are entirely black (often representing scene transitions) or corrupted by decoding errors are dynamically identified and discarded by checking the variance and mean of the pixel intensities. If a target frame is discarded, the algorithm attempts to extract the immediately adjacent frame to maintain the 32-frame batch size, ensuring the neural network has sufficient data for a confident temporal aggregation.</p>
         
-        <div style="background-color:#f9f9f9; border-left:4px solid #0056b3; padding:15px; margin:20px 0;">
-            <p style="margin:0; font-weight:bold; color:#0056b3;">[IMAGE PLACEHOLDER: Figure 5.6 - Temporal Linspace Sampling]</p>
-            <p style="margin-top:10px; font-size:0.9em; color:#555;"><strong>Required Content:</strong> A diagram representing a video timeline (e.g., 0:00 to 1:00). Above the timeline, show a dense series of blocks representing all 1,800 frames. Below the timeline, show 32 evenly spaced blocks connected by lines to specific points in the dense timeline, labeled "Extracted Representative Frames." Highlight that these frames capture different poses/actions across the entire video.<br>
-            <strong>Purpose:</strong> To illustrate how sparse sampling reduces computational load while maintaining full temporal coverage of the media file.</p>
+        
+        <div class="figure-container" style="text-align: center; margin: 24pt 0;">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="image/5.6.png" alt="Figure 5.5" style="max-width: 600px; width:100%; display: block; margin: 0 auto;">
+            </div>
+            <p class="caption" style="text-align: center; font-style: italic; margin-top: 12pt;">Figure 5.5: Temporal Linspace Sampling strategy for extracting representative frames evenly across a video timeline.</p>
         </div>
 
         <div class="section-heading">5.9 Face Detection and Alignment (MTCNN)</div>
@@ -2806,10 +2812,12 @@
         <div class="sub-section-heading">5.10.2 Data Augmentation for Robustness</div>
         <p>During the training phase (which generated the model weights utilized by ForgeGuard), the preprocessing pipeline incorporated rigorous data augmentation. To ensure the model did not overfit to the pristine quality of the DFDC source videos, the training tensors were subjected to stochastic (random) transformations. These included random Gaussian blurring, random JPEG compression artifacts, minor color jittering (adjusting brightness, contrast, and saturation), and horizontal flipping. This aggressive augmentation strategy acts as a regularizer, forcing the neural network to identify persistent, fundamental markers of forgery rather than relying on fragile, dataset-specific anomalies. While these augmentations are disabled during production inference to ensure deterministic output, their application during training is what provides ForgeGuard with its resilience against domain shift and real-world media degradation.</p>
 
-        <div style="background-color:#f9f9f9; border-left:4px solid #0056b3; padding:15px; margin:20px 0;">
-            <p style="margin:0; font-weight:bold; color:#0056b3;">[IMAGE PLACEHOLDER: Figure 5.7 - Contextual Padding and Alignment]</p>
-            <p style="margin-top:10px; font-size:0.9em; color:#555;"><strong>Required Content:</strong> A three-part visual sequence showing a face crop. Part A: "Raw MTCNN Output" showing a tight bounding box around a tilted face. Part B: "Affine Alignment" showing the face rotated so the eyes are horizontally level. Part C: "33% Contextual Padding" showing the bounding box expanded outward to include the jawline, forehead, and background edges, with a dotted line indicating the original tight crop boundary.<br>
-            <strong>Purpose:</strong> To technically illustrate the facial alignment and padding logic, emphasizing how the system captures the critical blending boundaries required for deepfake detection.</p>
+        
+        <div class="figure-container" style="text-align: center; margin: 24pt 0;">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="image/5.7.png" alt="Figure 5.6" style="max-width: 600px; width:100%; display: block; margin: 0 auto;">
+            </div>
+            <p class="caption" style="text-align: center; font-style: italic; margin-top: 12pt;">Figure 5.6: Facial extraction showing Affine Alignment and 33% Contextual Padding to capture critical blending boundaries.</p>
         </div>
 
         <div class="section-heading">5.11 Addressing Data Imbalance and Domain Shift</div>
