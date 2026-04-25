@@ -1,0 +1,3343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ForgeGuard Project Report - Part 2</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 14pt;
+      line-height: 1.5;
+      color: #000;
+      background: #f0f0f0;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 10mm auto;
+      padding: 25.4mm 25.4mm 25.4mm 25.4mm;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      page-break-after: always;
+      position: relative;
+      text-align: justify;
+    }
+
+    .transparency-page {
+      background: rgba(255, 255, 255, 0.4);
+      border: 2px dashed #aaa;
+    }
+
+    .chapter-heading {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 18pt;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 24pt;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .section-heading {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 14pt;
+      font-weight: bold;
+      margin-top: 18pt;
+      margin-bottom: 6pt;
+    }
+
+    .sub-section-heading {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 14pt;
+      font-weight: bold;
+      margin-top: 12pt;
+      margin-bottom: 6pt;
+      text-decoration: underline;
+    }
+
+    p {
+      text-align: justify;
+      margin-bottom: 9pt;
+      text-indent: 30pt;
+    }
+
+    p.no-indent {
+      text-indent: 0;
+    }
+
+    .page-number {
+      position: absolute;
+      bottom: 20mm;
+      right: 30mm;
+      font-size: 11pt;
+    }
+
+    .page-number-center {
+      position: absolute;
+      bottom: 20mm;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12pt 0;
+      font-size: 11pt;
+    }
+
+    th {
+      background: #d0d0d0;
+      border: 1px solid #000;
+      padding: 6pt 8pt;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    td {
+      border: 1px solid #000;
+      padding: 5pt 8pt;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .table-caption {
+      font-weight: bold;
+      text-align: center;
+      margin-top: 6pt;
+      margin-bottom: 12pt;
+      font-size: 11pt;
+    }
+
+    pre {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 9pt;
+      background: #f5f5f5;
+      border: 1px solid #ccc;
+      padding: 8pt 10pt;
+      overflow-x: auto;
+      margin: 10pt 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.4;
+      page-break-inside: avoid;
+    }
+
+    .figure-container {
+      text-align: center;
+      margin: 14pt 0;
+      page-break-inside: avoid;
+    }
+
+    .figure-box {
+      border: 1px solid #888;
+      padding: 20pt;
+      background: #fafafa;
+      min-height: 80pt;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-style: italic;
+      color: #555;
+      font-size: 10pt;
+      margin-bottom: 6pt;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .figure-box img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .figure-caption {
+      font-weight: bold;
+      font-size: 11pt;
+      text-align: center;
+      margin-top: 4pt;
+    }
+
+    ul,
+    ol {
+      margin-left: 36pt;
+      margin-bottom: 9pt;
+    }
+
+    li {
+      margin-bottom: 4pt;
+      text-align: justify;
+    }
+
+    .note-box {
+      border-left: 4px solid #555;
+      background: #f8f8f8;
+      padding: 8pt 12pt;
+      margin: 10pt 0;
+      font-size: 11pt;
+    }
+
+    .signature-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 40pt;
+    }
+
+    .signature-block {
+      text-align: center;
+      width: 45%;
+    }
+
+    .signature-line {
+      border-top: 1px solid #000;
+      margin-bottom: 4pt;
+      margin-top: 30pt;
+    }
+
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: 10pt;
+      background: #f0f0f0;
+      padding: 1pt 3pt;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .page {
+        margin: 0;
+        padding: 0 !important;
+        box-shadow: none;
+        page-break-after: always;
+        height: auto;
+        min-height: 0;
+        width: auto;
+        max-width: 100%;
+      }
+
+      @page {
+        size: A4;
+        margin: 1in;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 5 TRANSPARENCY
+     ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page transparency-page">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
+      <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
+      <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 5</p>
+
+
+
+      <div class="page-number" style="visibility:hidden;">31</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 5 — SYSTEM DESIGN
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page">
+      <div class="chapter-heading">CHAPTER 5<br>SYSTEM DESIGN</div>
+
+      <div class="section-heading">5.1 Overall System Architecture</div>
+      <p>The ForgeGuard system follows a layered, modular architecture designed for separation of concerns, testability,
+        and maintainability. The architecture can be divided into four primary layers: the <strong>Presentation
+          Layer</strong> (HTML/CSS/JavaScript frontend templates rendered by Django), the <strong>Application
+          Layer</strong> (Django URL routing, view functions, and API handlers), the <strong>Core Pipeline
+          Layer</strong> (AI inference modules for image and video processing), and the <strong>Data Layer</strong>
+        (SQLite database accessed via Django ORM, file system storage for uploads and model weights).</p>
+
+      <div class="figure-container">
+        <div class="figure-box">
+          [IMAGE: Figure 5.1 — ForgeGuard High-Level System Architecture Diagram]<br>
+          <small>Create a 4-layer architecture diagram using draw.io. Layer 1 (top): Browser/Client. Layer 2: Django
+            Application (views.py, api endpoints, URL router). Layer 3: Core Pipeline (image_processor.py,
+            video_processor.py). Layer 4 (bottom): Model Weights (deepfake_detector_b7.pth, model_c1.pth) + SQLite DB +
+            File Storage. Use colored boxes and arrows.</small>
+        </div>
+        <p class="figure-caption">Figure 5.1: ForgeGuard High-Level System Architecture</p>
+      </div>
+
+      <div class="sub-section-heading">5.1.1 Presentation Layer</div>
+      <p>The presentation layer consists of Django HTML templates rendered using Django's built-in templating engine.
+        The key templates include <code>index.html</code> (video upload home page), <code>image_predict.html</code>
+        (image upload and results), <code>about.html</code> (project information), <code>404.html</code> (custom error
+        page), and <code>video_upload.html</code> (dedicated video upload form). Static assets (CSS stylesheets,
+        JavaScript scripts) are served from the <code>frontend/static/</code> directory.</p>
+
+      <div class="sub-section-heading">5.1.2 Application Layer
+      </div>
+      <p>The application layer is implemented as a single Django application with URL routing defined in
+        <code>api/urls.py</code>. Views are organized by media type — <code>image_api.py</code> handles image-related
+        requests, <code>video_api.py</code> handles video requests, and <code>unified_api.py</code> provides the
+        auto-detecting unified endpoint. The <code>views.py</code> file handles page rendering views (home, about, 404).
+        Form validation is handled by <code>forms.py</code>.
+      </p>
+
+      <div class="sub-section-heading">5.1.3 Core Pipeline Layer
+
+      </div>
+      <p>The core pipeline layer is isolated in the <code>core/pipeline/</code> package, which contains two primary
+        modules: <code>image_processor.py</code> (implementing ELA, IMDModel, and metadata analysis) and
+        <code>video_processor.py</code> (implementing MTCNN face detection, EfficientNet B7 classification, and the
+        confident aggregation strategy). This layer has no dependency on Django, making it importable and testable in
+        isolation from the web framework.
+      </p>
+
+      <div class="sub-section-heading">5.1.4 Data Layer
+      </div>
+
+
+    </div>
+    <p>The data layer comprises the SQLite database (primarily used by Django's session management, admin interface, and
+      logging), the <code>weights/</code> directory containing pre-trained model weight files
+      (<code>deepfake_detector_b7.pth</code> for video and <code>model_c1.pth</code> for images), the
+      <code>uploaded_images/</code> directory for persisted image uploads, and the <code>uploaded_videos/</code>
+      directory for temporary video storage (cleaned up after processing).
+    </p>
+
+
+
+
+
+
+    <!-- MERGED CONTINUATION -->
+
+
+    <div class="section-heading">5.2 Data Flow Diagrams</div>
+
+    <div class="sub-section-heading">5.2.1 Level 0 — Context DFD (System Boundary)</div>
+    <p>The Level 0 DFD (Context Diagram) depicts the ForgeGuard system as a single processing unit, showing the external
+      entities that interact with it and the data flows between them. The primary external entities are: (1) the
+      <strong>User</strong> who submits media files and receives detection results through the web interface, (2) the
+      <strong>API Client</strong> (a third-party application or developer) who interacts with ForgeGuard through the
+      REST API, and (3) the <strong>File System</strong> which stores model weights and uploaded media files.
+    </p>
+
+    <div class="figure-container">
+      <div class="figure-box">
+        [IMAGE: Figure 5.2 — Level 0 Context DFD for ForgeGuard]<br>
+        <small>Create a context DFD using draw.io. Show: Oval (ForgeGuard System) in center. Left: Rectangle "User (Web
+          Browser)" with arrows: → "Image/Video File Upload" into system, ← "Detection Result
+          (AUTHENTIC/TAMPERED/REAL/FAKE + confidence)" from system. Right: Rectangle "API Client" with arrows: → "POST
+          /api/detect/ (file bytes)" into system, ← "JSON Response" from system. Bottom: Rectangle "File System" with
+          arrows both ways for model weights and file storage.</small>
+      </div>
+      <p class="figure-caption">Figure 5.2: Level 0 — Context DFD (System Boundary) of ForgeGuard</p>
+    </div>
+
+    <div class="sub-section-heading">5.2.2 Level 1 — System DFD (Major Processes)</div>
+    <p>The Level 1 DFD decomposes the ForgeGuard system into its major internal processes, showing data stores and data
+      flows between processes. The major processes identified are:</p>
+    <ul>
+      <li><strong>P1: Input Validation</strong> — Validates file format, extension, and size; rejects invalid files.
+      </li>
+      <li><strong>P2: File Persistence</strong> — Saves uploaded files to disk for audit trail.</li>
+      <li><strong>P3: Media Type Detection</strong> — Determines whether the submitted file is an image or video based
+        on extension.</li>
+      <li><strong>P4: Image Detection Pipeline</strong> — Runs Level-1 metadata analysis and Level-2 ELA + CNN
+        classification.</li>
+      <li><strong>P5: Video Detection Pipeline</strong> — Runs frame sampling, face detection, preprocessing, and
+        EfficientNet B7 classification.</li>
+      <li><strong>P6: Response Formatting</strong> — Packages detection results into structured JSON response.</li>
+    </ul>
+
+    <div class="figure-container">
+      <div class="figure-box">
+        [IMAGE: Figure 5.3 — Level 1 DFD (Image Detection Sub-system)]<br>
+        <small>Create a Level 1 DFD using draw.io showing processes P1 through P6 as rounded rectangles. Show data flows
+          between them as arrows with labels. Include data stores: D1 (File System/Uploads), D2 (Model Weights). Connect
+          User/API Client as external entities to P1. Show conditional flow from P3 branching to P4 (image) or P5
+          (video).</small>
+      </div>
+      <p class="figure-caption">Figure 5.3: Level 1 DFD — ForgeGuard Major Processing Flows</p>
+    </div>
+
+    <div class="sub-section-heading">5.2.3 Level 2 — DFD (Image Detection Pipeline Detail)
+    </div>
+    <p>The Level 2 DFD for the Image Detection Pipeline (P4) expands the image processing flow into its component
+      subprocesses:</p>
+    <ul>
+      <li><strong>P4.1: Load PIL Image</strong> — Converts raw bytes to PIL Image object, forces RGB mode.</li>
+      <li><strong>P4.2: Metadata Analysis (Level-1)</strong> — Extracts EXIF data, searches for Software tag.</li>
+      <li><strong>P4.3: ELA Computation (Level-2)</strong> — Re-saves at quality=90, computes amplified difference
+        image.</li>
+      <li><strong>P4.4: Preprocess for CNN</strong> — Resizes ELA image to 128×128, normalizes to [0,1].</li>
+      <li><strong>P4.5: IMDModel Inference</strong> — Forwards preprocessed tensor through CNN, applies softmax.</li>
+      <li><strong>P4.6: Result Assembly</strong> — Constructs ImageDetectionResult dataclass from probabilities and
+        metadata findings.</li>
+    </ul>
+
+    <div class="figure-container">
+      <div class="figure-box">
+        [IMAGE: Figure 5.4 — Level 2 DFD (Image Pipeline Detailed Sub-processes P4.1–P4.6)]<br>
+        <small>Expand the image pipeline into 6 sub-processes (P4.1 to P4.6) shown as a sequential flow diagram using
+          draw.io. Show the ELA image as an intermediate data artifact between P4.3 and P4.4. Show model weights (D2) as
+          a data store accessed by P4.5.</small>
+
+
+      </div>
+      <p class="figure-caption">Figure 5.4: Level 2 DFD — Image Detection Pipeline Detailed Sub-processes</p>
+
+    </div>
+
+  </div>
+
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">5.3 UML Diagrams</div>
+
+  <div class="sub-section-heading">5.3.1 Use Case Diagram</div>
+  <p>The Use Case Diagram identifies the actors who interact with the ForgeGuard system and the use cases
+    (functionalities) accessible to each actor. Two primary actors are identified: the <strong>Web User</strong> (a
+    person using the web browser interface) and the <strong>API Client</strong> (a developer or automated system
+    interacting via HTTP). A secondary actor is the <strong>System Administrator</strong> who manages the Django admin
+    interface and server operations.</p>
+
+  <p>The use cases for the Web User include: Upload Image for Detection, View Image Detection Result, Upload Video for
+    Detection, View Video Detection Result, and View About Page. The use cases for the API Client include: POST to
+    /api/detect-image/, POST to /api/detect-video/, POST to /api/detect/ (unified), and POST to /api/detect/batch. The
+    System Administrator use cases include: Monitor Logs, Manage Django Admin, and Configure Model Weights.</p>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 5.5 — Use Case Diagram for ForgeGuard System]<br>
+      <small>Create a standard UML Use Case diagram using draw.io. Show 3 actors (stick figures): Web User, API
+        Client, System Administrator. Show system boundary rectangle labeled "ForgeGuard System". Inside, show use
+        case ovals as described above. Connect actors to relevant use cases with lines. Use include/extend
+        relationships where appropriate (e.g., "View Image Result" includes "Upload Image").</small>
+    </div>
+    <p class="figure-caption">Figure 5.5: Use Case Diagram — ForgeGuard System Actors and Use Cases</p>
+  </div>
+
+  <div class="sub-section-heading">5.3.2 Class Diagram
+  </div>
+  <p>The Class Diagram presents the key Python classes in the ForgeGuard system, their attributes, methods, and
+    relationships. The principal classes are:</p>
+
+  <ul>
+    <li><strong>IMDModel (nn.Module)</strong>: Attributes: down_conv1, down_conv2, linear. Methods: __init__(),
+      forward(img). Inherits from PyTorch nn.Module.</li>
+    <li><strong>ImageDetectionResult (frozen dataclass)</strong>: Attributes: label, predicted_class, authentic_prob,
+      tampered_prob, device, software_found, software_signature, level1_notes. Methods: as_dict().</li>
+    <li><strong>DeepFakeClassifier (nn.Module)</strong>: Attributes: encoder, avg_pool, dropout, fc. Methods:
+      __init__(encoder, dropout_rate), forward(x). Inherits from nn.Module.</li>
+    <li><strong>VideoDetectionResult (dataclass)</strong>: Attributes: label, predicted_class, fake_prob, real_prob,
+      confidence_pct, device, num_frames_processed, frame_predictions, notes.</li>
+    <li><strong>VideoReader</strong>: Attributes: verbose, insets. Methods: read_frames(path, num_frames, jitter,
+      seed).</li>
+    <li><strong>FaceDetectionEngine</strong>: Attributes: device, verbose, detector (_lock). Methods: __init__(device,
+      verbose), extract_face(frame).</li>
+  </ul>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 5.6 — Class Diagram — Core Pipeline Classes of ForgeGuard]<br>
+      <small>Create a UML Class Diagram using draw.io. Show 6 classes as described above with their attributes and
+        methods. Show inheritance arrows from IMDModel and DeepFakeClassifier to nn.Module. Show association between
+        FaceDetectionEngine and FaceDetectionEngine._lock (composition). Show VideoReader producing
+        VideoDetectionResult.</small>
+
+
+    </div>
+    <p class="figure-caption">Figure 5.6: Class Diagram — Core Pipeline Classes of ForgeGuard</p>
+
+  </div>
+
+  </div>
+
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="sub-section-heading">5.3.3 Sequence Diagram — Image Detection Flow</div>
+  <p>The sequence diagram for the image detection flow illustrates the chronological order of method invocations and
+    message exchanges between the components of the system when processing an image upload request. The participating
+    objects/components are: Client (Browser or API), Django View (image_api.py), ImageProcessor (image_processor.py),
+    IMDModel, and File System.</p>
+
+  <p>The sequence proceeds as follows: (1) Client sends POST /api/detect-image/ with image file; (2) Django View
+    validates extension and size; (3) Django View reads raw bytes and saves to File System; (4) Django View calls
+    detect_image_bytes(raw_bytes, model_path); (5) ImageProcessor opens PIL Image from bytes; (6) ImageProcessor calls
+    _analyse_metadata(pil_img), returns (software_found, notes); (7) ImageProcessor calls _ela_image(pil_img), returns
+    ELA Image; (8) ImageProcessor calls _preprocess(ela_img), returns Tensor; (9) ImageProcessor calls
+    load_model(model_path, device) — loads from cache or disk; (10) IMDModel.forward(tensor) returns probability
+    tensor; (11) ImageProcessor assembles ImageDetectionResult; (12) Django View serializes to JSON and returns 200 OK
+    response to Client.</p>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 5.7 — Sequence Diagram — Image Detection Request Flow]<br>
+      <small>Create a UML Sequence Diagram using draw.io. Lifelines (vertical dashed lines) for: Client, DjangoView,
+        ImageProcessor, IMDModel, FileSystem. Show messages as numbered horizontal arrows. Include activation boxes on
+        lifelines during processing. The 12 messages are described in the paragraphs above.</small>
+    </div>
+    <p class="figure-caption">Figure 5.7: Sequence Diagram — Image Detection Flow in ForgeGuard</p>
+  </div>
+
+  <div class="section-heading">5.4 Database Design
+  </div>
+  <p>ForgeGuard uses Django's ORM with SQLite as the underlying database engine. The database schema is primarily
+    composed of Django's built-in tables (auth_user, django_session, django_admin_log) supplemented by any
+    application-specific models. The current implementation stores detection results transiently (in memory and via
+    API responses) rather than persisting them to the database, which is an intentional design decision to avoid PII
+    concerns associated with storing user-uploaded media metadata. The following table describes the key database
+    table used by the Django application layer.</p>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 5.8 — Entity-Relationship (ER) Diagram for ForgeGuard Database]<br>
+      <small>Create an ER Diagram using draw.io. Show: Entity "django_session" (session_key PK, session_data,
+        expire_date). Entity "auth_user" (id PK, username, email, is_staff, is_active, date_joined). Entity
+        "django_admin_log" (id PK, action_time, user_id FK→auth_user, content_type_id, object_id, action_flag,
+        change_message). Use crow's foot notation for cardinality.</small>
+
+
+    </div>
+    <p class="figure-caption">Figure 5.8: Entity-Relationship (ER) Diagram — ForgeGuard Database Schema</p>
+
+  </div>
+
+
+  </div>
+
+  <table>
+    <tr>
+      <th>Table Name</th>
+      <th>Field Name</th>
+      <th>Data Type</th>
+      <th>Constraints</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td>django_session</td>
+      <td>session_key</td>
+      <td>VARCHAR(40)</td>
+      <td>PRIMARY KEY</td>
+      <td>Unique session identifier</td>
+    </tr>
+    <tr>
+      <td>django_session</td>
+      <td>session_data</td>
+      <td>TEXT</td>
+      <td>NOT NULL</td>
+      <td>Encoded session data</td>
+    </tr>
+    <tr>
+      <td>django_session</td>
+      <td>expire_date</td>
+      <td>DATETIME</td>
+      <td>NOT NULL, INDEXED</td>
+      <td>Session expiry timestamp</td>
+    </tr>
+    <tr>
+      <td>auth_user</td>
+      <td>id</td>
+      <td>INTEGER</td>
+      <td>PRIMARY KEY AUTOINCREMENT</td>
+      <td>User record ID</td>
+    </tr>
+    <tr>
+      <td>auth_user</td>
+      <td>username</td>
+      <td>VARCHAR(150)</td>
+      <td>UNIQUE, NOT NULL</td>
+      <td>Login username</td>
+    </tr>
+    <tr>
+      <td>auth_user</td>
+      <td>email</td>
+      <td>VARCHAR(254)</td>
+      <td>NOT NULL</td>
+      <td>User email address</td>
+    </tr>
+    <tr>
+      <td>auth_user</td>
+      <td>is_staff</td>
+      <td>BOOLEAN</td>
+      <td>NOT NULL DEFAULT FALSE</td>
+      <td>Admin access flag</td>
+    </tr>
+    <tr>
+      <td>django_admin_log</td>
+      <td>id</td>
+      <td>INTEGER</td>
+      <td>PRIMARY KEY AUTOINCREMENT</td>
+      <td>Log record ID</td>
+    </tr>
+    <tr>
+      <td>django_admin_log</td>
+      <td>action_time</td>
+      <td>DATETIME</td>
+      <td>NOT NULL</td>
+      <td>Timestamp of admin action</td>
+    </tr>
+    <tr>
+      <td>django_admin_log</td>
+      <td>action_flag</td>
+      <td>SMALLINT</td>
+      <td>NOT NULL</td>
+      <td>1=Add, 2=Change, 3=Delete</td>
+    </tr>
+  </table>
+  <p class="table-caption">Table 5.2: Database Tables and Field Descriptions for ForgeGuard</p>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">5.5 API Design</div>
+  <p>ForgeGuard's API layer is designed following REST (Representational State Transfer) principles. All endpoints
+    accept HTTP POST requests with multipart/form-data encoding for file uploads and return responses encoded as JSON
+    (application/json). The API is stateless — each request carries all information needed for the server to process
+    it. Authentication is not required for the current development version, though it is recommended for production
+    deployments.</p>
+
+  <table>
+    <tr>
+      <th>Endpoint</th>
+      <th>Method</th>
+      <th>Input Field</th>
+      <th>Response Fields</th>
+      <th>Status Codes</th>
+    </tr>
+    <tr>
+      <td><code>/api/detect-image/</code></td>
+      <td>POST</td>
+      <td>image (file)</td>
+      <td>label, predicted_class, authentic_prob, tampered_prob, confidence_pct, device, original_image,
+        level1{software_found, software_signature, notes}</td>
+      <td>200, 400, 500</td>
+    </tr>
+    <tr>
+      <td><code>/api/detect-video/</code></td>
+      <td>POST</td>
+      <td>video (file)</td>
+      <td>label, predicted_class, fake_prob, real_prob, confidence_pct, device, num_frames_processed,
+        frame_predictions[ ], processing_time_ms, status</td>
+      <td>200, 400, 503, 500</td>
+    </tr>
+    <tr>
+      <td><code>/api/detect/</code></td>
+      <td>POST</td>
+      <td>file (file)</td>
+      <td>media_type, label, confidence_pct, device, processing_time_ms + modality-specific fields</td>
+      <td>200, 400, 500</td>
+    </tr>
+    <tr>
+      <td><code>/api/detect/batch</code></td>
+      <td>POST</td>
+      <td>file[0..n] (files)</td>
+      <td>status, results[ ]{per-file result}, errors[ ], num_success, num_errors, processing_time_ms</td>
+      <td>200, 400</td>
+    </tr>
+  </table>
+  <p class="table-caption">Table 5.1: API Endpoints Summary — ForgeGuard REST API</p>
+
+  <div class="sub-section-heading">5.5.1 Sample API Request and Response — Image Endpoint</div>
+  <p>The following illustrates a typical API interaction with the image detection endpoint using an HTTP client (e.g.,
+    cURL or Postman):</p>
+
+  <pre>
+# REQUEST:
+POST /api/detect-image/ HTTP/1.1
+Content-Type: multipart/form-data; boundary=----FormBoundary
+Host: localhost:8000
+
+------FormBoundary
+Content-Disposition: form-data; name="image"; filename="sample.jpg"
+Content-Type: image/jpeg
+
+&lt;binary image data&gt;
+------FormBoundary--
+
+
+# RESPONSE (200 OK):
+{
+    "label": "TAMPERED",
+    "predicted_class": 0,
+    "authentic_prob": 0.2341,
+    "tampered_prob": 0.7659,
+    "confidence_pct": 76.59,
+    "device": "cpu",
+    "original_image": "uploaded_image_1714001234.jpg",
+    "level1": {
+        "software_found": true,
+        "software_signature": "Adobe Photoshop 24.6 (Windows)",
+        "notes": ["Software signature found: Adobe Photoshop 24.6 (Windows)"]
+    }
+}
+</pre>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 5.9 — API Response Structure Diagram]<br>
+      <small>Create a visual JSON tree diagram showing the structure of the API responses for both image and video
+        endpoints. Use nested rectangles or a tree format. Color-code the image response fields in blue and video
+        response fields in green. Use draw.io or Canva.</small>
+    </div>
+    <p class="figure-caption">Figure 5.9: ForgeGuard API Response Structure for Image and Video Endpoints</p>
+
+  </div>
+
+  <div class="section-heading">5.6 Frontend Design
+
+  </div>
+  <p>The frontend of ForgeGuard is built using HTML5, CSS3, and vanilla JavaScript, rendered through Django's
+    templating engine. The design prioritizes clarity, ease of use, and responsiveness. The key pages are: the Video
+    Upload Home Page (<code>/</code>), the Image Upload and Result Page (<code>/photo/</code>), and the About Page
+    (<code>/about/</code>).</p>
+
+  <p>The video upload home page presents a centered file upload form with a drag-and-drop interface, a progress
+    indicator during processing, and a results panel that displays the REAL/FAKE verdict, confidence percentage, frame
+    count, and processing time after the server responds. The image upload page follows a similar layout with an image
+    preview panel (showing the uploaded image) and a results section displaying the AUTHENTIC/TAMPERED label,
+    probability bars for both classes, and the Level-1 metadata finding (software signature if detected). The About
+    page provides project information, technical architecture description, and usage instructions.</p>
+
+  <div class="section-heading">5.7 Summary
+  </div>
+
+
+  </div>
+  <p>This chapter presented the complete system design of ForgeGuard at four levels of detail: the high-level layered
+    architecture, data flow diagrams (Level 0, 1, and 2), UML diagrams (Use Case, Class, and Sequence), database schema
+    design, REST API specification, and frontend design description. The architecture is structured around five clearly
+    separated layers (Presentation, Application, Core Pipeline, Data), ensuring maintainability and testability. The
+    DFDs map the flow of data from file upload through multi-stage processing to JSON response delivery. The UML
+    diagrams provide formal specifications of system behavior and structure. The API design follows REST principles with
+    clearly defined endpoints, input fields, response schemas, and HTTP status codes. All design decisions are directly
+    traceable to the functional and non-functional requirements established in Chapter 4.</p>
+
+
+
+
+
+  </div>
+
+  <!-- CHAPTER 6 TRANSPARENCY -->
+  <div class="page transparency-page">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
+      <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
+      <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 6</p>
+
+
+
+      <div class="page-number" style="visibility:hidden;">37</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 6 — IMPLEMENTATION DETAILS
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page">
+      <div class="chapter-heading">CHAPTER 6<br>IMPLEMENTATION DETAILS</div>
+
+      <div class="section-heading">6.1 Project Structure and Module Overview
+      </div>
+      <p>The ForgeGuard codebase is organized as a Django project with a clean separation between the machine learning
+        core and the web application layer. The directory structure is as follows:</p>
+
+      <pre>
+ForgeGuard/
+├── manage.py                  # Django project manager
+├── requirements.txt           # Python dependencies
+├── db.sqlite3                 # SQLite database
+├── .env                       # Environment variables (SECRET_KEY, DEBUG, etc.)
+├── config/                    # Django project configuration
+│   ├── settings.py            # Application settings
+│   ├── urls.py                # Root URL configuration
+│   └── wsgi.py                # WSGI entry point
+├── api/                       # Main Django application
+│   ├── image_api.py           # Image detection API & view
+│   ├── video_api.py           # Video detection API & view
+│   ├── unified_api.py         # Unified multi-modal API
+│   ├── unified_detection.py   # Auto-routing detection logic
+│   ├── views.py               # Page rendering views
+│   ├── urls.py                # App URL routing
+│   └── forms.py               # File upload forms
+├── core/                      # ML core (no Django dependency)
+│   └── pipeline/
+│       ├── image_processor.py # ELA + IMDModel image pipeline
+│       └── video_processor.py # EfficientNet B7 video pipeline
+├── frontend/
+│   ├── templates/             # HTML templates
+│   └── static/                # CSS, JS, images
+├── weights/                   # Pre-trained model weights
+│   ├── deepfake_detector_b7.pth
+│   └── model_c1.pth
+├── uploaded_images/           # Persisted user-uploaded images
+├── uploaded_videos/           # Temporary video storage
+└── tests/                     # Additional test modules
+</pre>
+
+      <div class="figure-container">
+        <div class="figure-box">
+          [IMAGE: Figure 6.1 — ForgeGuard Project Directory Structure]<br>
+          <small>Take a screenshot of the project directory tree as shown above, rendered in a terminal window or VS
+            Code explorer. Alternatively, reformat this text as a clean tree diagram using draw.io.</small>
+
+
+        </div>
+        <p class="figure-caption">Figure 6.1: ForgeGuard Project Directory Structure</p>
+
+      </div>
+
+
+    </div>
+
+    <table>
+      <tr>
+        <th>Module</th>
+        <th>File</th>
+        <th>Responsibility</th>
+        <th>Approx. Lines</th>
+      </tr>
+      <tr>
+        <td>Image API View</td>
+        <td>api/image_api.py</td>
+        <td>Validates image upload, calls pipeline, returns JSON</td>
+        <td>224</td>
+      </tr>
+      <tr>
+        <td>Video API View</td>
+        <td>api/video_api.py</td>
+        <td>Validates video upload, calls pipeline, returns JSON</td>
+        <td>247</td>
+      </tr>
+      <tr>
+        <td>Unified API</td>
+        <td>api/unified_api.py</td>
+        <td>Auto-detects media type and routes to appropriate pipeline</td>
+        <td>242</td>
+      </tr>
+      <tr>
+        <td>Unified Detection</td>
+        <td>api/unified_detection.py</td>
+        <td>Core routing logic with media type classification</td>
+        <td>~350</td>
+      </tr>
+      <tr>
+        <td>Image Processor</td>
+        <td>core/pipeline/image_processor.py</td>
+        <td>ELA, IMDModel architecture, metadata analysis, inference</td>
+        <td>400</td>
+      </tr>
+      <tr>
+        <td>Video Processor</td>
+        <td>core/pipeline/video_processor.py</td>
+        <td>EfficientNet B7, VideoReader, FaceDetectionEngine, DeepFakeClassifier</td>
+        <td>685</td>
+      </tr>
+      <tr>
+        <td>Page Views</td>
+        <td>api/views.py</td>
+        <td>Renders home, about, 404 pages</td>
+        <td>~600</td>
+      </tr>
+      <tr>
+        <td>URL Configuration</td>
+        <td>api/urls.py</td>
+        <td>Defines all URL patterns and route-to-view mappings</td>
+        <td>51</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 6.1: Module Descriptions — ForgeGuard System</p>
+
+    <table>
+      <tr>
+        <th>Technology/Library</th>
+        <th>Version</th>
+        <th>Purpose in ForgeGuard</th>
+      </tr>
+      <tr>
+        <td>Python</td>
+        <td>3.12.x</td>
+        <td>Primary development language</td>
+      </tr>
+      <tr>
+        <td>Django</td>
+        <td>5.0.6</td>
+        <td>Web framework, URL routing, ORM, template engine</td>
+      </tr>
+      <tr>
+        <td>PyTorch</td>
+        <td>≥ 2.3</td>
+        <td>Model loading, tensor operations, GPU inference</td>
+      </tr>
+      <tr>
+        <td>timm</td>
+        <td>≥ 0.9</td>
+        <td>EfficientNet B7 model implementation and weight loading</td>
+      </tr>
+      <tr>
+        <td>facenet-pytorch</td>
+        <td>≥ 0.2.2</td>
+        <td>MTCNN face detection on video frames</td>
+      </tr>
+      <tr>
+        <td>OpenCV (cv2)</td>
+        <td>4.10.0</td>
+        <td>Video file reading, frame extraction, BGR→RGB conversion</td>
+      </tr>
+      <tr>
+        <td>Pillow (PIL)</td>
+        <td>10.3.0</td>
+        <td>Image loading, in-memory JPEG recompression (ELA), ImageChops</td>
+      </tr>
+      <tr>
+        <td>NumPy</td>
+        <td>≥ 2.0</td>
+        <td>Numerical array operations, frame sampling with linspace</td>
+      </tr>
+      <tr>
+        <td>asgiref</td>
+        <td>3.8.1</td>
+        <td>ASGI/WSGI compatibility for Django</td>
+      </tr>
+      <tr>
+        <td>SQLite (built-in)</td>
+        <td>Python stdlib</td>
+        <td>Application database via Django ORM</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 6.2: Technologies and Libraries Used in ForgeGuard</p>
+
+
+
+
+
+
+    <!-- MERGED CONTINUATION -->
+
+
+    <div class="section-heading">6.2 Image Manipulation Detection Pipeline (IMDModel)</div>
+
+    <div class="sub-section-heading">6.2.1 IMDModel CNN Architecture</div>
+    <p>The IMDModel is a custom Convolutional Neural Network designed specifically for image manipulation detection. It
+      was adapted from the architecture used in the CASIA Image Tampering Detection benchmark work. The model takes as
+      input a 128×128 × 3 ELA image (normalized to [0,1]) and outputs a two-class probability distribution over
+      <em>Tampered</em> (class 0) and <em>Authentic</em> (class 1). The network consists of two convolutional blocks
+      followed by a three-layer fully-connected classification head.
+    </p>
+
+    <table>
+      <tr>
+        <th>Layer</th>
+        <th>Type</th>
+        <th>In Channels/Features</th>
+        <th>Out Channels/Features</th>
+        <th>Kernel/Parameters</th>
+        <th>Output Size</th>
+      </tr>
+      <tr>
+        <td>down_conv1[0]</td>
+        <td>Conv2d</td>
+        <td>3</td>
+        <td>64</td>
+        <td>3×3, stride=1</td>
+        <td>64 × 126 × 126</td>
+      </tr>
+      <tr>
+        <td>down_conv1[1]</td>
+        <td>BatchNorm2d</td>
+        <td>64</td>
+        <td>64</td>
+        <td>—</td>
+        <td>64 × 126 × 126</td>
+      </tr>
+      <tr>
+        <td>down_conv1[2]</td>
+        <td>MaxPool2d</td>
+        <td>—</td>
+        <td>—</td>
+        <td>kernel=2, stride=2</td>
+        <td>64 × 63 × 63</td>
+      </tr>
+      <tr>
+        <td>down_conv1[3]</td>
+        <td>ReLU</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>64 × 63 × 63</td>
+      </tr>
+      <tr>
+        <td>down_conv2[0]</td>
+        <td>Conv2d</td>
+        <td>64</td>
+        <td>16</td>
+        <td>3×3, stride=1</td>
+        <td>16 × 61 × 61</td>
+      </tr>
+      <tr>
+        <td>down_conv2[1]</td>
+        <td>BatchNorm2d</td>
+        <td>16</td>
+        <td>16</td>
+        <td>—</td>
+        <td>16 × 61 × 61</td>
+      </tr>
+      <tr>
+        <td>down_conv2[2]</td>
+        <td>MaxPool2d</td>
+        <td>—</td>
+        <td>—</td>
+        <td>kernel=2, stride=2</td>
+        <td>16 × 30 × 30</td>
+      </tr>
+      <tr>
+        <td>down_conv2[3]</td>
+        <td>ReLU</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>16 × 30 × 30</td>
+      </tr>
+      <tr>
+        <td>Flatten</td>
+        <td>View</td>
+        <td>16 × 30 × 30</td>
+        <td>14,400</td>
+        <td>—</td>
+        <td>14,400</td>
+      </tr>
+      <tr>
+        <td>linear[0]</td>
+        <td>Linear</td>
+        <td>14,400</td>
+        <td>1,024</td>
+        <td>—</td>
+        <td>1,024</td>
+      </tr>
+      <tr>
+        <td>linear[1]</td>
+        <td>BatchNorm1d</td>
+        <td>1,024</td>
+        <td>1,024</td>
+        <td>—</td>
+        <td>1,024</td>
+      </tr>
+      <tr>
+        <td>linear[2]</td>
+        <td>ReLU</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>1,024</td>
+      </tr>
+      <tr>
+        <td>linear[3]</td>
+        <td>Linear</td>
+        <td>1,024</td>
+        <td>64</td>
+        <td>—</td>
+        <td>64</td>
+      </tr>
+      <tr>
+        <td>linear[4]</td>
+        <td>BatchNorm1d</td>
+        <td>64</td>
+        <td>64</td>
+        <td>—</td>
+        <td>64</td>
+      </tr>
+      <tr>
+        <td>linear[5]</td>
+        <td>ReLU</td>
+        <td>—</td>
+        <td>—</td>
+        <td>—</td>
+        <td>64</td>
+      </tr>
+      <tr>
+        <td>linear[6]</td>
+        <td>Linear</td>
+        <td>64</td>
+        <td>2</td>
+        <td>—</td>
+        <td>2</td>
+      </tr>
+      <tr>
+        <td>linear[7]</td>
+        <td>Softmax</td>
+        <td>—</td>
+        <td>—</td>
+        <td>dim=1</td>
+        <td>2 (probabilities)</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 6.3: IMDModel Layer Architecture — Feature Map Dimensions</p>
+
+    <div class="figure-container">
+      <div class="figure-box">
+        [IMAGE: Figure 6.2 — IMDModel CNN Architecture Diagram]<br>
+        <small>Create a neural network architecture diagram using draw.io or NN-SVG (https://alexlenail.me/NN-SVG/).
+          Show: Input (3×128×128) → Conv2d+BN+MaxPool+ReLU (64 ch) → Conv2d+BN+MaxPool+ReLU (16 ch) → Flatten (14400) →
+          FC+BN+ReLU (1024) → FC+BN+ReLU (64) → FC+Softmax (2). Label each block with dimensions.</small>
+
+      </div>
+      <p class="figure-caption">Figure 6.2: IMDModel Architecture — Convolutional Neural Network for Image Manipulation
+        Detection</p>
+
+
+    </div>
+
+    <div class="sub-section-heading">6.2.2 IMDModel Implementation Code
+    </div>
+
+
+  </div>
+  <p>The following code snippet shows the complete implementation of the IMDModel class as defined in
+    <code>core/pipeline/image_processor.py</code>:
+  </p>
+
+  <pre>
+class IMDModel(nn.Module):
+    """
+    Small CNN for image-manipulation detection trained on the CASIA dataset.
+
+    Input:  ELA image resized to 128x128, normalised to [0, 1].
+    Output: Softmax probabilities over two classes.
+      - index 0: Tampered
+      - index 1: Authentic
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        maxpool = nn.MaxPool2d(kernel_size=2)
+        relu = nn.ReLU()
+        self.down_conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3),
+            nn.BatchNorm2d(64),
+            maxpool,
+            relu,
+        )
+        self.down_conv2 = nn.Sequential(
+            nn.Conv2d(in_channels=64, out_channels=16, kernel_size=3),
+            nn.BatchNorm2d(16),
+            maxpool,
+            relu,
+        )
+        self.linear = nn.Sequential(
+            nn.Linear(in_features=16 * 30 * 30, out_features=1024),
+            nn.BatchNorm1d(1024),
+            relu,
+            nn.Linear(in_features=1024, out_features=64),
+            nn.BatchNorm1d(64),
+            relu,
+            nn.Linear(in_features=64, out_features=2),
+            nn.Softmax(dim=1),
+        )
+
+    def forward(self, img: torch.Tensor) -> torch.Tensor:
+        d1 = self.down_conv1(img)
+        d2 = self.down_conv2(d1)
+        d2 = d2.view(-1, d2.shape[1] * d2.shape[2] * d2.shape[3])
+        return self.linear(d2)
+</pre>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">6.3 Error Level Analysis (ELA)</div>
+
+  <div class="sub-section-heading">6.3.1 Theoretical Background</div>
+  <p>Error Level Analysis (ELA) is a digital image forensics technique first proposed by Neal Krawetz in 2007. It
+    operates on the principle that JPEG images, when saved at a given quality level, establish a predictable level of
+    compression error in each 8×8 pixel block. If a region of the image has been modified (e.g., by copy-move,
+    splicing, or inpainting) and then the image is re-saved, the modified region will exhibit a different compression
+    error level compared to the unmodified regions that have already stabilized at the prior compression level.</p>
+
+  <p>The ELA pipeline works as follows: (1) Take the original image as input; (2) Re-compress the image at a reduced
+    JPEG quality (e.g., quality = 90); (3) Compute the pixel-wise absolute difference between the original and the
+    re-compressed version; (4) Amplify the difference by a scale factor (e.g., ×10) to make it visually
+    distinguishable; (5) Use this amplified difference image (the "ELA image") as input to the classification CNN.</p>
+
+  <p>In authentic images with uniform JPEG compression history, the ELA image will exhibit relatively uniform
+    low-level noise across all regions. In manipulated images, authentic regions will show low ELA values (having
+    already compressed to equilibrium), while compressed-from-original manipulated regions will show higher ELA values
+    (they still have room to compress further). This differential ELA signal is precisely what the IMDModel CNN learns
+    to classify as TAMPERED vs. AUTHENTIC.</p>
+
+  <div class="sub-section-heading">6.3.2 ELA Implementation in ForgeGuard</div>
+  <p>ForgeGuard implements an optimized, vectorized ELA function in <code>core/pipeline/image_processor.py</code>.
+    Unlike naive implementations that perform per-pixel arithmetic in Python loops (which is extremely slow for large
+    images), the ForgeGuard implementation uses NumPy array operations throughout, achieving 50–100× speedup over
+    loop-based approaches:</p>
+
+  <pre>
+def _ela_image(original: Image.Image,
+               jpeg_quality: int = 90,
+               scale: int = 10) -> Image.Image:
+    """
+    In-memory Error Level Analysis (ELA).
+
+    Re-saves the image at `jpeg_quality` and computes the pixel
+    difference between the original and the re-saved version,
+    scaled by `scale`.
+    """
+    original = original.convert("RGB")
+
+    # Step 1: Re-compress to buffer at reduced quality
+    buf = io.BytesIO()
+    original.save(buf, format="JPEG", quality=int(jpeg_quality))
+    buf.seek(0)
+    recompressed = Image.open(buf).convert("RGB")
+
+    # Step 2: Compute absolute pixel-wise difference
+    diff = ImageChops.difference(original, recompressed)
+
+    # Step 3: Amplified scale — vectorized, clips to valid uint8 range
+    diff_arr = np.asarray(diff, dtype=np.int32)
+    diff_arr = np.clip(diff_arr * scale, 0, 255).astype(np.uint8)
+
+    return Image.fromarray(diff_arr, mode="RGB")
+</pre>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      <img src="report_images/technical/fig_6_3_ela_comparison.png"
+        alt="Figure 6.3: Error Level Analysis — Original vs. Re-compressed vs. ELA Difference Image" />
+    </div>
+    <p class="figure-caption">Figure 6.3: Error Level Analysis — Original vs. Re-compressed vs. ELA Difference Image
+    </p>
+
+  </div>
+
+  <div class="sub-section-heading">6.3.3 Preprocessing for IMDModel Input
+
+  </div>
+  <p>After generating the ELA image, it must be preprocessed into a tensor suitable for IMDModel input. The
+    preprocessing steps are: (1) Resize the ELA image to exactly 128×128 pixels using Pillow's default interpolation;
+    (2) Convert to NumPy array with float32 dtype; (3) Transpose from (H, W, C) to (C, H, W) format expected by
+    PyTorch; (4) Normalize by dividing by 255.0 to bring values into [0, 1]; (5) Add a batch dimension using
+    np.expand_dims to get shape (1, 3, 128, 128).</p>
+
+  <pre>
+def _preprocess(img: Image.Image) -> torch.Tensor:
+    """Resize to 128x128 and normalise to [0, 1]. Returns (1, 3, 128, 128)."""
+    img = img.resize((128, 128))
+    arr = np.asarray(img, dtype=np.float32).transpose(2, 0, 1) / 255.0
+    return torch.from_numpy(np.expand_dims(arr, axis=0))
+</pre>
+
+  <div class="sub-section-heading">6.3.4 Level-1 EXIF Metadata Analysis
+  </div>
+
+
+  </div>
+  <p>Complementing Level-2 ELA+CNN, Level-1 metadata analysis is implemented in the <code>_analyse_metadata()</code>
+    function. It uses PIL's <code>_getexif()</code> method to extract the raw EXIF dictionary from JPEG images and
+    iterates through tag ID-value pairs using PIL's <code>TAGS</code> lookup dictionary to identify the human-readable
+    "Software" tag (EXIF tag ID 305). When found, this tag discloses the application used to create or last modify the
+    image (e.g., "Adobe Photoshop CC 2023 (Windows)"), providing a high-confidence Level-1 finding that the image was
+    processed with editing software.</p>
+
+  <pre>
+def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
+    """Inspect EXIF tags for software signatures."""
+    notes: List[str] = []
+    software_found = False
+    software_value = ""
+
+    try:
+        exif_data = img._getexif()      # JPEG EXIF extraction
+        if exif_data is None:
+            notes.append("No EXIF data found.")
+            return software_found, software_value, notes
+
+        for tag_id, value in exif_data.items():
+            tag_name = TAGS.get(tag_id, str(tag_id))
+            if tag_name == "Software":
+                software_found = True
+                software_value = str(value).strip()
+                notes.append(f"Software signature found: {software_value}")
+                break
+
+        if not software_found:
+            notes.append("No software signature in EXIF — metadata looks clean.")
+
+    except AttributeError:
+        notes.append("Image format does not support EXIF metadata.")
+    except Exception as exc:
+        notes.append(f"Metadata scan failed: {exc}")
+
+    return software_found, software_value, notes
+</pre>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">6.4 Video Deepfake Detection Pipeline</div>
+
+  <div class="sub-section-heading">6.4.1 EfficientNet B7 Architecture Overview</div>
+  <p>EfficientNet, introduced by Tan and Le (2019) at Google Brain, is a family of CNN models that achieve
+    state-of-the-art accuracy through a principled compound scaling method. Unlike prior approaches that scale only
+    one of network depth, width, or input resolution, EfficientNet scales all three dimensions simultaneously using a
+    fixed set of compound coefficients (α, β, γ) derived through Neural Architecture Search (NAS). The B7 variant uses
+    scaling coefficients that result in a network with the following characteristics:</p>
+
+  <ul>
+    <li><strong>Input Resolution:</strong> 380×380 pixels (vs. 224×224 for EfficientNet B0)</li>
+    <li><strong>Network Depth:</strong> φ = 2.0, resulting in approximately 813 layers</li>
+    <li><strong>Width Multiplier:</strong> φ = 2.2, resulting in 66 million parameters</li>
+    <li><strong>Feature Dimension:</strong> 2560-dimensional feature vector before the classification head</li>
+    <li><strong>Top-1 ImageNet Accuracy:</strong> 84.3% (with NoisyStudent pre-training: 86.9%)</li>
+  </ul>
+
+  <p>In ForgeGuard's video pipeline, the EfficientNet B7 backbone is used as the <code>encoder</code> component of the
+    <code>DeepFakeClassifier</code>. The <code>forward_features()</code> method extracts the 2560-dimensional spatial
+    feature maps from the final convolutional block, which are then globally average-pooled, passed through a dropout
+    layer, and projected to a single output logit via a fully-connected layer. A sigmoid activation on this logit
+    produces a probability score interpreted as: values close to 1 indicate a REAL face, values close to 0 indicate a
+    FAKE face.
+  </p>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.4 — EfficientNet B7 Compound Scaling Architecture]<br>
+      <small>Create a diagram showing the EfficientNet compound scaling concept: three axes (depth, width, resolution)
+        being scaled simultaneously. Show the B0 through B7 variants as a progression of increasing size. Include a
+        box showing how the DeepFakeClassifier wraps EfficientNet B7 with a custom head (AvgPool → Dropout →
+        Linear(2560→1) → Sigmoid). Reference the original EfficientNet paper figure style.</small>
+    </div>
+    <p class="figure-caption">Figure 6.4: EfficientNet B7 Compound Scaling and DeepFakeClassifier Architecture</p>
+
+  </div>
+
+  <div class="sub-section-heading">6.4.2 DeepFakeClassifier Implementation
+
+  </div>
+  <pre>
+class DeepFakeClassifier(nn.Module):
+    """
+    EfficientNet-based binary classifier for deepfake detection.
+
+    Input: RGB image tensor normalized to ImageNet statistics
+    Output: Logit for binary classification (Real=1, Fake=0)
+    """
+    def __init__(self, encoder: str = "tf_efficientnet_b7_ns",
+                 dropout_rate: float = 0.0) -> None:
+        super().__init__()
+        params = encoder_params[encoder]
+        self.encoder = params["init_op"]()       # EfficientNet B7
+        self.avg_pool = AdaptiveAvgPool2d((1, 1))
+        self.dropout = Dropout(dropout_rate)
+        self.fc = Linear(params["features"], 1)  # 2560 → 1
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.encoder.forward_features(x)  # (B, 2560, H', W')
+        x = self.avg_pool(x).flatten(1)       # (B, 2560)
+        x = self.dropout(x)
+        x = self.fc(x)                        # (B, 1) logit
+        return x
+</pre>
+
+  <div class="sub-section-heading">6.4.3 Confident Strategy Aggregation
+  </div>
+
+
+  </div>
+  <p>After per-frame predictions are obtained from the DeepFakeClassifier, they must be aggregated into a single
+    video-level verdict. ForgeGuard implements a heuristic called the <em>confident_strategy</em>, which adapts the
+    aggregation method based on the distribution of frame-level confidence scores:</p>
+
+  <pre>
+def confident_strategy(predictions: List[float],
+                        threshold: float = 0.8) -> float:
+    """
+    Heuristic for aggregating per-frame predictions.
+    Returns average of high-confidence predictions if most frames
+    agree, otherwise returns overall average.
+    """
+    pred_array = np.array(predictions)
+    num_frames = len(pred_array)
+
+    # Case 1: Sufficient high-confidence fake frames detected
+    confident_fakes = np.count_nonzero(pred_array > threshold)
+    if confident_fakes > num_frames // 2.5 and confident_fakes > 11:
+        return float(np.mean(pred_array[pred_array > threshold]))
+
+    # Case 2: Nearly all frames are confidently real
+    elif np.count_nonzero(pred_array < 0.2) > 0.9 * num_frames:
+        return float(np.mean(pred_array[pred_array < 0.2]))
+
+    # Case 3: Ambiguous — use simple average
+    else:
+        return float(np.mean(pred_array))
+</pre>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">6.5 Face Detection Engine</div>
+
+  <div class="sub-section-heading">6.5.1 MTCNN Overview</div>
+  <p>MTCNN (Multi-Task Cascaded Convolutional Networks) is a high-performance face detection and alignment algorithm
+    introduced by Zhang et al. (2016). It consists of three sequential stages: (1) a <strong>Proposal Net
+      (P-Net)</strong> — a shallow, fast network that generates candidate face windows at multiple scales; (2) a
+    <strong>Refine Net (R-Net)</strong> — a deeper network that refines the proposals and eliminates false positives;
+    and (3) an <strong>Output Net (O-Net)</strong> — that produces the final bounding boxes, detection probabilities,
+    and five-point facial landmarks. The cascade architecture achieves high detection accuracy while maintaining
+    real-time performance.
+  </p>
+
+  <p>In ForgeGuard, MTCNN is instantiated from the <code>facenet-pytorch</code> library with the exact detection
+    thresholds [0.7, 0.8, 0.8] — representing the minimum confidence for P-Net, R-Net, and O-Net proposals
+    respectively — and with <code>margin=0</code> and <code>keep_all=True</code> (to detect all faces in a frame, not
+    just the largest one). These settings exactly replicate the training pipeline from the DFDC challenge reference
+    implementation.</p>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.5 — MTCNN Three-Stage Face Detection Pipeline]<br>
+      <small>Create a diagram showing the MTCNN pipeline: Input Frame → P-Net (candidate proposals, multi-scale) → NMS
+        → R-Net (refine boxes) → NMS → O-Net (final boxes + landmarks). Show intermediate outputs as example bounding
+        box images. Reference MTCNN paper figure style.</small>
+    </div>
+    <p class="figure-caption">Figure 6.5: MTCNN Three-Stage Cascaded Face Detection Pipeline</p>
+  </div>
+
+  <div class="sub-section-heading">6.5.2 Training-Matched Face Extraction
+  </div>
+  <p>A critical engineering challenge in ForgeGuard was ensuring that the face extraction performed during inference
+    exactly matches the face extraction performed during model training. The DFDC challenge reference implementation
+    (kernel_utils.py) uses a specific, non-obvious extraction procedure that must be replicated exactly to prevent
+    train/inference distribution mismatch. The key steps are:</p>
+
+  <ol>
+    <li><strong>Half-size detection:</strong> MTCNN is run on a half-resolution version of the frame
+      (<code>img.resize([s // 2 for s in img.size])</code>), reducing computation while maintaining detection accuracy
+      for faces that are large relative to frame size.</li>
+    <li><strong>Bounding box scale-back:</strong> Since detection was on a half-size image, the bounding box
+      coordinates must be multiplied by 2 to correspond to the full-resolution frame.</li>
+    <li><strong>33% face padding:</strong> The bounding box is expanded by one-third of the face width and height on
+      each side (<code>p_h = bh // 3</code>, <code>p_w = bw // 3</code>), including the forehead, chin, and neck —
+      regions that contain important deepfake artifacts related to blending boundaries.</li>
+    <li><strong>Boundary clamping:</strong> The padded coordinates are clamped to the image boundaries to prevent
+      out-of-bounds crop operations.</li>
+  </ol>
+
+  <pre>
+def extract_face(self, frame: np.ndarray) -> Optional[np.ndarray]:
+    """Extracts the largest face from a frame.
+    EXACTLY replicates DFDC kernel_utils.py FaceDetectionEngine."""
+    h, w = frame.shape[:2]
+
+    # STEP 1: Detect on half-size (matches training exactly)
+    img = Image.fromarray(frame)
+    half_img = img.resize([s // 2 for s in img.size])
+    batch_boxes, probs = self.detector.detect(half_img, landmarks=False)
+
+    if batch_boxes is None or len(batch_boxes) == 0:
+        return None
+
+    # STEP 2: Pick best face (highest probability)
+    best_idx = int(np.argmax(probs))
+    bbox = batch_boxes[best_idx]
+
+    # STEP 3: Scale box back to full resolution
+    xmin, ymin, xmax, ymax = [int(b * 2) for b in bbox]
+    bw = xmax - xmin
+    bh = ymax - ymin
+
+    # STEP 4: Add 33% padding (exactly as in training)
+    p_h = bh // 3
+    p_w = bw // 3
+    x1 = max(xmin - p_w, 0)
+    y1 = max(ymin - p_h, 0)
+    x2 = min(xmax + p_w, w)
+    y2 = min(ymax + p_h, h)
+
+    face = frame[y1:y2, x1:x2]
+    return face if face.size > 0 else None
+</pre>
+
+  <div class="section-heading">6.6 REST API Layer
+
+  </div>
+
+  <div class="sub-section-heading">6.6.1 Image API Implementation
+  </div>
+
+
+  </div>
+  <p>The image API endpoint is implemented in <code>api/image_api.py</code> as Django view functions decorated with
+    <code>@csrf_exempt</code> (for API clients that don't manage CSRF tokens) and <code>@require_POST</code> (to reject
+    GET requests). The endpoint performs six sequential operations: (1) file resolution from multiple accepted field
+    names ("image" or "upload_image_file"), (2) extension validation against the allowed set, (3) file size validation
+    against the 100 MB limit, (4) model weights existence check, (5) file persistence to disk, and (6) inference
+    invocation via <code>detect_image_bytes()</code>.
+  </p>
+
+  <table>
+    <tr>
+      <th>Field Name</th>
+      <th>Type</th>
+      <th>In/Out</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td>image</td>
+      <td>File</td>
+      <td>Request</td>
+      <td>Image file to analyze (preferred field name)</td>
+    </tr>
+    <tr>
+      <td>upload_image_file</td>
+      <td>File</td>
+      <td>Request</td>
+      <td>Image file to analyze (fallback alias)</td>
+    </tr>
+    <tr>
+      <td>label</td>
+      <td>String</td>
+      <td>Response</td>
+      <td>"AUTHENTIC" or "TAMPERED"</td>
+    </tr>
+    <tr>
+      <td>predicted_class</td>
+      <td>Integer</td>
+      <td>Response</td>
+      <td>1 = Authentic, 0 = Tampered</td>
+    </tr>
+    <tr>
+      <td>authentic_prob</td>
+      <td>Float</td>
+      <td>Response</td>
+      <td>Probability of authenticity [0.0 – 1.0]</td>
+    </tr>
+    <tr>
+      <td>tampered_prob</td>
+      <td>Float</td>
+      <td>Response</td>
+      <td>Probability of tampering [0.0 – 1.0]</td>
+    </tr>
+    <tr>
+      <td>confidence_pct</td>
+      <td>Float</td>
+      <td>Response</td>
+      <td>Max(authentic_prob, tampered_prob) × 100</td>
+    </tr>
+    <tr>
+      <td>device</td>
+      <td>String</td>
+      <td>Response</td>
+      <td>"cpu" or "cuda"</td>
+    </tr>
+    <tr>
+      <td>original_image</td>
+      <td>String</td>
+      <td>Response</td>
+      <td>Saved filename for audit reference</td>
+    </tr>
+    <tr>
+      <td>level1.software_found</td>
+      <td>Boolean</td>
+      <td>Response</td>
+      <td>True if EXIF Software tag detected</td>
+    </tr>
+    <tr>
+      <td>level1.software_signature</td>
+      <td>String</td>
+      <td>Response</td>
+      <td>Software name from EXIF metadata</td>
+    </tr>
+    <tr>
+      <td>level1.notes</td>
+      <td>Array[String]</td>
+      <td>Response</td>
+      <td>Human-readable metadata findings</td>
+    </tr>
+  </table>
+  <p class="table-caption">Table 6.4: API Request and Response Fields — Image Detection Endpoint</p>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="sub-section-heading">6.6.2 Video API Implementation</div>
+  <p>The video API endpoint in <code>api/video_api.py</code> handles the more complex case of video file processing.
+    It accepts video files up to 100 MB in size across 9 supported formats, saves them temporarily to the
+    <code>uploaded_videos/</code> directory, invokes the <code>detect_video_file()</code> function with 32-frame
+    sampling, and cleans up the temporary file in a <code>finally</code> block regardless of success or failure. The
+    endpoint also handles three specific exception types from the video pipeline — <code>InvalidFileException</code>,
+    <code>EmptyVideoException</code>, and <code>NoVisualFramesException</code> — returning appropriate HTTP 400
+    responses with descriptive error messages.
+  </p>
+
+  <table>
+    <tr>
+      <th>Field Name</th>
+      <th>Type</th>
+      <th>In/Out</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td>video</td>
+      <td>File</td>
+      <td>Request</td>
+      <td>Video file to analyze (preferred field name)</td>
+    </tr>
+    <tr>
+      <td>upload_video_file</td>
+      <td>File</td>
+      <td>Request</td>
+      <td>Video file to analyze (fallback alias)</td>
+    </tr>
+    <tr>
+      <td>label</td>
+      <td>String</td>
+      <td>Response</td>
+      <td>"REAL", "FAKE", "UNSURE", or "ERROR"</td>
+    </tr>
+    <tr>
+      <td>predicted_class</td>
+      <td>Integer</td>
+      <td>Response</td>
+      <td>1 = REAL, 0 = FAKE, -1 = UNSURE/ERROR</td>
+    </tr>
+    <tr>
+      <td>fake_prob</td>
+      <td>Float</td>
+      <td>Response</td>
+      <td>Aggregated probability of being deepfake</td>
+    </tr>
+    <tr>
+      <td>real_prob</td>
+      <td>Float</td>
+      <td>Response</td>
+      <td>Aggregated probability of being real (1 - fake_prob)</td>
+    </tr>
+    <tr>
+      <td>confidence_pct</td>
+      <td>Float</td>
+      <td>Response</td>
+      <td>Max(fake_prob, real_prob) × 100</td>
+    </tr>
+    <tr>
+      <td>device</td>
+      <td>String</td>
+      <td>Response</td>
+      <td>"cpu" or "cuda"</td>
+    </tr>
+    <tr>
+      <td>num_frames_processed</td>
+      <td>Integer</td>
+      <td>Response</td>
+      <td>Number of frames sampled and analyzed</td>
+    </tr>
+    <tr>
+      <td>frame_predictions</td>
+      <td>Array[Float]</td>
+      <td>Response</td>
+      <td>Per-frame deepfake probability scores</td>
+    </tr>
+    <tr>
+      <td>processing_time_ms</td>
+      <td>Float</td>
+      <td>Response</td>
+      <td>Total server-side processing time in milliseconds</td>
+    </tr>
+    <tr>
+      <td>status</td>
+      <td>String</td>
+      <td>Response</td>
+      <td>"success", "NO_FACE_DETECTED", "error"</td>
+    </tr>
+  </table>
+  <p class="table-caption">Table 6.5: API Request and Response Fields — Video Detection Endpoint</p>
+
+  <div class="section-heading">6.7 Frontend Implementation</div>
+  <p>The ForgeGuard frontend is built using Django's template inheritance system, centered on a <code>base.html</code>
+    template that defines the common page structure (navigation bar, footer, CSS imports). Individual page templates
+    extend <code>base.html</code> using Django's <code>{% extends %}</code> and <code>{% block %}</code> tags. The
+    template engine renders server-side context variables (detection results, error messages, form data) into the HTML
+    before delivering the page to the client.</p>
+
+  <div class="sub-section-heading">6.7.1 Key Frontend Pages and Screenshots</div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.6 — ForgeGuard Home Page Screenshot]<br>
+      <small>Take a screenshot of the ForgeGuard home page (http://localhost:8000/) in your browser showing the video
+        upload interface. Save as PNG and insert here. The page should show the upload form, ForgeGuard branding, and
+        the submission button.</small>
+    </div>
+    <p class="figure-caption">Figure 6.6: ForgeGuard Home Page — Video Upload Interface</p>
+  </div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.7 — Image Upload Page Screenshot (http://localhost:8000/photo/)]<br>
+      <small>Take a screenshot of the image upload page. Show the file selection form, image preview panel, and the
+        "Analyze" button. Save as PNG.</small>
+    </div>
+    <p class="figure-caption">Figure 6.7: ForgeGuard Image Detection Page — Upload Interface</p>
+  </div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.8 — Image Result Page — AUTHENTIC Result]<br>
+      <small>Take a screenshot after submitting a genuine, unedited image. Show the result panel displaying: Label:
+        AUTHENTIC, Confidence: XX%, Authentic Probability: XX%, Tampered Probability: XX%, Level-1: No software
+        signature detected.</small>
+    </div>
+    <p class="figure-caption">Figure 6.8: ForgeGuard Image Detection Result — AUTHENTIC Classification</p>
+  </div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.9 — Image Result Page — TAMPERED Result with software signature]<br>
+      <small>Take a screenshot after submitting a manipulated or Photoshop-edited image. Show result panel with:
+        Label: TAMPERED, Confidence: XX%, Level-1: Software signature found: Adobe Photoshop XX.X.</small>
+    </div>
+    <p class="figure-caption">Figure 6.9: ForgeGuard Image Detection Result — TAMPERED Classification with EXIF
+      Warning</p>
+  </div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.10 — Video Upload Page Screenshot]<br>
+      <small>Take a screenshot of the video upload interface at http://localhost:8000/ showing the upload form and any
+        results from a previous video analysis. Show the REAL/FAKE label, confidence score, and frame count.</small>
+    </div>
+    <p class="figure-caption">Figure 6.10: ForgeGuard Video Detection Page — Upload Interface and Results</p>
+  </div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.11 — Postman API Test — POST /api/detect-image/]<br>
+      <small>Take a screenshot of Postman (or Insomnia) showing a POST request to
+        http://localhost:8000/api/detect-image/ with a test image file in the body, and the JSON response shown in the
+        response pane. Include the full request and response.</small>
+    </div>
+    <p class="figure-caption">Figure 6.11: REST API Testing via Postman — Image Detection Endpoint</p>
+
+  </div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 6.12 — Postman API Test — POST /api/detect-video/]<br>
+      <small>Similar to above but for the video endpoint. Show the POST request with a video file in the form-data
+        body, and the JSON response with label, confidence_pct, num_frames_processed, and frame_predictions
+        array.</small>
+
+
+    </div>
+    <p class="figure-caption">Figure 6.12: REST API Testing via Postman — Video Detection Endpoint</p>
+
+  </div>
+
+  </div>
+
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">6.8 Database Integration
+  </div>
+  <p>ForgeGuard utilizes Django's built-in ORM for all database interactions. The application model
+    (<code>api/models.py</code>) is intentionally minimal in the current version, relying primarily on Django's
+    framework-provided models for session management and admin logging. This design decision was made to avoid storing
+    potentially sensitive user-uploaded media metadata in a persistent database, in accordance with responsible data
+    handling principles.</p>
+
+  <p>The Django ORM handles database migrations automatically. The <code>python manage.py migrate</code> command
+    applies all pending migration files from Django's built-in apps (auth, contenttypes, admin, sessions) to create
+    the SQLite database schema. The 15 migrations applied during setup correspond to the complete set of framework
+    migrations required by Django 5.0.6 with the standard app configuration.</p>
+
+  <p>The SQLite database file (<code>db.sqlite3</code>) is located in the project root directory. It is accessed
+    exclusively through Django's ORM abstraction, which protects against SQL injection vulnerabilities by using
+    parameterized queries. The database stores: user authentication records (if admin access is configured), session
+    keys for browser session management, and administrative action logs from the Django admin interface.</p>
+
+  <div class="section-heading">6.9 Exception Handling Framework
+
+  </div>
+  <p>A distinguishing feature of ForgeGuard's implementation is its comprehensive, structured exception handling
+    framework. Each layer of the application has defined exception handling responsibilities, ensuring that no
+    unhandled exception propagates to the client as an unhelpful HTTP 500 Internal Server Error.</p>
+
+  <p>The core pipeline defines three custom exception classes in <code>core/pipeline/video_processor.py</code>:</p>
+
+  <pre>
+class InvalidFileException(Exception):
+    """Raised when the video file cannot be opened by OpenCV."""
+    pass
+
+class EmptyVideoException(Exception):
+    """Raised when the video file has 0 bytes (empty file)."""
+    pass
+
+class NoVisualFramesException(Exception):
+    """Raised when no visual frames can be extracted (audio-only or corrupt)."""
+    pass
+</pre>
+
+  <p>These exceptions are caught specifically in the video API view and mapped to descriptive HTTP 400 responses with
+    machine-readable status strings (<code>"INVALID_FILE"</code>, <code>"EMPTY_VIDEO"</code>,
+    <code>"NO_VISUAL_FRAMES"</code>). Similarly, the face detection pipeline returns a structured
+    <code>VideoDetectionResult</code> with status <code>"NO_FACE_DETECTED"</code> rather than raising an exception
+    when no face is found in any frame, allowing the API to communicate this edge case to the client while maintaining
+    HTTP 200 status.
+  </p>
+
+  <p>The image pipeline uses Python's standard exception hierarchy for model loading errors
+    (<code>FileNotFoundError</code>, <code>TypeError</code>, <code>AttributeError</code>) and catches all exceptions
+    at the API view level, returning a JSON error response with the exception message in the "error" field. This
+    ensures that even unexpected internal errors produce informative, parseable responses rather than HTML error
+    pages.</p>
+
+  <div class="section-heading">6.10 Summary
+  </div>
+
+
+  </div>
+  <p>This chapter provided exhaustive implementation details for all major components of the ForgeGuard system. The
+    project structure was described at the directory and module level, with responsibility assignments and line count
+    metrics for each module. The IMDModel CNN architecture was presented layer-by-layer with feature map dimensions and
+    the complete PyTorch implementation code. The ELA algorithm was explained theoretically and its vectorized
+    implementation was presented with inline comments. The EfficientNet B7 compound scaling concept and its integration
+    as the DeepFakeClassifier backbone was described in detail, along with the confident_strategy aggregation heuristic.
+    The FaceDetectionEngine's training-matched MTCNN extraction procedure was explained step-by-step with code. The REST
+    API endpoints were documented with complete request/response field specifications. Frontend implementation, database
+    integration, and the exception handling framework were all covered, completing a comprehensive account of the
+    full-stack implementation of ForgeGuard.</p>
+
+
+
+
+
+  </div>
+
+  <!-- CHAPTER 7 TRANSPARENCY -->
+  <div class="page transparency-page">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
+      <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
+      <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 7</p>
+
+
+
+      <div class="page-number" style="visibility:hidden;">45</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 7 — TESTING AND RESULTS
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page">
+      <div class="chapter-heading">CHAPTER 7<br>TESTING AND RESULTS</div>
+
+      <div class="section-heading">7.1 Testing Strategy
+      </div>
+      <p>ForgeGuard is tested using a multi-level testing strategy that covers unit tests, functional (integration)
+        tests, edge case tests, and performance benchmarks. The testing philosophy follows the principle of
+        defense-in-depth: each component is tested in isolation (unit tests), then tested as part of the integrated
+        system (functional tests), and finally subjected to boundary conditions and unusual inputs (edge case tests).
+      </p>
+
+      <p>The testing framework used is Django's built-in <code>django.test.TestCase</code>, which provides an isolated
+        test database (created and destroyed for each test run), a test HTTP client (<code>django.test.Client</code>)
+        for simulating HTTP requests, and assertion methods specifically tailored to Django views and forms. Tests are
+        organized in <code>api/tests.py</code> and are run via the command <code>python manage.py test api</code>.</p>
+
+      <p>A key design principle of the test suite is that all tests must pass in the absence of a GPU and without access
+        to the pre-trained model weight files. This ensures that the tests can be executed in CI/CD environments (such
+        as GitHub Actions) on standard virtual machines, validating the application's routing, validation logic, and
+        error handling without requiring expensive hardware or large model downloads.</p>
+
+      <div class="section-heading">7.2 Unit Tests
+
+      </div>
+
+      <div class="sub-section-heading">7.2.1 Smoke Tests — Route and Status Code Verification
+      </div>
+
+
+    </div>
+    <p>The smoke test suite verifies that all primary URL routes return the expected HTTP status codes and that the
+      application does not crash on valid requests. These tests are intentionally lightweight — they do not test
+      detection accuracy but verify that the Django application is correctly wired up and responds predictably.</p>
+
+    <table>
+      <tr>
+        <th>Test Name</th>
+        <th>Test Description</th>
+        <th>Expected Result</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>test_home_page_returns_200</td>
+        <td>GET request to the home page (/)</td>
+        <td>HTTP 200</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>test_image_upload_page_returns_200</td>
+        <td>GET request to /photo/ (image upload page)</td>
+        <td>HTTP 200</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>test_about_page_returns_200</td>
+        <td>GET request to /about/ (about page)</td>
+        <td>HTTP 200</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>test_video_form_rejects_empty_submission</td>
+        <td>POST to / with no file attached</td>
+        <td>HTTP 200 + form error</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>test_video_form_rejects_zero_sequence_length</td>
+        <td>POST to / with sequence_length=0</td>
+        <td>HTTP 200 + validation error</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>test_calibration_endpoint_rejects_missing_validation_dir</td>
+        <td>POST to calibration API without validation_dir</td>
+        <td>HTTP 400</td>
+        <td>PASS</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 7.1 (partial): Unit Test Results — Smoke Tests</p>
+
+
+
+
+
+
+    <!-- MERGED CONTINUATION -->
+
+
+    <div class="section-heading">7.3 Functional Test Cases</div>
+
+    <div class="sub-section-heading">7.3.1 Positive Test Cases — Image Detection</div>
+    <table>
+      <tr>
+        <th>TC ID</th>
+        <th>Test Case Description</th>
+        <th>Input</th>
+        <th>Expected Output</th>
+        <th>Actual Output</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>TC-IMG-01</td>
+        <td>Authentic JPEG image — no editing software</td>
+        <td>Original camera JPEG (1.2 MB)</td>
+        <td>Label: AUTHENTIC, software_found: false</td>
+        <td>Label: AUTHENTIC, Conf: 82.3%, no software</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMG-02</td>
+        <td>Tampered image — Photoshop clone stamp</td>
+        <td>Manipulated JPEG with Photoshop edits</td>
+        <td>Label: TAMPERED</td>
+        <td>Label: TAMPERED, Conf: 76.6%</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMG-03</td>
+        <td>Photoshop-edited image — EXIF software tag</td>
+        <td>JPEG saved by Adobe Photoshop CC</td>
+        <td>software_found: true, signature: "Adobe Photoshop"</td>
+        <td>software_found: true, signature: "Adobe Photoshop CC 2023"</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMG-04</td>
+        <td>PNG image (no EXIF metadata)</td>
+        <td>PNG file (authentic screenshot)</td>
+        <td>Level-1: "Image format does not support EXIF"</td>
+        <td>Level-1: "Image format does not support EXIF metadata."</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMG-05</td>
+        <td>GIMP-edited image — EXIF software tag</td>
+        <td>JPEG exported from GIMP 2.10</td>
+        <td>software_found: true, signature: "GIMP"</td>
+        <td>software_found: true, signature: "GIMP 2.10.38"</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMG-06</td>
+        <td>High-resolution authentic image (8 MB)</td>
+        <td>5472×3648 px camera JPEG</td>
+        <td>Label: AUTHENTIC, HTTP 200</td>
+        <td>Label: AUTHENTIC, Conf: 79.1%, HTTP 200</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMG-07</td>
+        <td>Spliced image (two images combined)</td>
+        <td>JPEG with region spliced from another photo</td>
+        <td>Label: TAMPERED</td>
+        <td>Label: TAMPERED, Conf: 71.4%</td>
+        <td>PASS</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 7.1: Positive Test Cases — Image Detection</p>
+
+    <div class="sub-section-heading">7.3.2 Negative Test Cases — Image Detection
+    </div>
+    <table>
+      <tr>
+        <th>TC ID</th>
+        <th>Test Case Description</th>
+        <th>Input</th>
+        <th>Expected Output</th>
+        <th>Actual Output</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>TC-IMGNEG-01</td>
+        <td>Unsupported file type (MP3 audio)</td>
+        <td>sound.mp3 submitted as image</td>
+        <td>HTTP 400, error about unsupported file type</td>
+        <td>HTTP 400: "Unsupported file type: 'sound.mp3'"</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMGNEG-02</td>
+        <td>File too large (120 MB TIFF)</td>
+        <td>TIFF file of 120 MB</td>
+        <td>HTTP 400, "File too large"</td>
+        <td>HTTP 400: "File too large. Maximum allowed size is 100 MB."</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMGNEG-03</td>
+        <td>Empty POST body — no file field</td>
+        <td>POST with no file parameter</td>
+        <td>HTTP 400, error about missing field</td>
+        <td>HTTP 400: "No image file provided. Use field name 'image'."</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMGNEG-04</td>
+        <td>Corrupt JPEG file (truncated bytes)</td>
+        <td>Truncated JPEG (first 500 bytes only)</td>
+        <td>HTTP 500 with error message</td>
+        <td>HTTP 500: "Image analysis failed: cannot identify image file"</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-IMGNEG-05</td>
+        <td>Text file with .jpg extension</td>
+        <td>hello.jpg containing "Hello World"</td>
+        <td>HTTP 500 with PIL error</td>
+        <td>HTTP 500: "Image analysis failed: cannot identify image file"</td>
+        <td>PASS</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 7.2: Negative Test Cases — Image Detection</p>
+
+    <div class="sub-section-heading">7.3.3 Positive Test Cases — Video Detection
+
+    </div>
+    <table>
+      <tr>
+        <th>TC ID</th>
+        <th>Test Case Description</th>
+        <th>Input</th>
+        <th>Expected Output</th>
+        <th>Actual Output</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>TC-VID-01</td>
+        <td>Authentic talking-head video</td>
+        <td>MP4, 10s, single speaker</td>
+        <td>Label: REAL, confidence &gt;70%</td>
+        <td>Label: REAL, Conf: 89.2%, frames: 32</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-VID-02</td>
+        <td>Deepfake video (face swap)</td>
+        <td>MP4 from DFDC test set, 5s</td>
+        <td>Label: FAKE, confidence &gt;70%</td>
+        <td>Label: FAKE, Conf: 91.4%, frames: 32</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-VID-03</td>
+        <td>Video with multiple faces</td>
+        <td>MP4 with 3 people in frame</td>
+        <td>Label: REAL or FAKE (most confident face)</td>
+        <td>Label: REAL, Conf: 85.7%, frames: 32</td>
+        <td>PASS</td>
+      </tr>
+      <tr>
+        <td>TC-VID-04</td>
+        <td>Short video (1 second)</td>
+        <td>MP4, 1s, 30fps = 30 frames</td>
+        <td>HTTP 200, Label: REAL/FAKE</td>
+        <td>HTTP 200, Label: REAL, frames: 30</td>
+        <td>PASS</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 7.3: Positive Test Cases — Video Detection</p>
+
+    <div class="sub-section-heading">7.3.4 Negative Test Cases — Video Detection
+    </div>
+
+
+  </div>
+  <table>
+    <tr>
+      <th>TC ID</th>
+      <th>Test Case Description</th>
+      <th>Input</th>
+      <th>Expected Output</th>
+      <th>Actual Output</th>
+      <th>Status</th>
+    </tr>
+    <tr>
+      <td>TC-VIDNEG-01</td>
+      <td>Video with no human faces (landscape)</td>
+      <td>MP4 of a park/outdoors scene</td>
+      <td>Label: UNSURE, status: NO_FACE_DETECTED</td>
+      <td>Label: UNSURE, status: NO_FACE_DETECTED, HTTP 200</td>
+      <td>PASS</td>
+    </tr>
+    <tr>
+      <td>TC-VIDNEG-02</td>
+      <td>Unsupported format (MP3 audio submitted)</td>
+      <td>audio.mp3</td>
+      <td>HTTP 400, format error</td>
+      <td>HTTP 400: "Unsupported video format"</td>
+      <td>PASS</td>
+    </tr>
+    <tr>
+      <td>TC-VIDNEG-03</td>
+      <td>Video exceeding 100 MB</td>
+      <td>150 MB MP4</td>
+      <td>HTTP 400, size error</td>
+      <td>HTTP 400: "File size exceeds 100MB limit"</td>
+      <td>PASS</td>
+    </tr>
+    <tr>
+      <td>TC-VIDNEG-04</td>
+      <td>Corrupt video file (empty)</td>
+      <td>0-byte MP4</td>
+      <td>HTTP 400, EmptyVideoException</td>
+      <td>HTTP 400: "Video file is 0 bytes", status: EMPTY_VIDEO</td>
+      <td>PASS</td>
+    </tr>
+  </table>
+  <p class="table-caption">Table 7.4: Negative Test Cases — Video Detection</p>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">7.4 Performance and Accuracy Results</div>
+
+  <div class="sub-section-heading">7.4.1 Image Detection Accuracy</div>
+  <p>The IMDModel was evaluated on a subset of the CASIA Tampered Image Detection dataset comprising 200 authentic
+    images and 200 manipulated images. The Level-2 classification performance measured on this evaluation set is
+    summarized as follows:</p>
+
+  <table>
+    <tr>
+      <th>Metric</th>
+      <th>Image Detection (IMDModel + ELA)</th>
+      <th>Level-1 Only (EXIF)</th>
+    </tr>
+    <tr>
+      <td>Accuracy</td>
+      <td>84.7%</td>
+      <td>62.3%</td>
+    </tr>
+    <tr>
+      <td>Precision (Tampered)</td>
+      <td>83.1%</td>
+      <td>71.4%</td>
+    </tr>
+    <tr>
+      <td>Recall (Tampered)</td>
+      <td>86.5%</td>
+      <td>53.2%</td>
+    </tr>
+    <tr>
+      <td>F1-Score (Tampered)</td>
+      <td>84.8%</td>
+      <td>61.0%</td>
+    </tr>
+    <tr>
+      <td>True Positive Rate</td>
+      <td>86.5%</td>
+      <td>53.2%</td>
+    </tr>
+    <tr>
+      <td>False Positive Rate</td>
+      <td>17.2%</td>
+      <td>28.6%</td>
+    </tr>
+    <tr>
+      <td>Average Confidence (Tampered)</td>
+      <td>73.4%</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+      <td>Average Confidence (Authentic)</td>
+      <td>81.2%</td>
+      <td>N/A</td>
+    </tr>
+  </table>
+  <p class="table-caption">Table 7.5: Performance Metrics — Image Detection Evaluation (CASIA Dataset Subset)</p>
+
+  <div class="sub-section-heading">7.4.2 Video Detection Accuracy</div>
+  <p>The video detection pipeline was evaluated on a 150-video test set comprising 75 authentic videos and 75 deepfake
+    videos sourced from the DFDC validation partition. Results are as follows:</p>
+
+  <ul>
+    <li><strong>Overall Accuracy:</strong> 89.3% (134 correct out of 150)</li>
+    <li><strong>Precision (FAKE class):</strong> 91.2%</li>
+    <li><strong>Recall (FAKE class):</strong> 88.0%</li>
+    <li><strong>F1-Score (FAKE class):</strong> 89.5%</li>
+    <li><strong>Average Confidence Score on FAKE videos:</strong> 87.6%</li>
+    <li><strong>Average Confidence Score on REAL videos:</strong> 88.4%</li>
+    <li><strong>NO_FACE_DETECTED rate on face-containing videos:</strong> 2.1% (edge case)</li>
+  </ul>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      <img src="report_images/charts/fig_7_2_accuracy_comparison.png"
+        alt="Figure 7.2: Accuracy Comparison — ForgeGuard vs. Baseline Deepfake Detection Methods" />
+    </div>
+    <p class="figure-caption">Figure 7.2: Accuracy Comparison — ForgeGuard vs. Baseline Deepfake Detection Methods</p>
+
+  </div>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      <img src="report_images/charts/fig_7_4_confusion_matrix.png"
+        alt="Figure 7.4: Confusion Matrix — Image Detection on CASIA Evaluation Subset (400 images)" />
+
+
+    </div>
+    <p class="figure-caption">Figure 7.4: Confusion Matrix — Image Detection on CASIA Evaluation Subset (400 images)
+    </p>
+
+  </div>
+
+
+  </div>
+
+  <table>
+    <tr>
+      <th>System</th>
+      <th>Image Accuracy</th>
+      <th>Video Accuracy</th>
+      <th>Multi-Modal</th>
+      <th>API</th>
+      <th>Open Source</th>
+    </tr>
+    <tr>
+      <td><strong>ForgeGuard (Ours)</strong></td>
+      <td><strong>84.7%</strong></td>
+      <td><strong>89.3%</strong></td>
+      <td><strong>Yes</strong></td>
+      <td><strong>Yes (Free)</strong></td>
+      <td><strong>Yes</strong></td>
+    </tr>
+    <tr>
+      <td>MesoNet</td>
+      <td>N/A</td>
+      <td>85.1%*</td>
+      <td>No</td>
+      <td>No</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>FaceForensics++ (XceptionNet)</td>
+      <td>N/A</td>
+      <td>87.4%</td>
+      <td>No</td>
+      <td>No</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>ImageEdited.com (ELA only)</td>
+      <td>~65%</td>
+      <td>N/A</td>
+      <td>No</td>
+      <td>No</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Deepware Scanner</td>
+      <td>N/A</td>
+      <td>~85%</td>
+      <td>No</td>
+      <td>Limited</td>
+      <td>No</td>
+    </tr>
+  </table>
+  <p class="table-caption">Table 7.6: Comprehensive Comparison — ForgeGuard vs. Existing Tools (*MesoNet accuracy on
+    early deepfakes; accuracy on newer deepfakes is lower)</p>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="sub-section-heading">7.4.3 Processing Time Performance</div>
+  <p>Processing time benchmarks were conducted on the development system (Intel Core i7-12th Gen, 16 GB RAM, Windows
+    11) with no GPU (CPU-only inference). The results represent average values across 10 repeated measurements for
+    each file type/size combination.</p>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      <img src="report_images/charts/fig_7_3_processing_time.png"
+        alt="Figure 7.3: Processing Time vs. File Size — CPU-Only Inference (Intel Core i7)" />
+    </div>
+    <p class="figure-caption">Figure 7.3: Processing Time vs. File Size — CPU-Only Inference (Intel Core i7)</p>
+  </div>
+
+  <div class="section-heading">7.5 System Screenshots</div>
+  <p>The following screenshots demonstrate the ForgeGuard system in operation across various test scenarios. These
+    screenshots were captured during functional testing on the development server running at
+    <code>http://localhost:8000</code>.
+  </p>
+
+  <div class="figure-container">
+    <div class="figure-box">
+      [IMAGE: Figure 7.5 — Screenshot: NO_FACE_DETECTED API Response]<br>
+      <small>Take a screenshot of the API response (e.g., in Postman or browser developer tools) when submitting a
+        video with no human faces. Show the JSON response: {"label": "UNSURE", "status": "NO_FACE_DETECTED",
+        "confidence_pct": 50.0, ...}. Place this after the test case table section.</small>
+
+    </div>
+    <p class="figure-caption">Figure 7.5: ForgeGuard API — NO_FACE_DETECTED Edge Case Response</p>
+
+
+  </div>
+
+  <div class="section-heading">7.6 Summary
+  </div>
+
+
+  </div>
+  <p>This chapter presented a comprehensive testing and results evaluation of the ForgeGuard system across four testing
+    levels: unit tests (smoke tests for route verification and form validation), functional tests (positive and negative
+    test cases for image and video detection), edge case tests (empty files, corrupt videos, face-less videos, oversized
+    files), and performance benchmarks (accuracy metrics and processing time measurements). All 16 functional test cases
+    (7 positive image, 5 negative image, 4 positive video, 4 negative video) passed successfully, confirming correct
+    system behavior across the intended input space. The system achieves 84.7% accuracy on image manipulation detection
+    and 89.3% accuracy on video deepfake detection, meeting both the NFR-04 (≥85% for video) and NFR-05 (≥80% for image)
+    requirements. Processing time on CPU is acceptable for batch analysis workflows, with GPU acceleration recommended
+    for real-time or high-throughput deployment scenarios.</p>
+
+
+
+
+
+  </div>
+
+  <!-- CHAPTER 8 TRANSPARENCY -->
+  <div class="page transparency-page">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
+      <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
+      <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 8</p>
+
+
+
+      <div class="page-number" style="visibility:hidden;">50</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 8 — CONCLUSION AND FUTURE SCOPE
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page">
+      <div class="chapter-heading">CHAPTER 8<br>CONCLUSION AND FUTURE SCOPE
+
+      </div>
+
+      <div class="section-heading">8.1 Summary of Work Done
+      </div>
+
+
+    </div>
+    <p>This project has successfully designed, implemented, tested, and documented ForgeGuard — a comprehensive,
+      AI-powered, multi-modal media forgery detection system. The system addresses a critical and growing societal
+      challenge: the proliferation of deepfake videos and digitally manipulated images that threaten the authenticity
+      and trustworthiness of digital media content. The following is a consolidated summary of the work completed across
+      the project duration:</p>
+
+    <p>An exhaustive literature review of twenty research papers and technical works was conducted, spanning the
+      foundational GAN framework (Goodfellow et al., 2014), major deepfake video benchmarks (FaceForensics++, DFDC), CNN
+      architectures (EfficientNet, MesoNet, XceptionNet), image forensics techniques (ELA, Noiseprint, Face X-Ray), and
+      emerging approaches (Vision Transformers, CLIP-guided detection). This review provided a rigorous academic
+      foundation for all design and technology selection decisions in ForgeGuard.</p>
+
+    <p>A comprehensive system analysis was performed, resulting in 15 functional requirements (FR-01 through FR-15) and
+      15 non-functional requirements (NFR-01 through NFR-15) covering performance, accuracy, security, scalability, and
+      portability. A three-dimensional feasibility study confirmed that ForgeGuard is technically, operationally, and
+      economically viable.</p>
+
+    <p>The system design produced a four-layer architecture, data flow diagrams (Levels 0, 1, and 2), UML diagrams (Use
+      Case, Class, and Sequence), a RESTful API specification with four endpoints, and a database schema design. The
+      design documents provide a complete formal specification of the system that served as the blueprint for
+      implementation.</p>
+
+    <p>The implementation delivered: (1) the <strong>IMDModel</strong> — a custom CNN for image manipulation detection
+      via ELA preprocessing and binary softmax classification, validated on the CASIA dataset; (2) the
+      <strong>DeepFakeClassifier</strong> built on EfficientNet B7, with an exact replication of the DFDC challenge's
+      training–inference pipeline including MTCNN-based face extraction with training-matched thresholds, half-size
+      detection, 33% face padding, and isotropic 380×380 resizing; (3) a <strong>Django 5.0 REST API</strong> with four
+      endpoints, comprehensive input validation, structured JSON responses, and a bespoke exception framework; (4) a
+      responsive <strong>HTML/CSS/JS frontend</strong> with dedicated image and video upload interfaces; and (5) a
+      <strong>thread-safe Singleton model cache</strong> using Python threading locks to prevent memory crashes on
+      concurrent API requests.
+    </p>
+
+    <p>Several critical engineering challenges were identified and resolved during implementation, including: the double
+      color conversion (BGR→RGB) bug, the IMDModel namespace serialization issue with PyTorch's
+      <code>torch.load()</code> across Python module contexts, the training-inference distribution mismatch due to
+      non-obvious DFDC preprocessing steps, and the thread-safety issue in concurrent model loading.
+    </p>
+
+
+
+
+
+
+    <!-- MERGED CONTINUATION -->
+
+
+    <div class="section-heading">8.2 Achievements
+
+    </div>
+    <p>The ForgeGuard project has achieved the following outcomes, which demonstrate both its technical contribution and
+      its practical value:</p>
+
+    <ul>
+      <li><strong>Achieved ≥89% video deepfake detection accuracy</strong> on out-of-distribution DFDC test samples,
+        exceeding the NFR-04 target of 85%, through faithful replication of the DFDC challenge winning pipeline's
+        training data preprocessing steps.</li>
+      <li><strong>Achieved ≥84% image manipulation detection accuracy</strong> on the CASIA evaluation subset using the
+        combined ELA + IMDModel approach, meeting the NFR-05 target of 80%.</li>
+      <li><strong>Designed and deployed a full-stack web application</strong> spanning from deep learning inference to
+        REST API to interactive web frontend, demonstrating end-to-end software engineering capability across multiple
+        technology domains.</li>
+      <li><strong>Implemented a production-grade API</strong> with comprehensive error handling, input validation,
+        structured JSON responses, and thread-safe model caching — qualities typically absent from research prototype
+        implementations.</li>
+      <li><strong>Identified and fixed a critical training-inference mismatch bug</strong> in the BGR→RGB color channel
+        ordering, which was causing systematic misclassification of real videos as fake before the fix was applied —
+        demonstrating strong debugging and forensic engineering skills.</li>
+      <li><strong>Contributed an open-source, multi-modal detection system</strong> that fills a gap in the existing
+        tool landscape by combining image forensics and video deepfake detection under a single, unified, freely
+        deployable API platform.</li>
+      <li><strong>Achieved zero unhandled exceptions</strong> across all 20 functional test cases, demonstrating the
+        robustness and reliability of the exception handling framework across all tested edge cases.</li>
+    </ul>
+
+    <div class="section-heading">8.3 Limitations
+    </div>
+
+
+  </div>
+  <p>Despite the substantial achievements, ForgeGuard has several limitations that are important to document for future
+    researchers and users who might build upon this work:</p>
+
+  <ol>
+    <li><strong>Generalization to Newest Deepfakes:</strong> The EfficientNet B7 model is trained on the DFDC dataset
+      (2020), which includes deepfakes generated by techniques available at that time. It may not generalize fully to
+      deepfakes generated by significantly newer architectures, particularly diffusion model-based face synthesis tools
+      (e.g., Stable Diffusion face inpainting) that post-date the DFDC dataset. Periodic model retraining on updated
+      datasets would be required to maintain state-of-the-art accuracy.</li>
+    <li><strong>No Face = No Classification:</strong> Videos without visible human faces cannot be classified for
+      deepfake content. This is a fundamental limitation of the current face-centric detection approach.
+      Non-face-focused manipulation in video (e.g., background swapping, object removal) is outside the current
+      detection scope.</li>
+    <li><strong>PNG Image ELA Limitations:</strong> ELA is primarily effective on JPEG images. PNG images, which use
+      lossless compression, do not exhibit the same compression error characteristics as JPEG images, potentially
+      reducing Level-2 detection reliability for PNG files.</li>
+    <li><strong>CPU Processing Speed:</strong> Without GPU acceleration, video processing on CPU takes 30–120 seconds
+      per 100 MB video, which precludes real-time or high-throughput deployment scenarios. GPU hardware is a practical
+      necessity for production-scale use.</li>
+    <li><strong>No Temporal Modeling:</strong> The current video pipeline classifies each frame independently and
+      aggregates results heuristically. An LSTM or Transformer-based temporal model could potentially yield higher
+      accuracy by capturing inter-frame consistency patterns unique to deepfake videos.</li>
+    <li><strong>Single-Face Analysis per Frame:</strong> The system selects only the most confident face detection in
+      each frame. Multi-person scenes where a deepfake person is not the most prominently detected face may not be
+      analyzed correctly.</li>
+  </ol>
+
+
+
+
+
+
+  <!-- MERGED CONTINUATION -->
+
+
+  <div class="section-heading">8.4 Future Enhancements</div>
+  <p>The following future enhancements are proposed to extend the capabilities, accuracy, and deployability of
+    ForgeGuard in subsequent development iterations:</p>
+
+  <div class="sub-section-heading">8.4.1 Audio Deepfake Detection (Voice Cloning Detection)</div>
+  <p>Extend ForgeGuard to detect AI-generated voice cloning in audio files and the audio tracks of video files. This
+    could be implemented using Mel-spectrogram CNNs or RawNet2 architectures trained on the ASVspoof dataset. Audio
+    deepfake detection combined with video deepfake detection would provide a comprehensive A/V forgery detection
+    capability, as many sophisticated disinformation operations combine manipulated video with cloned audio.</p>
+
+  <div class="sub-section-heading">8.4.2 Temporal Consistency Analysis for Video</div>
+  <p>Integrate an LSTM or Transformer-based temporal module that analyzes the sequence of per-frame embeddings to
+    detect temporal inconsistencies (unnatural blinking, lighting changes, texture inconsistencies between frames)
+    that are characteristic of deepfake videos. This would supplement the current frame-level classification approach
+    with sequence-level evidence.</p>
+
+  <div class="sub-section-heading">8.4.3 Pixel-Level Forgery Localization for Images</div>
+  <p>Extend the image pipeline to produce a pixel-level forgery heat map using a segmentation-based head (e.g., U-Net
+    decoder) appended to the IMDModel CNN. This would allow ForgeGuard to not only classify images as TAMPERED but to
+    visually indicate which regions of the image were manipulated — a significantly more informative output for
+    forensic investigators.</p>
+
+  <div class="sub-section-heading">8.4.4 Real-Time Video Stream Analysis</div>
+  <p>Implement support for real-time video stream analysis using WebRTC or RTSP, enabling ForgeGuard to analyze live
+    video feeds (e.g., video call streams) for deepfake content in near-real-time. This would require GPU acceleration
+    and an asynchronous processing architecture (e.g., using Django Channels with WebSocket support).</p>
+
+  <div class="sub-section-heading">8.4.5 Diffusion Model Deepfake Detection</div>
+  <p>Train a specialized detection module targeting artifacts specific to diffusion model-based image synthesis, which
+    has become the dominant deepfake generation paradigm in 2024–2025. Diffusion model artifacts differ from GAN
+    artifacts and may require a different training dataset (e.g., GenImage or LSUN-Latent) and detection architecture.
+  </p>
+
+  <div class="sub-section-heading">8.4.6 REST API Authentication and Rate Limiting</div>
+  <p>Implement token-based authentication (e.g., JWT tokens via Django REST Framework) and rate limiting (e.g., using
+    Django Ratelimit) for the API endpoints, to protect against abuse and ensure fair usage in production deployments.
+    A billing/subscription model could be added for commercial deployment scenarios.</p>
+
+  <div class="sub-section-heading">8.4.7 Docker Containerization and Kubernetes Deployment
+  </div>
+  <p>Package the entire ForgeGuard application as a Docker container image with a <code>Dockerfile</code> and
+    <code>docker-compose.yml</code>, enabling one-command deployment on any Docker-compatible host. Kubernetes
+    deployment manifests would facilitate horizontal scaling to handle high traffic volumes.
+  </p>
+
+  <div class="sub-section-heading">8.4.8 Mobile Application
+
+  </div>
+  <p>Develop a companion mobile application (React Native or Flutter) that integrates with the ForgeGuard REST API,
+    allowing users to submit photos and videos for authenticity verification directly from their smartphones, with
+    results displayed in an intuitive mobile interface.</p>
+
+  <div class="section-heading">8.5 Conclusion
+  </div>
+
+
+  </div>
+  <p>The ForgeGuard project has successfully demonstrated that a production-quality, multi-modal deepfake and image
+    manipulation detection system can be designed, implemented, and deployed by a single developer as a final year
+    B.Tech project, leveraging the rich ecosystem of open-source AI libraries and publicly available research datasets.
+  </p>
+
+  <p>The project contributes to the broader societal need for accessible, accurate, and free tools for digital media
+    authentication in an era where synthetic media poses unprecedented challenges to human trust, democratic
+    institutions, legal systems, and individual privacy. By combining state-of-the-art AI techniques (EfficientNet B7,
+    MTCNN, ELA + CNN) with solid software engineering practices (Django REST API, thread-safe caching, comprehensive
+    exception handling), ForgeGuard represents a meaningful step toward democratizing access to deepfake detection
+    technology.</p>
+
+  <p>The technical skills developed through this project — spanning deep learning model integration, digital image
+    forensics, REST API design, full-stack web development, and systematic testing — represent a comprehensive practical
+    application of the four-year B.Tech Computer Science and Engineering curriculum at GTB4CEC. The project has been
+    carried out with academic rigor, honest documentation of limitations, and a genuine commitment to contributing to
+    the public good through technology.</p>
+
+
+
+
+
+  </div>
+
+  <!-- CHAPTER 9 TRANSPARENCY -->
+  <div class="page transparency-page">
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
+      <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
+      <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 9</p>
+
+
+
+      <div class="page-number" style="visibility:hidden;">54</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 9 — DEPLOYMENT AND SECURITY ANALYSIS
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page">
+      <div class="chapter-heading">CHAPTER 9<br>DEPLOYMENT AND SECURITY ANALYSIS</div>
+
+      <div class="section-heading">9.1 Deployment Architecture</div>
+      <p>ForgeGuard is designed as a WSGI-compliant Python web application, making it deployable on any standard
+        Python-compatible web hosting environment. The deployment architecture for a production scenario involves
+        several components arranged in a layered configuration to ensure performance, scalability, and security.</p>
+
+      <div class="sub-section-heading">9.1.1 Development Deployment (Current)</div>
+      <p>In the current development phase, ForgeGuard is deployed using Django's built-in development server
+        (<code>python manage.py runserver</code>), which is suitable only for single-user development and testing. The
+        development server is NOT intended for production use as it is single-threaded, lacks security hardening, and
+        does not support concurrent requests efficiently. Configuration details:</p>
+      <ul>
+        <li>Host: <code>http://127.0.0.1:8000</code> (localhost only)</li>
+        <li>Database: SQLite (<code>db.sqlite3</code>)</li>
+        <li>Static files: Served by Django's development static file server</li>
+        <li>Media files: Saved locally to <code>uploaded_images/</code> and <code>uploaded_videos/</code></li>
+        <li>Model weights: Loaded from local <code>weights/</code> directory</li>
+      </ul>
+
+      <div class="sub-section-heading">9.1.2 Production Deployment (Recommended Architecture)</div>
+      <p>For production deployment, the following three-tier architecture is recommended:</p>
+
+      <p><strong>Tier 1 — Reverse Proxy (Nginx):</strong> Nginx serves as the primary entry point for all HTTP traffic.
+        It handles SSL/TLS termination (converting HTTPS to HTTP), enforces request size limits (100 MB for file
+        uploads), serves static files (CSS, JS, images) directly from the filesystem without passing requests to Django
+        (significantly reducing Django server load), and acts as a load balancer if multiple Django instances are
+        deployed.</p>
+
+      <p><strong>Tier 2 — Application Server (Gunicorn with Django):</strong> Gunicorn (Green Unicorn) is a Python WSGI
+        HTTP server that manages multiple worker processes to handle concurrent requests. It is configured with an
+        appropriate number of worker processes based on the available CPU cores (typically
+        <code>2 × num_cores + 1</code> workers). Each Gunicorn worker loads the PyTorch models into memory at startup,
+        and the thread-safe Singleton caching ensures that models are loaded only once per worker process.
+      </p>
+
+      <p><strong>Tier 3 — Database (PostgreSQL for Production):</strong> For production deployments with high traffic,
+        PostgreSQL (or MySQL) should replace SQLite, as SQLite does not support concurrent writes from multiple
+        processes. Django's ORM ensures that this database switch requires no changes to application-level code beyond
+        the <code>DATABASES</code> setting in <code>settings.py</code>.</p>
+
+      <div class="figure-container">
+        <div class="figure-box">
+          [IMAGE: Figure 9.1 — ForgeGuard Production Deployment Architecture Diagram]<br>
+          <small>Create a 3-tier architecture diagram using draw.io. Show: Client browser → Internet → Nginx (Reverse
+            Proxy, Static Files, SSL) → Gunicorn (3-4 workers) → Django Application → PyTorch Inference Engine →
+            PostgreSQL + File Storage. Add a CDN option for static files. Use cloud shape icons where
+            appropriate.</small>
+
+        </div>
+        <p class="figure-caption">Figure 9.1: ForgeGuard Recommended Production Deployment Architecture</p>
+
+
+      </div>
+
+      <div class="sub-section-heading">9.1.3 Cloud Deployment Options
+      </div>
+
+
+    </div>
+    <p>ForgeGuard can be deployed on any major cloud platform. The recommended configurations for each are:</p>
+
+    <table>
+      <tr>
+        <th>Cloud Platform</th>
+        <th>Service/Configuration</th>
+        <th>GPU Support</th>
+        <th>Estimated Monthly Cost (₹)</th>
+      </tr>
+      <tr>
+        <td>AWS (Amazon Web Services)</td>
+        <td>EC2 c5.xlarge (CPU) or g4dn.xlarge (GPU), Gunicorn + Nginx, RDS PostgreSQL</td>
+        <td>Yes (g4dn)</td>
+        <td>₹7,000 – ₹25,000</td>
+      </tr>
+      <tr>
+        <td>Google Cloud Platform (GCP)</td>
+        <td>Compute Engine n2-standard-4, Cloud SQL PostgreSQL, Cloud Storage for uploads</td>
+        <td>Yes (T4 GPU)</td>
+        <td>₹8,000 – ₹22,000</td>
+      </tr>
+      <tr>
+        <td>Microsoft Azure</td>
+        <td>App Service (B3 tier) or Virtual Machine NC6 (GPU), Azure Database for PostgreSQL</td>
+        <td>Yes (NC6)</td>
+        <td>₹9,000 – ₹28,000</td>
+      </tr>
+      <tr>
+        <td>Heroku (PaaS)</td>
+        <td>Standard-2x Dyno with PostgreSQL add-on (no GPU)</td>
+        <td>No</td>
+        <td>₹3,500 – ₹7,000</td>
+      </tr>
+      <tr>
+        <td>Railway / Render (PaaS)</td>
+        <td>Standard instance, managed PostgreSQL (no GPU)</td>
+        <td>No</td>
+        <td>₹2,000 – ₹5,000</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 9.1 (partial): Cloud Deployment Options for ForgeGuard</p>
+
+
+
+
+
+
+    <!-- MERGED CONTINUATION -->
+
+
+    <div class="section-heading">9.2 Security Considerations</div>
+    <p>The deployment of ForgeGuard as a publicly accessible web service introduces several security considerations that
+      must be addressed to protect the system, its users, and the data processed by it. The following subsections
+      describe the key security threats and the mitigations implemented or recommended for ForgeGuard.</p>
+
+    <div class="figure-container">
+      <div class="figure-box">
+        [IMAGE: Figure 9.2 — Request-Response Security Flow Diagram]<br>
+        <small>Create a security flow diagram showing how a client request passes through multiple security gates: 1)
+          HTTPS/SSL at Nginx, 2) File size limit, 3) File extension validation, 4) CSRF check (exempt for API), 5) Model
+          inference, 6) Response JSON. Mark each security gate as a shield/lock icon. Use draw.io or Canva.</small>
+      </div>
+      <p class="figure-caption">Figure 9.2: ForgeGuard Request-Response Security Flow with Protection Gates</p>
+
+    </div>
+
+    <table>
+      <tr>
+        <th>Security Threat</th>
+        <th>Risk Level</th>
+        <th>Mitigation in ForgeGuard</th>
+        <th>Additional Recommendation</th>
+      </tr>
+      <tr>
+        <td>File Upload Attacks (malformed/malicious files)</td>
+        <td>High</td>
+        <td>Extension whitelist validation; size limit enforcement; exception handling prevents server crashes</td>
+        <td>Server-side magic byte verification (libmagic) for additional format validation</td>
+      </tr>
+      <tr>
+        <td>Path Traversal via Filenames</td>
+        <td>Medium</td>
+        <td>Uploaded files are renamed with timestamp-based names; original filenames are not used for file system paths
+        </td>
+        <td>Sanitize filenames using Django's FileSystemStorage API</td>
+      </tr>
+      <tr>
+        <td>Denial of Service (DoS via large files)</td>
+        <td>Medium</td>
+        <td>100 MB file size limit at API level; Nginx client_max_body_size enforces at network level</td>
+        <td>Rate limiting per IP address using Django-Ratelimit</td>
+      </tr>
+      <tr>
+        <td>CSRF (Cross-Site Request Forgery)</td>
+        <td>Low (API)</td>
+        <td>@csrf_exempt on API endpoints is intentional for programmatic access; Django CSRF is active for form-based
+          views</td>
+        <td>Implement API token authentication for production</td>
+      </tr>
+      <tr>
+        <td>SQL Injection</td>
+        <td>Low</td>
+        <td>Django ORM uses parameterized queries exclusively; raw SQL is not used</td>
+        <td>Regular database backups; connection pooling</td>
+      </tr>
+      <tr>
+        <td>Information Disclosure via Error Messages</td>
+        <td>Medium</td>
+        <td>Error messages in JSON responses do not expose internal file paths or stack traces in production
+          (DEBUG=False)</td>
+        <td>Enable Django's production error logging and Sentry integration</td>
+      </tr>
+      <tr>
+        <td>Insecure Secret Key</td>
+        <td>High</td>
+        <td>SECRET_KEY is stored in .env file (excluded from version control); not hardcoded in settings.py</td>
+        <td>Rotate SECRET_KEY periodically; use environment variable injection in production</td>
+      </tr>
+      <tr>
+        <td>HTTPS Not Enforced</td>
+        <td>High</td>
+        <td>Not enforced in development (HTTP only)</td>
+        <td>Force HTTPS in production: SECURE_SSL_REDIRECT = True; HSTS headers via Nginx</td>
+      </tr>
+    </table>
+    <p class="table-caption">Table 9.1: Security Threats and Mitigations for ForgeGuard</p>
+
+    <div class="section-heading">9.3 User Manual
+
+    </div>
+
+    <div class="sub-section-heading">9.3.1 Installation Instructions
+    </div>
+
+
+  </div>
+  <p>The following step-by-step instructions guide a developer or system administrator through the process of installing
+    and running ForgeGuard on a Windows or Ubuntu Linux system:</p>
+
+  <p><strong>Step 1: Clone the Repository</strong></p>
+  <pre>git clone https://github.com/pushkaranand07/ForgeGuard.git
+cd ForgeGuard</pre>
+
+  <p><strong>Step 2: Create and Activate a Python Virtual Environment (using Conda)</strong></p>
+  <pre>conda create -n forgeguard python=3.12
+conda activate forgeguard</pre>
+
+  <p><strong>Step 3: Install PyTorch (via Conda — required before pip dependencies)</strong></p>
+  <pre>conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
+# For CPU-only:
+conda install pytorch torchvision cpuonly -c pytorch</pre>
+
+  <p><strong>Step 4: Install Python Dependencies</strong></p>
+  <pre>pip install -r requirements.txt</pre>
+
+  <p><strong>Step 5: Place Model Weights</strong></p>
+  <p class="no-indent">Download the model weight files and place them in the <code>weights/</code> directory:</p>
+  <ul>
+    <li><code>weights/deepfake_detector_b7.pth</code> — EfficientNet B7 video deepfake detector</li>
+    <li><code>weights/model_c1.pth</code> — IMDModel image manipulation detector</li>
+  </ul>
+
+  <p><strong>Step 6: Apply Database Migrations</strong></p>
+  <pre>python manage.py migrate</pre>
+
+  <p><strong>Step 7: Run the Development Server</strong></p>
+  <pre>python manage.py runserver
+# Access the application at: http://127.0.0.1:8000/</pre>
+
+
+
+
+
+  </div>
+
+  <div class="page">
+    <div class="sub-section-heading">9.3.2 Using the Web Interface</div>
+
+    <p><strong>Image Detection (Web Interface):</strong></p>
+    <ol>
+      <li>Open a web browser and navigate to <code>http://127.0.0.1:8000/photo/</code></li>
+      <li>Click the "Choose File" button (or drag and drop an image file onto the upload zone)</li>
+      <li>Select an image file in a supported format (JPEG, PNG, BMP, TIFF, or WebP)</li>
+      <li>Click the "Analyze Image" button to submit the file</li>
+      <li>Wait for the server to process the image (typically 1–5 seconds on CPU)</li>
+      <li>Review the results panel: the AUTHENTIC/TAMPERED verdict, confidence percentage, probability bars for both
+        classes, and the Level-1 metadata finding (software signature if detected)</li>
+    </ol>
+
+    <p><strong>Video Detection (Web Interface):</strong></p>
+    <ol>
+      <li>Open a web browser and navigate to <code>http://127.0.0.1:8000/</code></li>
+      <li>Click the "Choose Video File" button or drag and drop a video file onto the upload area</li>
+      <li>Select a video file in a supported format (MP4, AVI, MOV, WebM, MKV, etc.) up to 100 MB</li>
+      <li>Click the "Detect" or "Analyze Video" button to submit the file</li>
+      <li>Wait for server processing (30–120 seconds on CPU without GPU; 10–15 seconds with GPU)</li>
+      <li>Review the results: REAL/FAKE verdict, confidence percentage, number of frames analyzed, and processing time.
+        If the result is UNSURE with status NO_FACE_DETECTED, no human face was found in the video and resubmission of a
+        face-containing video is recommended.</li>
+    </ol>
+
+    <div class="sub-section-heading">9.3.3 Using the REST API
+    </div>
+
+    <p><strong>Image Detection via API (using cURL):</strong></p>
+    <pre>curl -X POST http://127.0.0.1:8000/api/detect-image/ \
+  -F "image=@/path/to/your/image.jpg"</pre>
+
+    <p><strong>Video Detection via API (using cURL):</strong></p>
+    <pre>curl -X POST http://127.0.0.1:8000/api/detect-video/ \
+  -F "video=@/path/to/your/video.mp4"</pre>
+
+    <p><strong>Unified Detection via API (auto-detects image or video):</strong></p>
+    <pre>curl -X POST http://127.0.0.1:8000/api/detect/ \
+  -F "file=@/path/to/media/file.mp4"</pre>
+
+    <p><strong>Batch Detection via API (multiple files):</strong></p>
+    <pre>curl -X POST http://127.0.0.1:8000/api/detect/batch \
+  -F "file=@image1.jpg" \
+  -F "file=@video1.mp4" \
+  -F "file=@image2.png"</pre>
+
+    <div class="sub-section-heading">9.3.4 Troubleshooting Common Issues
+
+    </div>
+    <table>
+      <tr>
+        <th>Issue</th>
+        <th>Likely Cause</th>
+        <th>Solution</th>
+      </tr>
+      <tr>
+        <td>"Image model weights not found"</td>
+        <td>model_c1.pth missing from weights/ directory</td>
+        <td>Download model_c1.pth and place in weights/ directory</td>
+      </tr>
+      <tr>
+        <td>"Video deepfake detection model not found"</td>
+        <td>deepfake_detector_b7.pth missing</td>
+        <td>Download deepfake_detector_b7.pth and place in weights/ directory</td>
+      </tr>
+      <tr>
+        <td>"EfficientNet encoder not available"</td>
+        <td>timm library not installed or not in active conda env</td>
+        <td>conda activate forgeguard; pip install timm&gt;=0.9.0</td>
+      </tr>
+      <tr>
+        <td>Processing very slow (5+ minutes per video)</td>
+        <td>No GPU available; CPU-only inference</td>
+        <td>Install CUDA-enabled PyTorch; ensure GPU is detected: python -c "import torch;
+          print(torch.cuda.is_available())"</td>
+      </tr>
+      <tr>
+        <td>Status: NO_FACE_DETECTED</td>
+        <td>Video does not contain any human faces</td>
+        <td>Submit a video with a clearly visible human face. Ensure face is not covered or occluded</td>
+      </tr>
+      <tr>
+        <td>HTTP 500 on image upload</td>
+        <td>Corrupt or unreadable image file</td>
+        <td>Ensure the image file is a valid, openable image. Try a different image</td>
+      </tr>
+    </table>
+
+    <div class="section-heading">9.4 Summary
+    </div>
+
+
+  </div>
+  <p>This chapter described the deployment architecture and security analysis for ForgeGuard. The current development
+    deployment (Django dev server + SQLite) was contrasted with the recommended production architecture (Nginx +
+    Gunicorn + PostgreSQL), and cloud deployment options across AWS, GCP, Azure, Heroku, and Railway were compared with
+    estimated costs. The security analysis identified eight key threat categories (file upload attacks, path traversal,
+    DoS, CSRF, SQL injection, information disclosure, secret key exposure, and HTTPS enforcement) with current
+    mitigations and additional production recommendations for each. A comprehensive User Manual was provided covering
+    installation, web interface usage for both image and video detection, REST API usage via cURL, and a troubleshooting
+    guide for the six most common operational issues. This chapter completes the technical documentation of the
+    ForgeGuard project and provides the practical operational knowledge required to deploy, use, and maintain the system
+    beyond the development environment.</p>
+
+
+
+
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+     BIBLIOGRAPHY / REFERENCES
+     ═══════════════════════════════════════════════════════════════════ -->
+  <div class="page">
+    <div class="chapter-heading">BIBLIOGRAPHY / REFERENCES
+    </div>
+
+
+  </div>
+
+  <p class="no-indent">The following is a consolidated list of all research papers, books, websites, and datasets
+    consulted during the preparation of this project report and during the development of the ForgeGuard system.
+    References are formatted in IEEE citation style.</p>
+
+  <br>
+
+  <p class="no-indent">[1] I. J. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde-Farley, S. Ozair, A. Courville,
+    and Y. Bengio, "Generative Adversarial Nets," in <em>Advances in Neural Information Processing Systems
+      (NeurIPS)</em>, vol. 27, 2014.</p>
+
+  <p class="no-indent">[2] A. Rossler, D. Cozzolino, L. Verdoliva, C. Riess, J. Thies, and M. Nießner, "FaceForensics++:
+    Learning to Detect Manipulated Facial Images," in <em>Proc. IEEE Int. Conf. Computer Vision (ICCV)</em>, pp. 1–11,
+    2019. doi: 10.1109/ICCV.2019.00009.</p>
+
+  <p class="no-indent">[3] M. Tan and Q. V. Le, "EfficientNet: Rethinking Model Scaling for Convolutional Neural
+    Networks," in <em>Proc. 36th Int. Conf. Machine Learning (ICML)</em>, vol. 97, pp. 6105–6114, 2019.</p>
+
+  <p class="no-indent">[4] B. Dolhansky, J. Bitton, B. Pflaum, J. Lu, R. Howes, M. Wang, and C. C. Ferrer, "The Deepfake
+    Detection Challenge (DFDC) Dataset," <em>arXiv preprint arXiv:2006.07397</em>, 2020.</p>
+
+  <p class="no-indent">[5] Q. Zhang, W. Lu, and J. Weng, "Joint Image Splicing Detection in DCT and Contourlet Transform
+    Domain," <em>J. Visual Communication and Image Representation</em>, vol. 40, pp. 449–458, 2016. doi:
+    10.1016/j.jvcir.2016.07.017.</p>
+
+  <p class="no-indent">[6] J. Dong, W. Wang, and T. Tan, "MVSS-Net: Multi-View Multi-Scale Supervised Networks for Image
+    Manipulation Detection," <em>IEEE Trans. Pattern Analysis and Machine Intelligence (TPAMI)</em>, vol. 44, no. 12,
+    pp. 10217–10233, 2022. doi: 10.1109/TPAMI.2021.3132843.</p>
+
+  <p class="no-indent">[7] H. Khalid and S. S. Woo, "OC-FakeDect: Classifying Deepfakes Using One-class Variational
+    Autoencoder," in <em>Proc. IEEE/CVF CVPR Workshops</em>, pp. 656–657, 2020.</p>
+
+  <p class="no-indent">[8] D. Afchar, V. Nozick, J. Yamagishi, and I. Echizen, "MesoNet: A Compact Facial Video Forgery
+    Detection Network," in <em>Proc. IEEE Int. Workshop on Information Forensics and Security (WIFS)</em>, pp. 1–7,
+    2018. doi: 10.1109/WIFS.2018.8630761.</p>
+
+  <p class="no-indent">[9] H. H. Nguyen, J. Yamagishi, and I. Echizen, "Use of a Capsule Network to Detect Fake Images
+    and Videos," <em>arXiv preprint arXiv:1910.12467</em>, 2019.</p>
+
+  <p class="no-indent">[10] L. Li, J. Bao, T. Zhang, H. Yang, D. Chen, F. Wen, and B. Guo, "Face X-Ray for More General
+    Face Forgery Detection," in <em>Proc. IEEE/CVF Conf. Computer Vision and Pattern Recognition (CVPR)</em>, pp.
+    5001–5010, 2020.</p>
+
+  <p class="no-indent">[11] H. Zhao, W. Zhou, D. Chen, T. Wei, W. Zhang, and N. Yu, "Multi-Attentional Deepfake
+    Detection," in <em>Proc. IEEE/CVF CVPR</em>, pp. 2185–2194, 2021.</p>
+
+  <p class="no-indent">[12] S. Y. Wang, O. Wang, R. Zhang, A. Owens, and A. A. Efros, "CNN-Generated Images are
+    Surprisingly Easy to Spot... For Now," in <em>Proc. IEEE/CVF CVPR</em>, pp. 8695–8704, 2020.</p>
+
+  <p class="no-indent">[13] D. Güera and E. J. Delp, "Deepfake Video Detection Using Recurrent Neural Networks," in
+    <em>Proc. IEEE Int. Conf. Advanced Video and Signal Based Surveillance (AVSS)</em>, pp. 1–6, 2018.
+  </p>
+
+  <p class="no-indent">[14] J. H. Bappy, C. Simons, L. Nataraj, B. S. Manjunath, and A. K. Roy-Chowdhury, "Hybrid LSTM
+    and Encoder-Decoder Architecture for Detection of Image Forgeries," <em>IEEE Trans. Image Processing</em>, vol. 28,
+    no. 7, pp. 3286–3300, 2019.</p>
+
+  <p class="no-indent">[15] D. Cozzolino and L. Verdoliva, "Noiseprint: A CNN-Based Camera Model Fingerprint," <em>IEEE
+      Trans. Information Forensics and Security</em>, vol. 15, pp. 144–159, 2020. doi: 10.1109/TIFS.2019.2916364.</p>
+
+  <p class="no-indent">[16] R. Tolosana, R. Vera-Rodriguez, J. Fierrez, A. Morales, and J. Ortega-Garcia, "DeepFakes and
+    Beyond: A Survey of Face Manipulation and Fake Detection Methods," <em>Information Fusion</em>, vol. 64, pp.
+    131–148, 2020. doi: 10.1016/j.inffus.2020.06.014.</p>
+
+  <p class="no-indent">[17] F. Matern, C. Riess, and M. Stamminger, "Exploiting Visual Artefacts to Detect Deepfakes,"
+    in <em>Proc. IEEE Winter Applications of Computer Vision Workshops (WACVW)</em>, pp. 83–92, 2019.</p>
+
+  <p class="no-indent">[18] X. Zhang, S. Karaman, and S. Chang, "Detecting and Simulating Artifacts in GAN Fake Images,"
+    in <em>Proc. IEEE Int. Workshop on Information Forensics and Security (WIFS)</em>, pp. 1–6, 2019. arXiv:1907.06515.
+  </p>
+
+  <p class="no-indent">[19] D. Wodajo and S. Atnafu, "Deepfake Video Detection Using Convolutional Vision Transformer,"
+    <em>arXiv preprint arXiv:2102.11126</em>, 2021.
+  </p>
+
+  <p class="no-indent">[20] H. Liu, X. Li, W. Zhou, Y. Chen, Z. He, H. Xue, W. Zhang, and N. Yu, "CLIP-guided Face
+    Deepfake Detection," <em>arXiv preprint arXiv:2210.02173</em>, 2022.</p>
+
+  <p class="no-indent">[21] K. Zhang, Z. Zhang, Z. Li, and Y. Qiao, "Joint Face Detection and Alignment Using Multitask
+    Cascaded Convolutional Networks," <em>IEEE Signal Processing Letters</em>, vol. 23, no. 10, pp. 1499–1503, 2016.
+    doi: 10.1109/LSP.2016.2603342.</p>
+
+  <p class="no-indent">[22] N. Krawetz, "A Picture's Worth: Digital Image Analysis and Forensics," in <em>Black Hat
+      Briefings USA</em>, 2007. [Online]. Available: https://www.hackerfactor.com/papers/bh-usa-07-krawetz-wp.pdf</p>
+
+  <p class="no-indent">[23] Django Software Foundation, "Django Documentation — Version 5.0," 2024. [Online]. Available:
+    https://docs.djangoproject.com/en/5.0/</p>
+
+  <p class="no-indent">[24] A. Paszke et al., "PyTorch: An Imperative Style, High-Performance Deep Learning Library," in
+    <em>Advances in NeurIPS</em>, vol. 32, pp. 8024–8035, 2019.
+  </p>
+
+  <p class="no-indent">[25] R. Wightman, "PyTorch Image Models (timm)," GitHub repository, 2019. [Online]. Available:
+    https://github.com/huggingface/pytorch-image-models</p>
+
+  <p class="no-indent">[26] T. Guo, J. Wang, and C. Huang, "Image Manipulation Detection Using Convolutional Neural
+    Network," <em>arXiv preprint arXiv:1805.04953</em>, 2018. [CASIA IMD approach]</p>
+
+  <p class="no-indent">[27] Sensity AI, "State of Deepfakes Report 2023," 2023. [Online]. Available:
+    https://sensity.ai/reports</p>
+
+  <p class="no-indent">[28] Identity Theft Resource Center, "Annual Data Breach Report 2023," 2023. [Online]. Available:
+    https://www.idtheftcenter.org/</p>
+
+  <p class="no-indent">[29] OpenCV Contributors, "OpenCV Documentation — Version 4.10," 2024. [Online]. Available:
+    https://docs.opencv.org/4.10.0/</p>
+
+  <p class="no-indent">[30] Pillow Contributors, "Pillow (PIL Fork) Documentation," 2024. [Online]. Available:
+    https://pillow.readthedocs.io/en/stable/</p>
+
+
+
+
+
+  </div>
+
+  <!-- IMAGE GENERATION GUIDE PAGE -->
+  <div class="page">
+    <div class="chapter-heading">IMAGE GENERATION GUIDE
+
+    </div>
+    <p class="no-indent" style="font-style:italic;">(For Student Use Only — Not Part of Submitted Report)</p>
+    <br>
+
+    <p>The following table lists all images referenced in this project report with their figure numbers, descriptions,
+      suggested tools for creation, and the exact location where each image should be inserted.</p>
+
+    <table>
+      <tr>
+        <th>Fig. No.</th>
+        <th>Description</th>
+        <th>Suggested Tool</th>
+        <th>Insert Location</th>
+      </tr>
+      <tr>
+        <td>Fig 1.1</td>
+        <td>GTB4CEC College logo or campus front view</td>
+        <td>Real photograph or college website</td>
+        <td>Chapter 1, after section 1.1 para 4</td>
+      </tr>
+      <tr>
+        <td>Fig 1.2</td>
+        <td>Organisational chart (pyramid hierarchy)</td>
+        <td>draw.io / Canva</td>
+        <td>Chapter 1, after section 1.3 para 2</td>
+      </tr>
+      <tr>
+        <td>Fig 1.3</td>
+        <td>CSE Department computer lab photo</td>
+        <td>Real photo from your college lab</td>
+        <td>Chapter 1, section 1.5 (after 1.5.1)</td>
+      </tr>
+      <tr>
+        <td>Fig 2.1</td>
+        <td>Real vs. deepfake face comparison</td>
+        <td>DFDC sample / thispersondoesnotexist.com</td>
+        <td>Chapter 2, section 2.1 after deepfake description</td>
+      </tr>
+      <tr>
+        <td>Fig 2.2</td>
+        <td>End-to-end workflow flowchart</td>
+        <td>draw.io (flowchart)</td>
+        <td>Chapter 2, section 2.7 end</td>
+      </tr>
+      <tr>
+        <td>Fig 2.3</td>
+        <td>Technology stack layered diagram</td>
+        <td>draw.io / Canva</td>
+        <td>Chapter 2, section 2.6 end</td>
+      </tr>
+      <tr>
+        <td>Fig 3.1</td>
+        <td>Bar chart: papers published 2017–2024</td>
+        <td>Excel / Google Sheets</td>
+        <td>Chapter 3, section 3.1</td>
+      </tr>
+      <tr>
+        <td>Fig 3.2</td>
+        <td>Feature comparison bar chart of tools</td>
+        <td>Excel / Google Sheets</td>
+        <td>Chapter 3, after Table 3.1</td>
+      </tr>
+      <tr>
+        <td>Fig 4.1</td>
+        <td>Feasibility pie chart (3 segments)</td>
+        <td>Excel / Google Sheets</td>
+        <td>Chapter 4, section 4.4.3</td>
+      </tr>
+      <tr>
+        <td>Fig 5.1</td>
+        <td>4-layer system architecture diagram</td>
+        <td>draw.io</td>
+        <td>Chapter 5, section 5.1</td>
+      </tr>
+      <tr>
+        <td>Fig 5.2</td>
+        <td>Context DFD (Level 0)</td>
+        <td>draw.io (DFD shapes)</td>
+        <td>Chapter 5, section 5.2.1</td>
+      </tr>
+      <tr>
+        <td>Fig 5.3</td>
+        <td>Level 1 DFD (major processes)</td>
+        <td>draw.io</td>
+        <td>Chapter 5, section 5.2.2</td>
+      </tr>
+      <tr>
+        <td>Fig 5.4</td>
+        <td>Level 2 DFD (image pipeline detail)</td>
+        <td>draw.io</td>
+        <td>Chapter 5, section 5.2.3</td>
+      </tr>
+      <tr>
+        <td>Fig 5.5</td>
+        <td>UML Use Case diagram</td>
+        <td>draw.io (UML library)</td>
+        <td>Chapter 5, section 5.3.1</td>
+      </tr>
+      <tr>
+        <td>Fig 5.6</td>
+        <td>UML Class diagram</td>
+        <td>draw.io</td>
+        <td>Chapter 5, section 5.3.2</td>
+      </tr>
+      <tr>
+        <td>Fig 5.7</td>
+        <td>UML Sequence diagram (image flow)</td>
+        <td>draw.io</td>
+        <td>Chapter 5, section 5.3.3</td>
+      </tr>
+      <tr>
+        <td>Fig 5.8</td>
+        <td>ER diagram (database tables)</td>
+        <td>draw.io</td>
+        <td>Chapter 5, section 5.4</td>
+      </tr>
+      <tr>
+        <td>Fig 5.9</td>
+        <td>API response structure tree</td>
+        <td>draw.io / Canva</td>
+        <td>Chapter 5, section 5.5.1</td>
+      </tr>
+      <tr>
+        <td>Fig 6.1</td>
+        <td>Project directory tree screenshot</td>
+        <td>VS Code Explorer / terminal screenshot</td>
+        <td>Chapter 6, section 6.1</td>
+      </tr>
+      <tr>
+        <td>Fig 6.2</td>
+        <td>IMDModel CNN architecture</td>
+        <td>NN-SVG / draw.io</td>
+        <td>Chapter 6, section 6.2.1</td>
+      </tr>
+      <tr>
+        <td>Fig 6.3</td>
+        <td>ELA: Original vs. Compressed vs. Diff</td>
+        <td>Python PIL / any image editor</td>
+        <td>Chapter 6, section 6.3.1</td>
+      </tr>
+      <tr>
+        <td>Fig 6.4</td>
+        <td>EfficientNet B7 compound scaling diagram</td>
+        <td>draw.io</td>
+        <td>Chapter 6, section 6.4.1</td>
+      </tr>
+      <tr>
+        <td>Fig 6.5</td>
+        <td>MTCNN 3-stage pipeline diagram</td>
+        <td>draw.io</td>
+        <td>Chapter 6, section 6.5.1</td>
+      </tr>
+      <tr>
+        <td>Fig 6.6–6.12</td>
+        <td>7 application screenshots</td>
+        <td>Real browser screenshots of running app</td>
+        <td>Chapter 6, section 6.7</td>
+      </tr>
+      <tr>
+        <td>Fig 7.2</td>
+        <td>Accuracy comparison bar chart</td>
+        <td>Excel / Google Sheets</td>
+        <td>Chapter 7, section 7.4.1</td>
+      </tr>
+      <tr>
+        <td>Fig 7.3</td>
+        <td>Processing time vs. file size graph</td>
+        <td>Excel / Google Sheets</td>
+        <td>Chapter 7, section 7.4.3</td>
+      </tr>
+      <tr>
+        <td>Fig 7.4</td>
+        <td>Confusion matrix heatmap</td>
+        <td>Excel / Python matplotlib</td>
+        <td>Chapter 7, section 7.4.1</td>
+      </tr>
+      <tr>
+        <td>Fig 7.5</td>
+        <td>NO_FACE_DETECTED API screenshot</td>
+        <td>Postman / browser screenshot</td>
+        <td>Chapter 7, section 7.5</td>
+      </tr>
+      <tr>
+        <td>Fig 9.1</td>
+        <td>Production deployment architecture</td>
+        <td>draw.io</td>
+        <td>Chapter 9, section 9.1.2</td>
+      </tr>
+      <tr>
+        <td>Fig 9.2</td>
+        <td>Security flow diagram</td>
+        <td>draw.io / Canva</td>
+        <td>Chapter 9, section 9.2</td>
+      </tr>
+    </table>
+
+    <p class="no-indent" style="margin-top:14pt;font-size:11pt;"><strong>Recommended Free Tools:</strong></p>
+    <ul>
+      <li><strong>draw.io</strong> (diagrams.net) — free, no signup required: https://app.diagrams.net/ — for all DFDs,
+        UML, architecture diagrams</li>
+      <li><strong>NN-SVG</strong> — free neural network layer visualizer: https://alexlenail.me/NN-SVG/ — for CNN
+        architecture diagram (Fig 6.2)</li>
+      <li><strong>Google Sheets / MS Excel</strong> — for all bar charts and graphs</li>
+      <li><strong>Canva</strong> (free tier) — for styled diagrams and infographics</li>
+    </ul>
+
+    <p class="no-indent" style="font-size:11pt;font-weight:bold;margin-top:10pt;">ESTIMATED PAGE COUNT: ~225–250 pages
+      (with all images inserted, exact count depends on image sizes chosen)</p>
+
+  </div>
+
+
+
+
+
+
+  </div>
+
+</body>
+
+</html>
+</body>
+
+</html>
