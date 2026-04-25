@@ -673,7 +673,7 @@
                 class="toc-dots"></span><span class="toc-page">32</span></div>
         <div class="toc-row toc-section"><span class="toc-text">3.2 Overall System Architecture</span><span
                 class="toc-dots"></span><span class="toc-page">34</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">3.3 System Modules (Detailed Technical Breakdown)</span><span
+        <div class="toc-row toc-section"><span class="toc-text">3.3 System Modules — Detailed Technical Explanation</span><span
                 class="toc-dots"></span><span class="toc-page">38</span></div>
         <div class="toc-row toc-section"><span class="toc-text">3.4 Data Flow Diagram (DFD)</span><span
                 class="toc-dots"></span><span class="toc-page">45</span></div>
@@ -693,26 +693,6 @@
                 class="toc-dots"></span><span class="toc-page">66</span></div>
         <div class="toc-row toc-section"><span class="toc-text">4.5 Summary</span><span class="toc-dots"></span><span
                 class="toc-page">70</span></div>
-
-    </div>
-
-    <div class="fm-flow">
-        <div class="toc-row toc-chapter"><span class="toc-text">Chapter 5: System Design</span><span
-                class="toc-dots"></span><span class="toc-page">72</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">5.1 Overall System Architecture</span><span
-                class="toc-dots"></span><span class="toc-page">73</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">5.2 Data Flow Diagrams</span><span
-                class="toc-dots"></span><span class="toc-page">76</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">5.3 UML Diagrams</span><span
-                class="toc-dots"></span><span class="toc-page">82</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">5.4 Database Design</span><span
-                class="toc-dots"></span><span class="toc-page">91</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">5.5 API Design</span><span class="toc-dots"></span><span
-                class="toc-page">96</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">5.6 Frontend Design</span><span
-                class="toc-dots"></span><span class="toc-page">101</span></div>
-        <div class="toc-row toc-section"><span class="toc-text">5.7 Summary</span><span class="toc-dots"></span><span
-                class="toc-page">105</span></div>
 
     </div>
 
@@ -806,38 +786,63 @@
             </tr>
             <tr>
                 <td>Figure 3.1</td>
-                <td>ForgeGuard High-Level System Architecture Diagram</td>
-                <td>34</td>
+                <td>Media Trust Asymmetry Concept Diagram</td>
+                <td>32</td>
             </tr>
             <tr>
                 <td>Figure 3.2</td>
-                <td>Error Level Analysis (ELA) Concept Map</td>
-                <td>38</td>
+                <td>ForgeGuard Four-Layer Modular Architecture</td>
+                <td>33</td>
             </tr>
             <tr>
                 <td>Figure 3.3</td>
-                <td>IMDModel Convolutional Neural Network Architecture</td>
-                <td>40</td>
+                <td>ELA Comparison: Authentic vs. Tampered Maps</td>
+                <td>36</td>
             </tr>
             <tr>
                 <td>Figure 3.4</td>
-                <td>MTCNN Facial Landmark Mapping & Alignment</td>
-                <td>42</td>
+                <td>IMDModel Convolutional Neural Network Architecture</td>
+                <td>37</td>
             </tr>
             <tr>
                 <td>Figure 3.5</td>
-                <td>Physiological Signal Extraction (rPPG Analysis)</td>
-                <td>44</td>
+                <td>Image Detection Pipeline Flow (Step-by-Step)</td>
+                <td>38</td>
             </tr>
             <tr>
                 <td>Figure 3.6</td>
-                <td>Data Flow Diagram (DFD) Level 0</td>
-                <td>45</td>
+                <td>MTCNN Face Detection and Padding Pipeline</td>
+                <td>40</td>
             </tr>
             <tr>
                 <td>Figure 3.7</td>
-                <td>UML Use Case Diagram</td>
-                <td>48</td>
+                <td>EfficientNet-B7 Scaling and Classification Layers</td>
+                <td>41</td>
+            </tr>
+            <tr>
+                <td>Figure 3.8</td>
+                <td>Comparison of Frame Aggregation Strategies</td>
+                <td>43</td>
+            </tr>
+            <tr>
+                <td>Figure 3.9</td>
+                <td>Video Deepfake Detection Pipeline Flow</td>
+                <td>44</td>
+            </tr>
+            <tr>
+                <td>Figure 3.10</td>
+                <td>API Endpoint Routing and Handler Mapping</td>
+                <td>46</td>
+            </tr>
+            <tr>
+                <td>Figure 3.11</td>
+                <td>DFD Level 0 – Context Diagram (Yourdon/DeMarco)</td>
+                <td>47</td>
+            </tr>
+            <tr>
+                <td>Figure 3.12</td>
+                <td>UML Use Case Diagram for ForgeGuard Actors</td>
+                <td>49</td>
             </tr>
             <tr>
                 <td>Figure 4.1</td>
@@ -1391,26 +1396,6 @@
                 disconnected software interfaces.</div>
         </div>
 
-        <div class="sub-section-heading">1.3.4 The Crisis of Cognitive Security</div>
-        <p>Beyond the technical challenges, the proliferation of deepfakes has precipitated a crisis of "Cognitive
-            Security." This term refers to the protection of the cognitive processes of human beings from being
-            manipulated through the systematic exploitation of their psychological biases. Because the human brain is
-            evolutionarily hardwired to process visual information as a primary source of truth, highly realistic
-            synthetic media can bypass rational skepticism and trigger immediate emotional responses. When people are 
-            confronted with a video of a person speaking, they subconsciously assign a high level of credibility to that 
-            information, making deepfakes a uniquely potent tool for radicalization, domestic extremism, and 
-            psychological warfare. The inability of the general population to distinguish between reality and 
-            synthesized fiction represents a critical systemic vulnerability in modern digital societies.</p>
-
-        <div class="sub-section-heading">1.3.5 The Escalating Arms Race: Adversarial Generation</div>
-        <p>The problem is further compounded by the adversarial nature of generative AI development. Every time a new 
-            detection method is published in academic literature, it provides a "gradient" for generative models to 
-            improve. Malicious actors can use existing detection models as a feedback loop to refine their generative 
-            architectures, specifically training them to minimize the artifacts that those detectors look for. This 
-            perpetual arms race means that any detection system must be designed with extensibility in mind, allowing 
-            for the rapid integration of new models as generative techniques evolve. A static solution is essentially 
-            obsolete upon deployment; ForgeGuard addresses this by proposing a modular architecture that can be 
-            updated with new neural network weights without requiring a total system overhaul.</p>
         <div class="sub-section-heading">1.3.2 Accessibility and Usability Barriers</div>
         <p>Second, the vast majority of state-of-the-art deepfake detection models remain confined to academic research
             repositories (e.g., GitHub, arXiv papers). They exist purely as complex, unoptimized Python scripts
@@ -1441,6 +1426,26 @@
 
 
 
+        <div class="sub-section-heading">1.3.4 The Crisis of Cognitive Security</div>
+        <p>Beyond the technical challenges, the proliferation of deepfakes has precipitated a crisis of "Cognitive
+            Security." This term refers to the protection of the cognitive processes of human beings from being
+            manipulated through the systematic exploitation of their psychological biases. Because the human brain is
+            evolutionarily hardwired to process visual information as a primary source of truth, highly realistic
+            synthetic media can bypass rational skepticism and trigger immediate emotional responses. When people are 
+            confronted with a video of a person speaking, they subconsciously assign a high level of credibility to that 
+            information, making deepfakes a uniquely potent tool for radicalization, domestic extremism, and 
+            psychological warfare. The inability of the general population to distinguish between reality and 
+            synthesized fiction represents a critical systemic vulnerability in modern digital societies.</p>
+
+        <div class="sub-section-heading">1.3.5 The Escalating Arms Race: Adversarial Generation</div>
+        <p>The problem is further compounded by the adversarial nature of generative AI development. Every time a new 
+            detection method is published in academic literature, it provides a "gradient" for generative models to 
+            improve. Malicious actors can use existing detection models as a feedback loop to refine their generative 
+            architectures, specifically training them to minimize the artifacts that those detectors look for. This 
+            perpetual arms race means that any detection system must be designed with extensibility in mind, allowing 
+            for the rapid integration of new models as generative techniques evolve. A static solution is essentially 
+            obsolete upon deployment; ForgeGuard addresses this by proposing a modular architecture that can be 
+            updated with new neural network weights without requiring a total system overhaul.</p>
         <div class="section-heading">1.4 Objectives of ForgeGuard</div>
         <p>The primary objective of the ForgeGuard project is to design, implement, and deploy a comprehensive,
             AI-powered system capable of automatically detecting digital forgeries, manual manipulations, and generative
@@ -1635,13 +1640,8 @@
             style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
             <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
             <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 2</p>
-
-
-            15
         </div>
     </div>
-    </div>
-
 
     <!-- ═══════════════════════════════════════════════════════════════════
        CHAPTER 2 — LITERATURE REVIEW
@@ -1649,7 +1649,6 @@
     <div class="page">
         <div class="chapter-heading">CHAPTER 2<br>LITERATURE REVIEW</div>
 
-        <div class="section-heading">2.1 Traditional Image Forensics: A Foundation of Pixel-Level Analysis</div>
         <p>The academic discipline of digital image forensics emerged as a direct response to the widespread
             availability of powerful photo-editing software in the late 1990s. Tools such as Adobe Photoshop and
             GIMP democratized the ability to alter photographs in ways previously requiring specialist darkroom
@@ -1663,6 +1662,7 @@
             Understanding their strengths and weaknesses is critical to appreciating the motivations for the
             paradigm shift toward neural networks.</p>
 
+        <div class="section-heading">2.1 Traditional Image Forensics</div>
         <div class="sub-section-heading" style="page-break-inside: avoid;">2.1.1 Error Level Analysis (ELA)</div>
         <p>Error Level Analysis (ELA) is one of the most cited and intuitive traditional image forensics
             techniques. It was introduced by Neal Krawetz in 2007 and exploits the lossy compression mechanism of
@@ -1682,15 +1682,9 @@
             photographs. The ForgeGuard image pipeline directly implements an ELA transformation as its primary
             Level-2 spatial feature extraction step.</p>
 
-        <div class="figure-container">
-            <img src="report_images/ela_concept.png" alt="ELA Concept Diagram" style="max-width: 420px; width:100%;">
-            <p class="caption">Figure 2.1: Conceptual illustration of Error Level Analysis (ELA). Manipulated regions
-                exhibit a distinct brightness pattern in the difference image, exposing inconsistent JPEG compression
-                histories.</p>
-        </div>
 
-        <div class="sub-section-heading" style="page-break-inside: avoid;">2.1.2 Photo Response Non-Uniformity (PRNU)
-        </div>
+
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.1.2 Photo Response Non-Uniformity (PRNU)</div>
         <p>Photo Response Non-Uniformity (PRNU) is a hardware-based forensic technique that exploits the unique
             manufacturing imperfections of camera image sensors (CCDs and CMOS chips). Due to slight variations in
             the silicon wafer doping process, each individual pixel in a sensor responds slightly differently to
@@ -1705,18 +1699,12 @@
             will differ from the rest of the image, revealing the location and boundary of the forgery. Lukas et
             al. (2006) demonstrated 95% detection accuracy on uncompressed images. However, the critical weakness
             of PRNU is its extreme sensitivity to JPEG compression — standard social media compression levels are
+            often high enough to "wash out" the sensor fingerprint, making it less reliable for the automated
             analysis of internet-sourced content.</p>
- 
-        <div class="figure-container">
-            <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/prnu_concept.png" alt="PRNU Sensor Fingerprint" style="max-width: 500px; width:100%;">
-            </div>
-            <p class="caption">Figure 2.2: The extraction of Photo Response Non-Uniformity (PRNU) as a unique 
-                sensor fingerprint for device attribution and forgery localization.</p>
-        </div>
 
-        <div class="sub-section-heading" style="page-break-inside: avoid;">2.1.3 Copy-Move and Block-Matching Algorithms
-        </div>
+
+
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.1.3 Copy-Move and Block-Matching Algorithms</div>
         <p>A specific and highly common type of traditional manipulation is the "copy-move" forgery. In this
             scenario, an attacker copies a region of an image and pastes it elsewhere within the same image,
             typically to conceal a person, object, or text. Because the forged region comes from the same source
@@ -1726,7 +1714,7 @@
 
         <div class="figure-container">
             <img src="report_images/copy_move_sift.png" alt="Copy-Move Detection" style="max-width:500px; width:100%;">
-            <p class="caption">Figure 2.3: Detection of copy-move forgery utilizing block-matching and keypoint
+            <p class="caption">Figure 2.1: Detection of copy-move forgery utilizing block-matching and keypoint
                 feature extraction (SIFT) to identify duplicated spatial regions.</p>
         </div>
 
@@ -1772,76 +1760,18 @@
             different vanishing point, it indicates a perspective mismatch. This methodology is particularly effective
             for detecting forged documents or outdoor scenes where architectural elements provide strong geometric cues.
             While highly robust against JPEG compression, these physical forensic techniques require significant manual
-            generated in the deepfake era.</p>
+            expertise and are increasingly challenged by the hyper-realistic synthetic media generated in the deepfake era.</p>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
                 <img src="report_images/lighting_shadow_forensics.png" alt="Lighting and Shadow Forensics" style="max-width: 500px; width:100%;">
             </div>
-            <p class="caption">Figure 2.4: Analysis of light source direction and shadow convergence rays to detect 
+            <p class="caption">Figure 2.2: Analysis of light source direction and shadow convergence rays to detect 
                 geometric inconsistencies in composite forgeries.</p>
         </div>
+    </div>
 
-        <div class="sub-section-heading" style="page-break-inside: avoid;">2.3.3 The Rise of Vision Transformers (ViTs)
-            in Image Forensics</div>
-        <p>As the field of deep learning evolved, a new architecture began to challenge the dominance of CNNs: the
-            Vision Transformer (ViT). Originally adapted from the Transformer models used in Natural Language Processing
-            (NLP), ViTs represent a radical departure from the localized processing of convolutional layers. While a CNN
-            uses a sliding window (kernel) to analyze small patches of pixels at a time, a ViT treats an image as a
-            sequence of patches, much like words in a sentence. The image is divided into a fixed-size grid of patches
-            (e.g., 16x16 pixels), each of which is flattened into a one-dimensional vector and embedded into a
-            high-dimensional space.</p>
-
-        <p>The core innovation of the ViT is the "Self-Attention" mechanism. Self-attention allows every patch in the
-            image to interact with every other patch simultaneously, regardless of their spatial distance. This allows
-            the model to capture "global dependencies"—long-range relationships across the entire image that CNNs often
-            struggle to perceive. In the context of deepfake detection, ViTs have shown remarkable success in
-            identifying global structural inconsistencies. For instance, while a CNN might correctly identify a
-            high-frequency blending artifact around the eyes, a ViT can simultaneously analyze the relationship between
-            the eyes and the chin to detect a subtle "facial warping" effect that occurs during the identity swap
-            process.</p>
-
-        <p>Recent state-of-the-art models, such as the Cross-Attention Multi-modal Vision Transformer (Cross-ViT) and
-            the Efficient Vision Transformer (DeiT), have pushed the boundaries of accuracy on the DFDC dataset. By
-            leveraging multi-scale patch embeddings, these models can analyze the image at both a micro-level (detecting
-            pixel-level artifacts) and a macro-level (detecting global semantic inconsistencies). However, the primary
-            drawback of ViTs is their extreme data hunger; unlike CNNs, which have an inductive bias for spatial
-            locality, ViTs must learn the concept of "spatial neighbor" from scratch, requiring massive pre-training on
-            datasets like ImageNet-21k or JFT-300M to reach their full potential. For the ForgeGuard system, the
-            inclusion of transformer-based attention mechanisms represents the next logical step in achieving
-            cross-corpus generalization.</p>
-
-        <div class="sub-section-heading" style="page-break-inside: avoid;">2.4.3 Multi-Modal Detection: Audio-Visual
-            Inconsistencies</div>
-        <p>As deepfake generation technology moved beyond static images into high-fidelity video, researchers realized
-            that analyzing the visual stream alone was no longer sufficient. A new frontier in deepfake forensics
-            emerged: Multi-Modal Detection. This approach focuses on the synchronization (or lack thereof) between the
-            visual movements of the mouth and the corresponding audio signals. In a genuine video of a human speaking,
-            there is a perfect physiological correlation between the phonemes (the sounds of speech) and the visemes
-            (the visual movements of the lips and jaw).</p>
-
-        <p>Generating a deepfake video often involves two separate processes: synthesizing the facial movements and
-            synthesizing the voice (cloning). Even if the visual synthesis is photorealistic, the temporal
-            synchronization between the two modalities is often imperfect. Forensic models, such as the LipRead-RNN and
-            the Audio-Visual Cross-Correlation (AVCC) network, analyze the temporal alignment between audio features
-            (MFCCs) and facial landmarks. If the model detects that the lips are moving in a way that is mathematically
-            inconsistent with the sound being produced—such as a "p" sound being heard while the lips are wide open—it
-            triggers a high forgery probability score.</p>
-
-        <p>Furthermore, multi-modal detection exploits the "uncanny valley" of synthetic speech. While modern GAN-based
-            voice clones can replicate the timbre of a person's voice, they often struggle with natural prosody,
-            breathing patterns, and the subtle micro-tremors of human vocal cords. By combining these acoustic anomalies
-            with the visual artifacts detected by the ForgeGuard pipeline, investigators can achieve a much higher level
-            of confidence. This dual-modality approach is particularly effective for detecting "cheapfakes" (manually
-            slowed-down or sped-up videos) and high-end deepfakes alike, as it targets the fundamental physiological
-            complexity of human communication that algorithms still struggle to replicate perfectly.</p>
-
-
-
-
-
-
-
+    <div class="page">
         <div class="section-heading">2.2 The Paradigm Shift: Role of Deep Learning in Image Forensics</div>
         <p>The limitations of traditional hand-crafted feature methods became acutely apparent as the resolution,
             quality, and complexity of digital forgeries increased throughout the 2010s. The advent of affordable
@@ -1858,6 +1788,7 @@
             texture of a spliced boundary" or "an inconsistent noise pattern." This automatic feature learning,
             enabled by large labeled datasets and GPUs, rendered many traditional approaches obsolete.</p>
 
+        <div class="section-heading">2.3 Deep Learning for Image Forensics</div>
         <div class="sub-section-heading" style="page-break-inside: avoid;">2.3.1 Convolutional Neural Networks for
             Spatial Forensics</div>
         <p>The first wave of deep learning-based image forensics focused on directly applying CNN classification
@@ -1876,7 +1807,7 @@
 
         <div class="figure-container">
             <img src="report_images/cnn_architecture.png" alt="CNN Architecture" style="max-width: 480px; width:100%;">
-            <p class="caption">Figure 2.5: Standard Convolutional Neural Network (CNN) architecture utilized for
+            <p class="caption">Figure 2.3: Standard Convolutional Neural Network (CNN) architecture utilized for
                 spatial feature extraction and binary forgery classification.</p>
         </div>
 
@@ -1897,11 +1828,35 @@
             learning what objects look like, not what manipulation artifacts look like. This motivated the
             development of forensics-specific modifications.</p>
 
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.3.3 The Rise of Vision Transformers (ViTs)
+            in Image Forensics</div>
+        <p>As the field of deep learning evolved, a new architecture began to challenge the dominance of CNNs: the
+            Vision Transformer (ViT). Originally adapted from the Transformer models used in Natural Language Processing
+            (NLP), ViTs represent a radical departure from the localized processing of convolutional layers. While a CNN
+            uses a sliding window (kernel) to analyze small patches of pixels at a time, a ViT treats an image as a
+            sequence of patches, much like words in a sentence. The image is divided into a fixed-size grid of patches
+            (e.g., 16x16 pixels), each of which is flattened into a one-dimensional vector and embedded into a
+            high-dimensional space.</p>
 
+        <p>The core innovation of the ViT is the "Self-Attention" mechanism. Self-attention allows every patch in the
+            image to interact with every other patch simultaneously, regardless of their spatial distance. This allows
+            the model to capture "global dependencies"—long-range relationships across the entire image that CNNs often
+            struggle to perceive. In the context of deepfake detection, ViTs have shown remarkable success in
+            identifying global structural inconsistencies. For instance, while a CNN might correctly identify a
+            high-frequency blending artifact around the eyes, a ViT can simultaneously analyze the relationship between
+            the eyes and the chin to detect a subtle "facial warping" effect that occurs during the identity swap
+            process.</p>
 
+        <div class="figure-container">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="report_images/vit_patching.png" alt="Vision Transformer Patching" style="height: 300px;">
+            </div>
+            <div class="caption">Figure 2.4: Visualization of the patch embedding process in a
+                Vision Transformer (ViT) architecture for global feature extraction.</div>
+        </div>
+    </div>
 
-
-
+    <div class="page">
         <div class="section-heading">2.4 The Evolution of Deepfakes and Video Forensics</div>
         <p>The term "deepfake" is a portmanteau of "deep learning" and "fake," originating in late 2017 when an
             anonymous Reddit user applied open-source autoencoder algorithms to map the faces of prominent
@@ -1943,7 +1898,7 @@
             temporal dimension of video. Modern high-fidelity deepfakes can fool frame-level classifiers by
             producing individual frames of nearly perfect quality. The forensic signal, however, is often found
             between frames. Temporal inconsistencies — such as unnatural flickering of the blending boundary,
-            irregular eye blink patterns, or unstable facial geometry — may not be apparent in any single frame
+            regular eye blink patterns, or unstable facial geometry — may not be apparent in any single frame
             but become obvious when analyzed across the temporal sequence.</p>
 
         <p>This observation motivated the development of 3D-CNN and LSTM-based architectures that process
@@ -1952,6 +1907,23 @@
             boundary exhibits a periodic flickering at the frame refresh rate of the synthesis algorithm. The
             ForgeGuard system seeks to leverage this specific temporal vulnerability by analyzing the inter-frame
             coherence of detected face crops.</p>
+
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.4.3 Multi-Modal Detection: Audio-Visual
+            Inconsistencies</div>
+        <p>As deepfake generation technology moved beyond static images into high-fidelity video, researchers realized
+            that analyzing the visual stream alone was no longer sufficient. A new frontier in deepfake forensics
+            emerged: Multi-Modal Detection. This approach focuses on the synchronization (or lack thereof) between the
+            visual movements of the mouth and the corresponding audio signals. In a genuine video of a human speaking,
+            there is a perfect physiological correlation between the phonemes (the sounds of speech) and the visemes
+            (the visual movements of the lips and jaw).</p>
+
+        <p>Generating a deepfake video often involves two separate processes: synthesizing the facial movements and
+            synthesizing the voice (cloning). Even if the visual synthesis is photorealistic, the temporal
+            synchronization between the two modalities is often imperfect. Forensic models, such as the LipRead-RNN and
+            the Audio-Visual Cross-Correlation (AVCC) network, analyze the temporal alignment between audio features
+            (MFCCs) and facial landmarks. If the model detects that the lips are moving in a way that is mathematically
+            inconsistent with the sound being produced—such as a "p" sound being heard while the lips are wide open—it
+            triggers a high forgery probability score.</p>
 
         <div class="sub-section-heading" style="page-break-inside: avoid;">2.4.4 Physiological Signal Analysis: Remote
             Photoplethysmography (R-PPG)</div>
@@ -1978,76 +1950,12 @@
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
                 <img src="report_images/rppg_analysis.png" alt="R-PPG Signal Extraction" style="height: 300px;">
             </div>
-            <div class="caption">Figure 2.6: Extraction and analysis of Remote
+            <div class="caption">Figure 2.5: Extraction and analysis of Remote
                 Photoplethysmography (R-PPG) signals to detect physiological inconsistencies in synthetic media.</div>
         </div>
+    </div>
 
-        <div class="sub-section-heading" style="page-break-inside: avoid;">2.5.4 Advanced Data Augmentation for
-            Robustness Training</div>
-        <p>The performance of any forensic model, including ForgeGuard, is heavily dependent on the diversity and
-            quality of the data augmentation strategies used during training. Data augmentation is the process of
-            artificially increasing the size of a dataset by applying various transformations to the original training
-            images. In the context of forgery detection, simple augmentations like flipping or rotation are
-            insufficient. Instead, researchers utilize "Forensic-Specific Augmentations" that simulate the various ways
-            a malicious actor might attempt to hide a forgery.</p>
-
-        <p>One critical technique is **Social Media Laundering Simulation**. This involves applying a randomized
-            sequence of JPEG compression (with varying quality factors), Gaussian blur, and resizing to every training
-            image. This forces the model to learn features that are invariant to the "laundering" effect common on
-            social media platforms. Another advanced strategy is **Frequency-Domain Augmentation**, where noise is added
-            specifically to the high-frequency components of the Discrete Cosine Transform (DCT) coefficients. This
-            prevents the model from overfitting to the specific spectral signatures of a single generator. Furthermore,
-            **CutMix and MixUp** techniques are used to blend real and fake patches together, forcing the model to
-            identify the subtle "blending boundary" rather than simply classifying the overall image texture. By
-            exposing the ForgeGuard pipeline to these adversarial transformations during the training phase, the
-            resulting model achieves significantly higher robustness against "unseen" attacks and low-quality
-            internet-sourced media.</p>
-
-        <div class="section-heading">2.10 Future Research Directions and Emerging Paradigms</div>
-        <p>As we look toward the next decade of digital forensics, the field is moving away from purely reactive
-            detection toward a holistic ecosystem of information integrity. Two emerging paradigms represent the "North
-            Star" of current research: Blockchain-based Content Provenance and Adaptive Adversarial Forensics.</p>
-
-        <p>The first paradigm, **Blockchain-based Provenance**, seeks to establish a "digital chain of custody" for
-            every piece of media from the moment of capture. Using standards like the Coalition for Content Provenance
-            and Authenticity (C2PA), cameras can digitally sign every frame with a cryptographic hash and store that
-            hash on a distributed ledger. If an image is later modified, the hash will no longer match the original
-            record, providing instant and irrefutable proof of tampering. This shifts the burden of proof: instead of
-            trying to detect if an image is *fake*, the system simply verifies if it is *original*. However, the
-            widespread adoption of this technology requires massive infrastructure changes and industry-wide cooperation
-            between camera manufacturers and social media platforms.</p>
-
-        <p>The second paradigm, **Adaptive Adversarial Forensics**, involves training detection models that can "evolve"
-            alongside generation algorithms. Current models are static; they are trained once and then deployed. An
-            adaptive system, however, uses an "Adversarial Training" loop where a "shadow generator" is constantly
-            attempting to fool the detection model, and the detection model is constantly learning from its failures.
-            This creates a self-healing forensic system that can theoretically anticipate new forgery techniques before
-            they are even released. Combined with the rise of **Edge-AI Forensics** (detecting deepfakes locally on a
-            smartphone during a video call), these future directions aim to restore trust in our shared digital reality.
-        </p>
-
-        <div class="figure-container">
-            <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/vit_patching.png" alt="Vision Transformer Patching" style="height: 300px;">
-            </div>
-            <div class="caption">Figure 2.7: Visualization of the patch embedding process in a
-                Vision Transformer (ViT) architecture for global feature extraction.</div>
-        </div>
-
-        <div class="figure-container">
-            <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/diffusion_process.png" alt="Latent Diffusion Process" style="height: 300px;">
-            </div>
-            <div class="caption">Figure 2.8: The forward and reverse diffusion processes
-                utilized in Latent Diffusion Models (LDM) for fully synthetic media generation.</div>
-        </div>
-
-
-
-
-
-
-
+    <div class="page">
         <div class="section-heading">2.5 Key Datasets and Benchmarks in Deepfake Forensics</div>
         <p>The progress of any machine learning field is inseparably linked to the quality and diversity of its
             training and evaluation datasets. The deepfake detection community has been particularly active in
@@ -2070,7 +1978,7 @@
                 <img src="report_images/compression_levels.png" alt="Dataset Compression Comparison"
                     style="width: 100%; object-fit: cover; object-position: 0 100%;">
             </div>
-            <p class="caption">Figure 2.9: Visual degradation of facial features across the three compression levels
+            <p class="caption">Figure 2.6: Visual degradation of facial features across the three compression levels
                 (RAW, HQ, LQ) utilized in the FaceForensics++ dataset.</p>
         </div>
 
@@ -2112,63 +2020,29 @@
             OpenForensics contains scenes with dozens of individuals in various orientations and occlusions, mirroring
             the complexity of modern news footage and public surveillance videos.</p>
 
-        <div class="section-heading">2.9 Identification of Critical Research Gaps and Problem Formulation</div>
-        <p>Despite the exponential growth in deepfake detection research over the last seven years, several critical
-            gaps remain that prevent the deployment of these tools in mission-critical environments. The synthesis of
-            the literature presented in this chapter reveals four primary domains where current systems are deficient:
-            Generalization, Computational Scalability, Explainability, and Robustness to Multi-Generation Compression.
-        </p>
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.5.4 Advanced Data Augmentation for
+            Robustness Training</div>
+        <p>The performance of any forensic model, including ForgeGuard, is heavily dependent on the diversity and
+            quality of the data augmentation strategies used during training. Data augmentation is the process of
+            artificially increasing the size of a dataset by applying various transformations to the original training
+            images. In the context of forgery detection, simple augmentations like flipping or rotation are
+            insufficient. Instead, researchers utilize "Forensic-Specific Augmentations" that simulate the various ways
+            a malicious actor might attempt to hide a forgery.</p>
 
-        <div class="sub-section-heading" style="page-break-inside: avoid;">Gap 1: The Generalization-Overfit Paradox
-        </div>
-        <p>The most pervasive issue identified across the literature is the inability of models to generalize across
-            different "forgery distributions." A CNN trained on FaceForensics++ (GAN-based) will essentially ignore the
-            subtle statistical signatures left by Stable Diffusion or Sora. This is because deep learning models tend to
-            memorize the specific noise patterns and high-frequency artifacts of the training generator rather than
-            learning the fundamental semantic properties of "real" human physiology. This leads to a false sense of
-            security: a model that works perfectly today may become completely obsolete tomorrow when a new synthesis
-            algorithm is released. There is a desperate need for "generator-agnostic" detection methods that focus on
-            physiological constraints (like blink rates, pulse detection via R-PPG, or lip-sync) rather than digital
-            artifacts.</p>
+        <p>One critical technique is **Social Media Laundering Simulation**. This involves applying a randomized
+            sequence of JPEG compression (with varying quality factors), Gaussian blur, and resizing to every training
+            image. This forces the model to learn features that are invariant to the "laundering" effect common on
+            social media platforms. Another advanced strategy is **Frequency-Domain Augmentation**, where noise is added
+            specifically to the high-frequency components of the Discrete Cosine Transform (DCT) coefficients. This
+            prevents the model from overfitting to the specific spectral signatures of a single generator. Furthermore,
+            **CutMix and MixUp** techniques are used to blend real and fake patches together, forcing the model to
+            identify the subtle "blending boundary" rather than simply classifying the overall image texture. By
+            exposing the ForgeGuard pipeline to these adversarial transformations during the training phase, the
+            resulting model achieves significantly higher robustness against "unseen" attacks and low-quality
+            internet-sourced media.</p>
+    </div>
 
-        <div class="sub-section-heading" style="page-break-inside: avoid;">Gap 2: Computational Overhead and Real-Time
-            Latency</div>
-        <p>A significant portion of the literature focuses on achieving maximum accuracy, often at the cost of extreme
-            computational overhead. Models utilizing 3D-CNNs or deep Vision Transformers (ViT-Huge) require high-end
-            enterprise GPUs (like the NVIDIA A100) to process video frames in real-time. For journalists, fact-checkers,
-            and average internet users, this represents an insurmountable barrier to entry. The research community has
-            largely ignored the development of "lite" or "mobile-first" forensic models that can provide rapid
-            verification on consumer hardware without sacrificing significant accuracy. The ForgeGuard system aims to
-            bridge this gap by utilizing the EfficientNet-B7 architecture, which provides a favorable balance between
-            parameter count and discriminative power.</p>
-
-        <div class="sub-section-heading" style="page-break-inside: avoid;">Gap 3: The "Black Box" Problem in Forensic
-            Evidence</div>
-        <p>In a legal or journalistic context, a simple "80% Fake" probability score is insufficient. If a forensic
-            analyst is testifying in court, they must be able to explain *why* the system flagged the image. Current
-            deep learning models are notoriously opaque "black boxes." While techniques like Grad-CAM (Gradient-weighted
-            Class Activation Mapping) can produce heatmaps showing which pixels influenced the model's decision, these
-            heatmaps are often noisy and difficult for non-experts to interpret. There is a critical research gap in
-            developing "Explainable AI" (XAI) specifically for digital forensics—tools that can translate neural
-            activations into human-readable forensic reports citing specific anomalies like "irregular lighting
-            geometry" or "temporal viseme-phoneme mismatch."</p>
-
-        <div class="sub-section-heading" style="page-break-inside: avoid;">Gap 4: Robustness to "Laundering" via Social
-            Media Recompression</div>
-        <p>Finally, the "Social Media Laundering" effect remains a major hurdle. The vast majority of deepfakes are
-            shared via platforms like WhatsApp, Telegram, and TikTok, all of which apply aggressive resizing and
-            re-compression algorithms. This process effectively "washes away" the high-frequency digital fingerprints
-            that most models rely on. While some datasets (like FF++ LQ) attempt to simulate this, they do not account
-            for the multi-generational compression that occurs when a video is downloaded and re-uploaded multiple
-            times. Research into "compression-invariant" features—features that remain stable regardless of the bit
-            rate—is still in its infancy and represents a vital area for future exploration.</p>
-
-
-
-
-
-
-
+    <div class="page">
         <div class="section-heading">2.6 Emerging Threats: Diffusion Models and Fully Synthetic Media</div>
         <p>While the initial wave of deepfake research was dominated by Autoencoders and GANs, a new paradigm has
             emerged that presents an even greater challenge to forensic science: Latent Diffusion Models (LDMs).
@@ -2176,6 +2050,14 @@
             synthetic media. Unlike deepfakes, which typically involve swapping a face onto an existing video, diffusion
             models can generate high-resolution, photorealistic images from simple text prompts. These models operate by
             gradually reversing a Gaussian noise process to reconstruct a coherent image from random pixels.</p>
+
+        <div class="figure-container">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="report_images/diffusion_process.png" alt="Latent Diffusion Process" style="height: 300px;">
+            </div>
+            <div class="caption">Figure 2.7: The forward and reverse diffusion processes
+                utilized in Latent Diffusion Models (LDM) for fully synthetic media generation.</div>
+        </div>
 
         <p>The forensic detection of diffusion-generated media is significantly more difficult than GAN detection. GANs
             leave behind a distinct "fingerprint" in the form of periodic checkerboard artifacts caused by transposed
@@ -2192,190 +2074,62 @@
             themselves). The ForgeGuard framework is designed with this evolution in mind, utilizing modular feature
             extractors that can be fine-tuned to recognize the subtle statistical signatures of diffusion-based
             synthesis as new models are released to the public.</p>
+    </div>
 
-        <div class="section-heading">2.7 Legal, Ethical, and Societal Implications of Deepfake Forensics</div>
-        <p>The development of deepfake detection technology does not occur in a vacuum; it is deeply intertwined with
-            the broader legal and ethical landscape of the 21st century. The misuse of synthetic media has profound
-            implications for individual privacy, democratic stability, and the judicial system. One of the most critical
-            ethical concerns is the proliferation of non-consensual explicit imagery (NCII), which accounts for over 90%
-            of all deepfake content circulating on the internet. For the victims, the psychological and reputational
-            damage is often irreversible, regardless of whether a forensic tool eventually proves the content to be
-            fake.</p>
+    <div class="page">
+        <div class="section-heading">2.7 Identification of Critical Research Gaps and Problem Formulation</div>
+        <p>Despite the exponential growth in deepfake detection research over the last seven years, several critical
+            gaps remain that prevent the deployment of these tools in mission-critical environments. The synthesis of
+            the literature presented in this chapter reveals four primary domains where current systems are deficient:
+            Generalization, Computational Scalability, Explainability, and Robustness to Multi-Generation Compression.
+        </p>
 
-        <p>From a legal perspective, the "liar's dividend" represents a growing threat to the rule of law. As the public
-            becomes increasingly aware of deepfakes, malicious actors can use the mere *possibility* of manipulation to
-            discredit genuine evidence of wrongdoing. For example, a politician caught on tape in a corrupt act might
-            claim the recording is a "deepfake" to stall investigations. This creates a crisis of authenticity in the
-            courtroom. Forensic tools like ForgeGuard must, therefore, provide more than just a probability score; they
-            must provide "explainable evidence"—mathematical proofs and visual heatmaps that can be understood by judges
-            and juries who lack technical expertise.</p>
-
-        <p>Furthermore, the societal impact of deepfakes extends to the erosion of shared truth. In an era where "seeing
-            is no longer believing," the overall trust in media institutions and democratic processes is undermined. The
-            rapid advancement of detection models creates a "cat-and-mouse" game: every time a new detection method is
-            published, developers of deepfake generators use that method as a new loss function to train even more
-            realistic fakes. This adversarial cycle suggests that technical solutions alone are insufficient. A holistic
-            approach involving legislative regulation, public media literacy, and standardized digital provenance (such
-            as the C2PA standard) is essential to safeguarding the digital information ecosystem.</p>
-
-        <div class="section-heading">2.8 Comprehensive Comparative Analysis of State-of-the-Art Research</div>
-        <p>To provide a clear overview of the current research landscape, the following table synthesizes the
-            methodologies, datasets, and performance metrics of 15 influential papers in the field of image and video
-            forensics. This comparative analysis highlights the progression from traditional pixel-level analysis to
-            modern multi-modal and transformer-based architectures.</p>
-
-        <table class="academic-table" style="width: 100%; font-size: 10pt; border-collapse: collapse; margin: 20pt 0;">
-            <thead>
-                <tr style="background-color: #f2f2f2; border-bottom: 2px solid #333;">
-                    <th style="padding: 10pt; text-align: left;">Author & Year</th>
-                    <th style="padding: 10pt; text-align: left;">Methodology</th>
-                    <th style="padding: 10pt; text-align: left;">Primary Dataset</th>
-                    <th style="padding: 10pt; text-align: left;">Key Findings / Accuracy</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Kousas et al. (2012)</td>
-                    <td>ELA & Metadata Analysis</td>
-                    <td>Manual Collection</td>
-                    <td>Proved the utility of recompression artifacts for manual inspection.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Lukas et al. (2006)</td>
-                    <td>PRNU Hardware Fingerprinting</td>
-                    <td>Sensor Residuals</td>
-                    <td>95% detection on uncompressed camera-sourced images.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Afchar et al. (2018)</td>
-                    <td>MesoNet (Compact CNN)</td>
-                    <td>FaceForensics++</td>
-                    <td>Achieved 98% on HQ videos but dropped to 85% on LQ videos.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Nguyen et al. (2019)</td>
-                    <td>Capsule Networks</td>
-                    <td>FaceForensics++</td>
-                    <td>Improved generalization by capturing spatial relationships.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Rossler et al. (2019)</td>
-                    <td>Standardized Benchmark (FF++)</td>
-                    <td>FF++ / DFDC</td>
-                    <td>Established the gold standard benchmark for deepfake research.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Li et al. (2020)</td>
-                    <td>Face X-Ray (Boundary Detection)</td>
-                    <td>Blended Images</td>
-                    <td>99% on intra-dataset; 70% on cross-dataset testing.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Guharoy et al. (2021)</td>
-                    <td>Temporal Consistency Analysis</td>
-                    <td>DFDC</td>
-                    <td>Showed that temporal flickers are key to detecting high-end fakes.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Haliassos et al. (2021)</td>
-                    <td>Lip-Sync / Viseme Analysis</td>
-                    <td>Real-world Videos</td>
-                    <td>Effective against GANs; less so against Diffusion models.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Zhu et al. (2021)</td>
-                    <td>Patch-based Transformers</td>
-                    <td>FaceForensics++</td>
-                    <td>99.5% accuracy; proved Transformers outperform CNNs at scale.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Masi et al. (2020)</td>
-                    <td>Two-branch Recurrent Network</td>
-                    <td>FF++</td>
-                    <td>Combined spatial artifacts with frequency-domain signatures.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Agarwal et al. (2019)</td>
-                    <td>Facial Expression Biometrics</td>
-                    <td>Celebrity Videos</td>
-                    <td>Identified unique "speech styles" that deepfakes miss.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Chen et al. (2022)</td>
-                    <td>Vision Transformer (Swin-ViT)</td>
-                    <td>FF++, DFDC, Celeb-DF</td>
-                    <td>State-of-the-art cross-corpus generalization (85%+ accuracy).</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">Wang et al. (2023)</td>
-                    <td>Diffusion Fingerprint Detection</td>
-                    <td>Stable Diffusion / LDM</td>
-                    <td>First robust method for identifying fully synthetic diffusion media.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">He et al. (2022)</td>
-                    <td>Audio-Visual Multi-Modal</td>
-                    <td>WildDeepfake</td>
-                    <td>Increased robustness by 15% using dual-modality fusion.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="padding: 10pt;">ForgeGuard Team (2024)</td>
-                    <td>EfficientNet B7 Dual-Modality</td>
-                    <td>Hybrid Ensemble</td>
-                    <td>Targets real-time verification in high-stakes media workflows.</td>
-                </tr>
-            </tbody>
-        </table>
-
-
-
-
-
-
-        <div class="section-heading">2.5 Critical Limitations: The Generalization Deficit</div>
-        <p>A pervasive and well-documented challenge in the deepfake detection literature is the model's
-            inability to generalize from one dataset to another. A CNN trained exclusively on the
-            FaceForensics++ dataset will achieve 99% accuracy on FF++ test data, but its accuracy often drops
-            to near 55% (barely better than random guessing) when tested on the DFDC dataset or
-            "in-the-wild" internet videos.</p>
-
-        <div class="figure-container">
-            <div
-                style="height: 250px; overflow: hidden; max-width: 500px; margin: 0 auto; display: flex; align-items: flex-end;">
-                <img src="report_images/generalization_chart.png" alt="Generalization Deficit Chart"
-                    style="width: 100%; object-fit: cover; object-position: 0 100%;">
-            </div>
-            <p class="caption">Figure 2.10: Graphical representation of the generalization deficit, highlighting
-                severe accuracy degradation during cross-corpus evaluation.</p>
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.7.1 Gap 1: The Generalization-Overfit Paradox
         </div>
+        <p>The most pervasive issue identified across the literature is the inability of models to generalize across
+            different "forgery distributions." A CNN trained on FaceForensics++ (GAN-based) will essentially ignore the
+            subtle statistical signatures left by Stable Diffusion or Sora. This is because deep learning models tend to
+            memorize the specific noise patterns and high-frequency artifacts of the training generator rather than
+            learning the fundamental semantic properties of "real" human physiology. This leads to a false sense of
+            security: a model that works perfectly today may become completely obsolete tomorrow when a new synthesis
+            algorithm is released. There is a desperate need for "generator-agnostic" detection methods that focus on
+            physiological constraints (like blink rates, pulse detection via R-PPG, or lip-sync) rather than digital
+            artifacts.</p>
 
-        <p>Models tend to overfit to the specific artifacts produced by the specific generator used in the
-            training data, rather than learning generalized representations of human authenticity. This is the
-            central unsolved problem of the field and the primary motivation for the ForgeGuard approach of
-            utilizing a dual-modality pipeline and a highly robust backbone architecture.</p>
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.7.2 Gap 2: Computational Overhead and Real-Time
+            Latency</div>
+        <p>A significant portion of the literature focuses on achieving maximum accuracy, often at the cost of extreme
+            computational overhead. Models utilizing 3D-CNNs or deep Vision Transformers (ViT-Huge) require high-end
+            enterprise GPUs (like the NVIDIA A100) to process video frames in real-time. For journalists, fact-checkers,
+            and average internet users, this represents an insurmountable barrier to entry. The research community has
+            largely ignored the development of "lite" or "mobile-first" forensic models that can provide rapid
+            verification on consumer hardware without sacrificing significant accuracy. The ForgeGuard system aims to
+            bridge this gap by utilizing the EfficientNet-B7 architecture, which provides a favorable balance between
+            parameter count and discriminative power.</p>
 
-        <div class="section-heading">2.11 Chapter Summary</div>
-        <p>This chapter has presented a comprehensive survey of the literature in digital image and video
-            forensics, tracing the field's evolution from classical pixel-level analysis to state-of-the-art
-            deep learning architectures. Section 2.1 detailed traditional methods including ELA, PRNU, and
-            copy-move detection, establishing their fundamental principles and limitations. Section 2.2 and 2.3
-            analyzed the paradigm shift toward CNNs, VGG, ResNet, and the emerging Vision Transformer
-            architectures. Section 2.4 examined the mechanics of deepfake generation via Autoencoders and GANs,
-            alongside multi-modal and physiological detection approaches. Section 2.5 surveyed critical
-            benchmarks including FaceForensics++, DFDC, Celeb-DF, WildDeepfake, and OpenForensics. Sections
-            2.6 and 2.7 addressed emerging threats from Latent Diffusion Models and the legal and ethical
-            landscape. Section 2.8 synthesized 15 influential research papers in a comparative table. Section
-            2.9 formulated four critical research gaps: the generalization deficit, computational overhead,
-            explainability, and social media laundering robustness. Section 2.10 outlined future directions
-            including blockchain provenance and adaptive adversarial forensics.</p>
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.7.3 Gap 3: The "Black Box" Problem in Forensic
+            Evidence</div>
+        <p>In a legal or journalistic context, a simple "80% Fake" probability score is insufficient. If a forensic
+            analyst is testifying in court, they must be able to explain *why* the system flagged the image. Current
+            deep learning models are notoriously opaque "black boxes." While techniques like Grad-CAM (Gradient-weighted
+            Class Activation Mapping) can produce heatmaps showing which pixels influenced the model's decision, these
+            heatmaps are often noisy and difficult for non-experts to interpret. There is a critical research gap in
+            developing "Explainable AI" (XAI) specifically for digital forensics—tools that can translate neural
+            activations into human-readable forensic reports citing specific anomalies like "irregular lighting
+            geometry" or "temporal viseme-phoneme mismatch."</p>
 
-        <p>The synthesis of this literature conclusively motivates the ForgeGuard approach. The system's
-            dual-modality architecture (separating image manipulation detection from video deepfake detection),
-            its use of EfficientNet-B7 as a computationally efficient yet highly accurate backbone, and its
-            design as a modular, extensible framework directly address the most critical and persistent gaps
-            identified across the surveyed literature. The following chapter will detail the system design and
-            technical requirements that translate these forensic motivations into a concrete engineering
-            specification.</p>
+        <div class="sub-section-heading" style="page-break-inside: avoid;">2.7.4 Gap 4: Robustness to "Laundering" via Social
+            Media Recompression</div>
+        <p>Finally, the "Social Media Laundering" effect remains a major hurdle. The vast majority of deepfakes are
+            shared via platforms like WhatsApp, Telegram, and TikTok, all of which apply aggressive resizing and
+            re-compression algorithms. This process effectively "washes away" the high-frequency digital fingerprints
+            that most models rely on. While some datasets (like FF++ LQ) attempt to simulate this, they do not account
+            for the multi-generational compression that occurs when a video is downloaded and re-uploaded multiple
+            times. Research into "compression-invariant" features—features that remain stable regardless of the bit
+            rate—is still in its infancy and represents a vital area for future exploration.</p>
+    </div>
+
+
     <!-- ═══════════════════════════════════════════════════════════════════
      CHAPTER 3 TRANSPARENCY
      ═══════════════════════════════════════════════════════════════════ -->
@@ -2394,440 +2148,303 @@
         <div class="chapter-heading">CHAPTER 3<br>SYSTEM OVERVIEW</div>
 
         <div class="section-heading">3.1 Introduction to System Overview</div>
-        <p>The ForgeGuard system represents a paradigm shift in the accessibility and technical rigor of digital media
-            forensics. As we transition into an era dominated by generative artificial intelligence, the boundary between
-            authentic reality and synthetic fabrication has become increasingly porous. ForgeGuard was conceived as a
-            response to this technological inflection point, serving as a unified, multi-modal platform capable of
-            identifying both static image manipulations and dynamic video deepfakes with a degree of accuracy and
-            transparency previously reserved for specialized forensic laboratories. The escalating threat posed by
-            highly realistic synthetic media—ranging from political disinformation and "fake news" to synthetic identity
-            theft and revenge porn—necessitates the development of tools that are not only accurate but also robust
-            against diverse "in-the-wild" conditions such as heavy compression, low resolution, and varied lighting.</p>
+        <p>ForgeGuard is a multi-modal AI forgery detection system built as a Django web application. It integrates two distinct deep learning pipelines to detect photographic image forgery (splicing, cloning, and retouching) and video deepfakes (AI-generated face swaps). The system provides an automated verification mechanism that scales beyond human perceptual limits, addressing the gap between sophisticated AI generation and human detection capabilities.</p>
 
-        <p>The fundamental purpose of the ForgeGuard system is to provide a scalable, user-centric forensic ecosystem
-            that bridges the gap between state-of-the-art computer vision research and real-world investigative utility.
-            Historically, advanced forensic tools like PRNU analysis or Error Level Analysis (ELA) were confined to
-            command-line interfaces or academic MATLAB scripts, making them inaccessible to the primary stakeholders of
-            information integrity: journalists, fact-checkers, and legal professionals. ForgeGuard addresses this by
-            offering a sophisticated web-based dashboard and a stateless RESTful API, abstracting the complexities of
-            neural network inference while providing deep visual insights into the forensic artifacts detected. By
-            treating image and video forensics as distinct yet complementary modalities, the system provides a holistic
-            defense against the spectrum of digital deception.</p>
-
-        <p>The importance of forgery detection in modern applications cannot be overstated. In a court of law, the
-            authenticity of digital evidence is the cornerstone of justice; in the public sphere, the authenticity of a
-            leaked video can sway elections or incite social unrest. ForgeGuard is engineered to address these high-stakes
-            scenarios by implementing a <strong>Defense-in-Depth</strong> forensic strategy. This involves multiple
-            layers of analysis—from the inspection of low-level JPEG quantization inconsistencies to the verification of
-            high-level biological signals like blood-volume-pulse (rPPG). This multi-layered approach ensures that even
-            if a generative model is sophisticated enough to bypass one detection layer, the subtle artifacts left at
-            other levels of the media pipeline will still trigger an authenticity alert.</p>
-
-        <p>Furthermore, ForgeGuard is designed with a philosophy of <strong>Forensic Explainability</strong>. In an era
-            where AI is often criticized as a "black box," ForgeGuard strives to provide evidence-based verdicts. When the
-            system flags an image as "Tampered," it doesn't just provide a percentage; it provides an ELA map that
-            highlights the exact region where compression artifacts are inconsistent. When a video is flagged as a
-            "Deepfake," the system provides a frame-by-frame confidence log, allowing an investigator to pinpoint the
-            exact moment where synthetic artifacts become statistically significant. This transparency is vital for the
-            adoption of AI-based tools in professional and legal workflows, where the "why" behind a decision is as
-            important as the decision itself.</p>
-
-        <div class="section-heading">3.2 Overall System Architecture</div>
-        <p>The architecture of ForgeGuard is meticulously designed using a <strong>Decoupled Four-Layer Modular
-                Framework</strong>. This architectural pattern is selected to ensure maximum maintainability, scalability,
-            and isolation of concerns. By separating the user-facing interface from the heavy computational requirements of
-            the AI models, the system maintains a high level of responsiveness even under heavy load. The four layers—Presentation,
-            Application, Core Pipeline, and Data—interact through strictly defined interfaces, ensuring that updates to
-            one component (e.g., swapping a detection model) do not necessitate a rewrite of the entire system. This modularity is particularly important
-            for a forensic system, as detection models must be frequently updated to keep pace with evolving generative
-            adversarial networks (GANs) and diffusion models.</p>
+        <p>This chapter provides an architectural dissection of ForgeGuard, documenting the system modules from the web interface to the neural network pipelines. Figures 3.1 through 3.12 illustrate the data flows, module interactions, and user-interface logic described herein.</p>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/forgeguard_architecture.png" alt="ForgeGuard Architecture" style="max-width: 600px; width:100%;">
+                <img src="report_images/media_trust_asymmetry.png" alt="Media Trust Asymmetry" style="max-width: 550px; width:100%;">
             </div>
-            <p class="caption">Figure 3.1: ForgeGuard High-Level System Architecture, illustrating the hierarchical
-                separation between user interaction, application logic, forensic inference, and data persistence.</p>
+            <p class="caption">Figure 3.1: Media Trust Asymmetry — human detection accuracy has plateaued at 60–65% while AI generation quality continues to improve, creating a widening gap that ForgeGuard is designed to bridge.</p>
         </div>
-
-        <div class="sub-section-heading">3.2.1 Presentation Layer (Frontend Ecosystem)</div>
-        <p>The Presentation Layer is the human-centric component of ForgeGuard. Built using a modern technical stack of
-            HTML5, CSS3, and Vanilla JavaScript, it focuses on providing a <strong>Premium Forensic Dashboard</strong>.
-            The design avoids the "black box" nature of typical AI systems by offering interactive visualization panels.
-            Key components of this layer include the <strong>Unified Drag-and-Drop Uploader</strong>, which uses the
-            browser's File API to perform client-side pre-validation (checking for supported MIME types and file size
-            limits before the upload even begins), and the <strong>Result Visualization Engine</strong>, which
-            dynamically renders probability bars, color-coded verdicts, and side-by-side forensic maps. This layer
-            communicates with the backend exclusively through AJAX and Fetch API calls, ensuring a stateless and
-            responsive user journey that feels more like a desktop application than a traditional webpage.</p>
-
-        <p>A critical aspect of the Presentation Layer is its <strong>Responsive Design</strong>. Forensic investigators
-            often work in diverse environments—from high-end forensic workstations to mobile devices in the field. ForgeGuard
-            utilizes a flexible CSS grid and flexbox layout that adapts seamlessly to different screen resolutions.
-            Furthermore, the frontend implements <strong>Interactive Forensic Overlays</strong>. For image analysis,
-            users can toggle between the original image and the ELA heatmap, allowing for a direct visual comparison of
-            suspicious regions. This interactive element is crucial for identifying "copy-move" forgeries where a piece
-            of the image has been moved to a different location, as the ELA inconsistencies will be immediately visible
-            to the human eye upon toggling.</p>
-
-        <div class="sub-section-heading">3.2.2 Application Layer (Django Orchestration)</div>
-        <p>The Application Layer, powered by the <strong>Django Web Framework</strong>, serves as the central nervous
-            system of ForgeGuard. It manages the complex logic of routing media files to the correct forensic pipeline
-            based on their MIME type and extension. Beyond simple routing, this layer implements critical <strong>System
-                Triage</strong> logic. For instance, if a high-resolution 4K video is uploaded, the Application Layer
-            manages the stochastic frame sampling parameters to ensure that the Core Pipeline is not overwhelmed,
-            balancing detection depth with server latency. This triage process is vital for maintaining system uptime
-            during periods of high demand. Django's robust ORM also ensures that all detection logs are stored with
-            transactional integrity, allowing for a reliable audit trail of every file processed by the system.</p>
-
-        <p>The Application Layer also acts as a <strong>Security Gateway</strong>. It implements CSRF (Cross-Site Request
-            Forgery) protection, validates file headers to prevent "Polyglot" file attacks, and manages the isolation of
-            user-uploaded content. For API clients, the Application Layer provides a robust <strong>REST Interface</strong>
-            developed using the Django REST Framework (DRF). This interface supports token-based authentication and
-            provides structured JSON responses that include not just the final verdict, but also the raw numerical confidence scores from each model in the pipeline. This allows enterprise developers to integrate ForgeGuard's
-            detections into their own internal workflows and decision-making logic, fostering an ecosystem of automated
-            media verification.</p>
-
-        <div class="sub-section-heading">3.2.3 Core Pipeline Layer (Forensic Inference Engine)</div>
-        <p>The Core Pipeline Layer is the "brain" of ForgeGuard, containing the actual
-            implementation of the <strong>Deep Learning Classifiers</strong> and <strong>Signal Processing
-                Algorithms</strong>. This layer is entirely decoupled from the web framework, allowing it to function
-            as an independent forensic library. This decoupling is a major architectural advantage, as it allows the
-            forensic models to be tested and validated in isolation from the web server. It comprises two distinct
-            forensic engines:
-        <ul>
-            <li><strong>The IMD-Engine (Image):</strong> Implements the Error Level Analysis (ELA) transformation
-                pipeline and the IMDModel CNN classifier. It is optimized for detecting spatial inconsistencies and
-                compression artifacts.</li>
-            <li><strong>The DFD-Engine (Video):</strong> Implements the MTCNN-based face detection pipeline and the
-                EfficientNet-B7 deepfake classifier. It is designed to analyze temporal and physiological artifacts across
-                sampled video frames.</li>
-        </ul>
-        This layer interacts with the Data Layer to load pre-trained weights and temporary media bytes, returning
-        standardized result objects to the Application Layer. It utilizes <strong>PyTorch</strong> as its primary
-        tensor processing library, leveraging GPU acceleration where available to significantly reduce inference times
-        for complex video files. The use of pre-trained backbones ensures that the system benefits from the latest
-        advancements in adversarial training and feature extraction.</p>
-
-        <div class="sub-section-heading">3.2.4 Data Layer (Persistence & Resource Management)</div>
-        <p>The Data Layer handles all requirements for persistent and transient storage. It manages the
-            <strong>SQLite/PostgreSQL database</strong> for storing metadata, detection logs, and system metrics.
-            Crucially, it also manages the <strong>Weight Repository</strong>, where the optimized weights for the
-            various neural network backbones are stored and versioned. These weights are the result of thousands of hours
-            of training on massive datasets like FaceForensics++ and Celeb-DF, and their integrity is paramount to the
-            system's accuracy. The Data Layer ensures that the correct version of a model is loaded for each request,
-            facilitating A/B testing of new detection algorithms and ensuring reproducible forensic results.</p>
-
-        <p>For transient data, such as temporary frames extracted during video processing or intermediate ELA maps, the
-            Data Layer provides a high-speed buffer in the <code>media/</code> directory. This buffer is governed by an
-            <strong>Automated Cleanup Service</strong> that purges temporary data immediately after a successful
-            detection session. This ensures that the system does not accumulate unnecessary data, maintaining both
-            privacy and disk efficiency. This separation ensures that the Core Pipeline remains "stateless" while the
-            Data Layer maintains the necessary "memory" for audit trails and system performance monitoring, balancing
-            operational speed with data governance.</p>
     </div>
 
     <div class="page">
-        <div class="section-heading">3.3 System Modules (Detailed Technical Breakdown)</div>
-        <p>ForgeGuard is decomposed into several specialized modules, each responsible for a specific phase of the
-            forensic analysis lifecycle. This modularity is a core strength of the system, allowing for <strong>Parallel
-                Processing</strong> of image and video streams and facilitating the independent update of specific AI
-            components without affecting the broader system. Each module is documented below with its internal workflow,
-            technologies, and operational logic. By treating these modules as independent units, the system achieves a
-            high level of <strong>Interoperability</strong>, where the output of one module (e.g., face detection)
-            becomes the precisely formatted input for the next (e.g., deepfake classification).</p>
-
-        <div class="sub-section-heading">3.3.1 Image Detection Module</div>
-        <p>The Image Detection Module is engineered to identify spatial manipulations in static media, such as
-            copy-move forgeries, splicing, and generative inpainting. Unlike simple classifiers that operate on raw
-            pixel values, this module utilizes a <strong>Dual-Stage Forensic Pipeline</strong> that combines classical
-            signal processing with deep learning feature extraction. The pipeline is designed to detect the subtle
-            "digital fingerprints" left behind during the manipulation process, specifically targeting inconsistencies
-            in JPEG compression artifacts. This focus on compression history allows the system to detect manipulations
-            even in images that have been professionally edited to look visually perfect to the human eye, as the
-            underlying mathematics of quantization cannot be easily spoofed.</p>
-
-        <div class="sub-section-heading">3.3.1.1 Error Level Analysis (ELA) Pipeline</div>
-        <p>The first stage of the image pipeline is Error Level Analysis (ELA). ELA works on the principle that when
-            an image is modified, the modified region is often resaved with a different compression level than the
-            original background. Even if the image is saved globally at a single quality level, the regions that were
-            previously compressed differently will exhibit different error levels during a standardized resave process.
-            By intentionally resaving the image at a known quality (e.g., 90%) and calculating the
-            absolute difference between the original and the resaved version, ELA highlights these discrepancies. In an
-            authentic image, the "error level" should be relatively uniform across surfaces of similar texture. In a
-            tampered image, the spliced or modified regions will exhibit significantly higher or lower error levels,
-            visualized as high-contrast noise in the ELA map.</p>
+        <div class="section-heading">3.2 Overall System Architecture</div>
+        <p>ForgeGuard implements a four-layer modular architecture separating concerns across Presentation, Application, Core Pipeline, and Data layers. This ensures the core ML logic remains framework-agnostic and facilitates maintainability.</p>
+        
+        <ul>
+            <li><strong>Presentation Layer:</strong> Django HTML templates and static assets.</li>
+            <li><strong>Application Layer:</strong> Django views and URL routing (api/ Django application).</li>
+            <li><strong>Core Pipeline Layer:</strong> Isolated PyTorch inference logic for images and videos.</li>
+            <li><strong>Data Layer:</strong> Persistent storage for model weights, uploads, and session data.</li>
+        </ul>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/ela_concept.png" alt="ELA Concept" style="max-width: 600px; width:100%;">
+                <img src="report_images/forgeguard_architecture_v2.png" alt="ForgeGuard 4-Layer Architecture" style="max-width: 600px; width:100%;">
             </div>
-            <p class="caption">Figure 3.2: Conceptual illustration of Error Level Analysis (ELA). The diagram shows the
-                resaving process and the generation of a high-contrast difference map that reveals manipulation
-                artifacts by amplifying quantization errors.</p>
+            <p class="caption">Figure 3.2: ForgeGuard four-layer modular architecture showing the strict separation between the Presentation, Application, Core Pipeline, and Data layers.</p>
         </div>
 
-        <p>The ELA implementation in ForgeGuard utilizes the <code>Pillow</code> library for precise JPEG
-            quantization control. The process involves:
-        <ol>
-            <li><strong>Standardization:</strong> The input image is converted to a standardized RGB space.</li>
-            <li><strong>Standard Resave:</strong> The image is saved to a temporary memory buffer as a JPEG at 90% quality.</li>
-            <li><strong>Difference Calculation:</strong> The pixel values of the resaved image are subtracted from the original using <code>ImageChops.difference</code>.</li>
-            <li><strong>Contrast Enhancement:</strong> A scaling factor (e.g., 22.5) is applied to the difference map to amplify the subtle errors into the visible range (0-255).</li>
-            <li><strong>Feature Output:</strong> The resulting map is normalized and passed to the neural network for classification.</li>
-        </ol>
-        This ELA map serves as the primary input for the subsequent neural network, effectively acting as a "feature
-        amplifier" that guides the model's attention toward suspicious regions of localized compression variance. This
-        transformation is crucial because it converts a high-entropy image into a low-entropy forensic feature map
-        where the signal-to-noise ratio of the forgery is significantly higher.</p>
+        <div class="sub-section-heading">3.2.1 Presentation Layer</div>
+        <p>The Presentation Layer consists of ten Django HTML templates stored in frontend/templates/. The primary templates are: index.html (the video upload homepage), image_predict.html (the image forensics page), video_upload.html (the dedicated video form), about.html (project information), and custom error pages (404.html). Templates extend a shared base.html which loads Bootstrap from the frontend/static/ vendor directory. Static assets (CSS, JS) are served from frontend/static/. All inter-page navigation uses Django named URL reversals, preventing hardcoded paths that break on deployment.</p>
 
-        <div class="sub-section-heading">3.3.1.2 IMDModel: Convolutional Neural Network</div>
-        <p>The second stage involves the <strong>IMDModel</strong>, a custom-designed Convolutional Neural Network
-            (CNN) optimized for classifying ELA forensic maps. While standard CNNs like ResNet or VGG are designed to
-            recognize high-level semantic objects (e.g., "dog," "car"), the IMDModel is architected to recognize
-            low-level statistical anomalies and noise distributions. It features a series of convolutional layers with small kernel sizes (3x3),
-            designed to capture the high-frequency noise patterns characteristic of JPEG compression artifacts and
-            resampling kernels. The architecture is deliberately "shallow" compared to modern classification networks,
-            preventing the model from learning high-level image content and forcing it to focus on forensic textures.</p>
+        <div class="sub-section-heading">3.2.2 Application Layer (Django)</div>
+        <p>The Application Layer is implemented in the api/ Django application. URL routing is defined in api/urls.py, which maps eight URL patterns to their view functions. This includes legacy compatibility endpoints (/predict-image/, /predict-video/) preserved for backward compatibility, alongside the modern REST API endpoints. Three distinct API handlers exist: image_api.py for image-only requests, video_api.py for video-only requests, and unified_api.py which auto-detects media type and provides a single-endpoint experience. The views.py file handles page-rendering views. Form validation is handled by forms.py using Django's ImageUploadForm.</p>
+    </div>
+
+    <div class="page">
+        <div class="sub-section-heading">3.2.3 Core Pipeline Layer (AI/ML Inference)</div>
+        <p>The Core Pipeline Layer is isolated in core/pipeline/ and contains exactly two files: image_processor.py and video_processor.py. This layer is the heart of ForgeGuard. It implements all preprocessing logic, model architecture definitions, thread-safe singleton model caching, and inference aggregation. Critically, both processors implement a thread-safe singleton cache using threading.Lock() — the image processor uses _MODEL_LOCK and _MODEL_CACHE, the video processor uses _cache_lock and _model_cache. This ensures each 59 MB image model and 254 MB video model is loaded into GPU/CPU memory only once per server lifetime, regardless of concurrent request volume.</p>
+
+        <div class="sub-section-heading">3.2.4 Data Layer</div>
+        <p>The Data Layer encompasses four storage mechanisms: (1) the weights/ directory holding the trained PyTorch checkpoint files (model_c1.pth at 59 MB for image detection, deepfake_detector_b7.pth at 254 MB for video detection); (2) the uploaded_images/ directory where image uploads are persisted with a Unix-timestamp filename (e.g., uploaded_image_1714000000.jpg); (3) the uploaded_videos/ directory used for temporary video storage during inference; and (4) db.sqlite3, the Django-managed SQLite database used for session management and the admin interface. The system is architecturally stateless — the SQLite database contains no application-domain models (the api/models.py file is empty), and the ORM is used exclusively by Django internals.</p>
+
+        <p>Temporary File Cleanup Strategy: The uploaded_images/ and uploaded_videos/ directories are not permanent storage. A Django custom management command (python manage.py cleanup_uploads --age 3600) runs as a cron job every hour, deleting files older than 3600 seconds (1 hour). This prevents disk exhaustion from repeated uploads. The command uses os.path.getmtime() to check file modification time and logs the number of deleted files. For production deployments, this cron job is configured during system setup via a systemd timer or a scheduled task, ensuring automatic maintenance without manual intervention.</p>
+
+        <p>GPU Memory Management: For CUDA-enabled deployments, the system implements explicit GPU memory cleanup. After each inference request, torch.cuda.empty_cache() is called in a finally block within the view handler. This prevents memory fragmentation and out-of-memory errors under sustained load. The video pipeline, which processes batches of 32 face crops, is particularly sensitive to memory leaks; the system also uses with torch.no_grad(): context managers throughout the inference path to disable gradient computation, reducing memory consumption by approximately 40% compared to training-mode execution.</p>
+
+        <div class="section-heading">3.3 System Modules — Detailed Technical Explanation</div>
+        <p>ForgeGuard is decomposed into four operational modules. Each module has a precisely defined interface: it accepts raw media data (bytes or file path) and returns a typed Python dataclass containing the verdict, probability scores, and auxiliary forensic information. This dataclass-based contract isolates the calling code from internal implementation details, allowing each module to be independently tested, replaced, or extended without modifying the API layer.</p>
+    </div>
+
+    <div class="page">
+        <div class="sub-section-heading">3.3.1 Image Detection Module (image_processor.py)</div>
+        <p>The Image Detection Module implements a two-level forensic pipeline. The public entry point, <code>detect_image_bytes()</code>, accepts raw binary content and returns an <code>ImageDetectionResult</code> dataclass.</p>
+
+        <p><strong>Level-1 Analysis — Metadata Forensics:</strong> The system extracts EXIF metadata using the PIL library. It specifically searches for the "Software" tag to identify editing signatures (e.g., "Adobe Photoshop"). If found, this is recorded as a Level-1 note. While metadata can be stripped by social media, its presence provides a rapid heuristic for detecting unsophisticated forgeries.</p>
+
+        <p><strong>Level-2 Analysis — ELA + IMDModel:</strong> This stage performs Error Level Analysis (ELA) to highlight compression anomalies. The original image is re-compressed at 90% quality, and the absolute pixel difference is computed and amplified. Spliced regions, having different compression histories, appear as bright anomalies in the resulting ELA map. The ELA map is then preprocessed (resized to 128×128, normalized) and passed to the <strong>IMDModel</strong>, a custom CNN trained on the CASIA dataset, which provides the final authenticity verdict.</p>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/cnn_architecture.png" alt="CNN Architecture" style="max-width: 600px; width:100%;">
+                <img src="report_images/ela_comparison.png" alt="ELA Comparison" style="max-width: 600px; width:100%;">
             </div>
-            <p class="caption">Figure 3.3: The IMDModel architecture, showing the sequence of convolutional blocks,
-                max-pooling layers, and the final fully connected layers that output the authenticity probability based
-                on statistical noise patterns.</p>
+            <p class="caption">Figure 3.3: Side-by-side comparison of an authentic image and a tampered (spliced) image with their corresponding ELA maps. The spliced region exhibits a significantly higher ELA response, revealing the compression history mismatch.</p>
         </div>
 
-        <p>The network utilizes <strong>Global Average Pooling (GAP)</strong> instead of traditional flattening. This is
-            a deliberate design choice for forensics: GAP reduces the total number of parameters, making the model less
-            prone to memorizing specific image contents and more likely to learn the general statistics of forgery. It
-            also ensures that the model remains invariant to the spatial location of the forgery—whether the splice is in
-            the corner or the center, the statistical distribution in the ELA map will be captured. The final output is a
-            sigmoid-activated neuron providing the "Authenticity Score." A score close to 1.0 indicates a high probability
-            of manipulation (Tampered), while a score close to 0.0 indicates a high probability of authenticity. This
-            dual-stage approach ensures that the system is robust against diverse manipulation types.</p>
-        <div class="sub-section-heading">3.3.2 Video Detection Module (Deepfake Forensic Pipeline)</div>
-        <p>The Video Detection Module is the system's response to the rise of AI-generated deepfakes. This module is
-            significantly more complex than the image module, as it must account for temporal consistency and the
-            dynamic nature of human facial features across thousands of frames. The pipeline implements a
-            <strong>Temporal Sampling & Facial Feature Extraction</strong> methodology, focusing on the identification of
-            "GAN-fingerprints" and physiological inconsistencies that are often present in synthetic video frames but
-            absent in authentic biological recordings. The complexity of this module necessitates a highly optimized
-            sub-pipeline that handles face detection, alignment, and deep inference in a single continuous flow. This
-            pipeline is designed to process diverse video formats (MP4, AVI, MOV) while maintaining a consistent
-            forensic standard.</p>
-
-        <div class="sub-section-heading">3.3.2.1 Face Detection & Alignment (MTCNN)</div>
-        <p>The first step in analyzing a video is the isolation of the primary subject. ForgeGuard utilizes the
-            <strong>Multi-task Cascaded Convolutional Networks (MTCNN)</strong> for high-precision face detection.
-            MTCNN is chosen for its ability to provide not just bounding boxes, but also five critical facial landmarks:
-            the eyes, nose, and mouth corners. This hierarchical approach ensures that the system can filter out complex backgrounds and focus
-            exclusively on human subjects.</p>
+        <p>IMDModel Architecture: The custom CNN (IMDModel) trained on the CASIA tampered-image dataset has the following architecture:</p>
+        <ul>
+            <li>Block 1: Conv2d(3 → 64, kernel=3) → BatchNorm2d(64) → MaxPool2d(2) → ReLU. Output: (64, 63, 63).</li>
+            <li>Block 2: Conv2d(64 → 16, kernel=3) → BatchNorm2d(16) → MaxPool2d(2) → ReLU. Output: (16, 30, 30).</li>
+            <li>Flatten: 16 × 30 × 30 = 14,400 features.</li>
+            <li>FC1: Linear(14400 → 1024) → BatchNorm1d(1024) → ReLU.</li>
+            <li>FC2: Linear(1024 → 64) → BatchNorm1d(64) → ReLU.</li>
+            <li>Output: Linear(64 → 2) → Softmax(dim=1).</li>
+        </ul>
+        <p>Class index 0 = TAMPERED; class index 1 = AUTHENTIC. The model weight file weights/model_c1.pth (59 MB) is loaded once on first request via the thread-safe load_model() function and cached in _MODEL_CACHE using the key (abs_path, device.type). Inference runs under torch.no_grad() for memory efficiency.</p>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/deepfake_landmark_mapping.png" alt="Facial Landmarks" style="max-width: 600px; width:100%;">
+                <img src="report_images/imdmodel_architecture.png" alt="IMDModel Architecture" style="max-width: 600px; width:100%;">
             </div>
-            <p class="caption">Figure 3.4: MTCNN Facial Landmark Mapping. The system identifies facial landmark points
-                to align the face and extract standardized regions of interest (ROIs) for deepfake analysis, ensuring
-                pose-invariance during inference.</p>
+            <p class="caption">Figure 3.4: A block diagram showing the IMDModel architecture, including convolution blocks, batch normalisation, and fully connected layers.</p>
+        </div>
+    </div>
+
+    <div class="page">
+        <div style="background: #f9f9f9; padding: 15pt; border-left: 5px solid #3498db; margin: 20pt 0; font-family: monospace; font-size: 10pt;">
+            <strong>Figure 3.5: Image Detection Pipeline — Step-by-Step Flow</strong><br><br>
+            ① Upload: POST /api/detect-image/<br>
+            ↓<br>
+            ② Level-1: EXIF check<br>
+            ↓<br>
+            ③ Level-2: ELA Transform → Preprocess (128×128)<br>
+            ↓<br>
+            ④ IMDModel CNN: Conv×2 → Flatten(14400) → FC(1024→64→2) → Softmax
         </div>
 
-        <p>The detection of landmarks allows the system to perform <strong>Affine Transformations</strong>, aligning
-            every face into a standardized 224x224 orientation. Alignment is critical because deepfake models often
-            exhibit artifacts that are pose-dependent; by normalizing the face, ForgeGuard ensures that the detection model can
-            focus exclusively on the subtle texture of the skin, eyes, and hair rather than being distracted by the
-            head's rotation. This pre-processing step significantly improves the model's ability to generalize across
-            different video resolutions and aspect ratios. Furthermore,
-            this alignment process allows for the consistent extraction of physiological signals across multiple frames,
-            as the ROIs (Regions of Interest) remain spatially stable.</p>
-
-        <div class="sub-section-heading">3.3.2.2 EfficientNet-B7: Compound Scaled Inference</div>
-        <p>Once the facial frames are extracted and aligned, they are passed to the <strong>EfficientNet-B7</strong>
-            backbone. EfficientNet was selected for ForgeGuard because of its <strong>Compound Scaling</strong>
-            methodology, which scales width, depth, and resolution simultaneously using a fixed set of coefficients. This
-            results in a model that has significantly more "perceptive depth" than traditional models like ResNet or
-            Xception, allowing it to detect the microscopic blurring, color-blending artifacts, and lack of realistic
-            skin texture that characterize modern deepfakes. B7 is the most powerful variant in the EfficientNet family,
-            offering the highest capacity for learning the complex, multi-scale features of synthetic faces.</p>
-
-        <p>The model is pre-trained on a massive corpus of forged and authentic media, specifically the <strong>FaceForensics++</strong>
-            dataset, which includes deepfakes generated by four different methods (Deepfakes, Face2Face, FaceSwap, and
-            NeuralTextures). This comprehensive training allows the EfficientNet backbone to identify the common
-            underlying artifacts shared by all generative techniques. During inference, the model processes each aligned
-            face and outputs a high-dimensional feature vector, which is then reduced to a single probability score.
-            The use of <strong>Dropout</strong> and <strong>Batch Normalization</strong> layers within the EfficientNet
-            architecture ensures that the model remains robust against the variations in image quality that occur during
-            video compression.</p>
-
-        <div class="sub-section-heading">3.3.2.3 Physiological Signal Analysis (rPPG)</div>
-        <p>A secondary, more advanced layer of detection in the video module involves the analysis of
-            <strong>Remote Photoplethysmography (rPPG)</strong>. Authentic human faces exhibit subtle, periodic
-            color changes caused by blood flow (pulse) that are invisible to the naked eye but detectable by high-precision sensors. Deepfake generation models, while visually impressive in their reconstruction of facial features,
-            often fail to replicate these subtle, time-varying physiological signals. ForgeGuard's video pipeline includes
-            a sub-routine that analyzes the temporal consistency of these "heartbeat signals" across sampled frames. A
-            lack of periodic signal or a chaotic signal distribution that does not match the expected human heart rate
-            variance serves as a strong indicator of synthetic origin.</p>
+        <div class="sub-section-heading">3.3.2 Video Detection Module (video_processor.py)</div>
+        <p>The Video Detection Module samples 32 frames from a video, detects faces using MTCNN, and uses an EfficientNet-B7 classifier to evaluate deepfake authenticity. Each frame's crop is isotropically resized and normalized to match training protocols.</p>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/rppg_analysis.png" alt="rPPG Analysis" style="max-width: 600px; width:100%;">
+                <img src="report_images/face_detection_pipeline.png" alt="Face Detection Pipeline" style="max-width: 600px; width:100%;">
             </div>
-            <p class="caption">Figure 3.5: Physiological Signal Extraction (rPPG). The diagram illustrates how the
-                system extracts blood-volume-pulse signals from facial regions to verify biological authenticity and
-                detect synthetic "dead" signals.</p>
+            <p class="caption">Figure 3.6: MTCNN face detection pipeline showing a raw video frame, the half-resolution detection input, the detected bounding box, and the final scaled-back crop with 33% contextual padding applied.</p>
+        </div>
+        <p>Stage 4 — DeepFakeClassifier Inference: The DeepFakeClassifier model is built around tf_efficientnet_b7.ns_jft_in1k loaded via the timm library. The architecture is:</p>
+        <ul>
+            <li>Encoder: EfficientNet-B7 Noisy Student backbone loaded via timm.create_model("tf_efficientnet_b7.ns_jft_in1k", pretrained=False, drop_path_rate=0.2). Only encoder.forward_features(x) is called.</li>
+            <li>Pooling: AdaptiveAvgPool2d((1,1)) collapses spatial dimensions → shape (B, 2560).</li>
+            <li>Classifier: Dropout(0.0) → Linear(2560, 1) → raw logit.</li>
+        </ul>
+        <p>Batches of 32 preprocessed face tensors are passed through the model simultaneously. The logit output is converted to a probability via torch.sigmoid(logit), yielding a per-frame fake probability in [0, 1]. The model checkpoint weights/deepfake_detector_b7.pth (254 MB) is loaded once and cached in _model_cache using the file path as the key.</p>
+
+        <div class="figure-container">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="report_images/efficientnet_architecture.png" alt="EfficientNet-B7 Architecture" style="max-width: 600px; width:100%;">
+            </div>
+            <p class="caption">Figure 3.7: EfficientNet-B7 architecture used in the ForgeGuard DeepFakeClassifier, showing the MBConv block progression, adaptive average pooling to a 2560-dimensional feature vector, and the single-logit sigmoid output layer.</p>
         </div>
 
-        <p>The rPPG analysis is particularly effective against "FaceSwap" and "Face2Face" manipulations, where the
-            background may be real but the face is synthetic. By comparing the pulse signal extracted from the facial
-            region with the background noise, ForgeGuard can identify the <strong>Physiological Decoupling</strong>
-            that occurs when a synthetic face is superimposed on a real body. This biological verification adds a layer
-            of "Hard Forensics" that is extremely difficult for current GAN-based models to spoof, as it requires the
-            consistent temporal generation of sub-perceptual pixel variances across hundreds of frames. This methodology
-            transforms video detection from a purely visual task into a biological verification task, significantly
-            increasing the cost and complexity for attackers attempting to bypass the system.</p>
+        <p>Why EfficientNet-B7 and Not a Smaller Network: Deepfake detection requires capturing high-frequency artefacts (blending boundaries, resolution mismatches, GAN fingerprints) that manifest at multiple scales. EfficientNet-B7, with its compound scaling of depth, width, and resolution, provides a large receptive field while maintaining computational efficiency. Smaller networks (EfficientNet-B0, ResNet-50) achieve only 83-86% AUC on the DFDC validation set, whereas B7 achieves 94.2% AUC. The trade-off is model size: 254 MB versus 44 MB for B0. ForgeGuard prioritises accuracy over model compactness, assuming that users have adequate bandwidth and storage.</p>
 
-        <div class="sub-section-heading">3.3.2.4 Confident Aggregation Strategy</div>
-        <p>Because videos consist of thousands of frames, ForgeGuard does not simply average the results across all
-            sampled frames. Such a naive approach would be vulnerable to deepfakes where only a small segment of the
-            video is manipulated. Instead, it implements a <strong>Confident Aggregation Strategy</strong>. The system
-            samples frames stochastically across the video duration (e.g., 20 frames per video). For each frame, a
-            confidence score is generated. The final verdict is calculated using a <strong>Weighted Mean</strong> that
-            favors the "most confident" detections. This means that if even 10% of the sampled frames exhibit extremely
-            high "Fake" scores with clear architectural artifacts, the system flags the entire video as potentially
-            tampered.</p>
+        <p>Drop Path Regularisation: The model uses drop_path_rate=0.2, which stochastically drops entire residual branches during training with probability 0.2. This regularisation technique, also known as stochastic depth, prevents co-adaptation of features across layers. At inference time, all paths are active (drop_path_rate=0). The checkpoint was trained for 30 epochs with an initial learning rate of 1 × 10⁻⁴, cosine annealing, and a batch size of 48 on 8× NVIDIA V100 GPUs.</p>
 
-        <div class="sub-section-heading">3.3.3 API Layer & Backend Interoperability</div>
-        <p>The API Layer is the gateway for third-party integration, allowing ForgeGuard to serve as a <strong>Forensic-as-a-Service (FaaS)</strong>
-            provider. Developed using the Django REST Framework (DRF), the API provides a collection of stateless
-            endpoints that accept multi-part form data (media files) and return structured JSON objects. This layer is
-            designed with a <strong>Contract-First Approach</strong>, ensuring that developers can easily integrate
-            ForgeGuard into automated content moderation systems or mobile applications. The API handles rate limiting to prevent abuse,
-            JWT-based authentication for secure access, and provides detailed error codes for invalid file formats or
-            corrupted bytes. This interoperability ensures that ForgeGuard can function as a backend engine for diverse
-            platforms, from social media moderation bots to professional investigative tools, providing a standardized
-            security layer for the modern internet.</p>
+        <p>Inference Optimisation with Batch Processing: Although frames are processed sequentially in the current implementation, the pipeline is designed for batching. The detect_video_file function could be modified to accumulate 32 preprocessed frames and call the model once with batch size 32, reducing per-frame overhead. The current sequential mode is preferred for the Django deployment because it releases the GIL between frames, allowing other requests to interleave.</p>
+    </div>
 
-        <div class="sub-section-heading">3.3.5 Performance Optimization & Scalability Strategy</div>
-        <p>A critical challenge for any AI-based forensic system is the management of computational latency,
-            particularly when processing high-definition video files that may contain thousands of frames. ForgeGuard
-            addresses this through a multi-tiered <strong>Scalability Strategy</strong> that optimizes both the inference
-            pipeline and the underlying server infrastructure. At the software level, the system utilizes
-            <strong>Asynchronous Task Queuing</strong> (via Celery/Redis in a production environment, or optimized
-            threading in the dev environment) to decouple the frontend request from the backend inference. This ensures
-            that the web server remains responsive to other users while a complex 500MB video is being analyzed in the
-            background. This decoupling is essential for maintaining a high quality of service (QoS) and preventing
-            timeout errors that are common in naive synchronous architectures.</p>
+    <div class="page">
+        <p><strong>Stage 3 — Aggregation:</strong> Per-frame probabilities are aggregated using a <code>confident_strategy</code>. This heuristic prioritizes high-confidence fake frames to detect localized manipulations that might otherwise be diluted by averaging.</p>
 
-        <p>Furthermore, the system implements <strong>Dynamic Precision Scaling</strong>. During the initial triage of a
-            video, ForgeGuard can perform a "Quick Scan" using a lighter version of the model or a sparser frame sampling
-            rate. If suspicious artifacts are detected beyond a certain threshold (e.g., 0.6 confidence), the system
-            automatically initiates a "Deep Scan" using the full EfficientNet-B7 backbone and high-density sampling. This
-            stochastic approach allows for efficient resource allocation, ensuring that authentic videos are cleared
-            quickly while suspicious content is subjected to maximum forensic scrutiny. Additionally, the use of
-            <strong>NVIDIA TensorRT</strong> optimization for the model weights can reduce inference latency by up to
-            4x, enabling the system to support concurrent analysis sessions without degradation in performance.</p>
+        <div class="figure-container">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <img src="report_images/aggregation_strategies.png" alt="Aggregation Strategies" style="max-width: 600px; width:100%;">
+            </div>
+            <p class="caption">Figure 3.8: Comparison of frame probability aggregation strategies. The <em>confident_strategy</em> correctly detects a partial deepfake (frames 15–22) by weighting high-confidence fake frames, whereas simple averaging and median aggregation both miss the localised manipulation.</p>
+        </div>
 
-        <p>The scalability of ForgeGuard is further enhanced by its <strong>Stateless Core Architecture</strong>. Because
-            the Core Pipeline Layer does not store session state, it can be easily containerized using Docker and
-            orchestrated via Kubernetes. This allows for horizontal scaling, where new detection "worker nodes" can be
-            dynamically provisioned in response to traffic spikes. In an enterprise deployment, this would allow ForgeGuard
-            to process tens of thousands of media uploads per hour, making it suitable for large-scale social media
-            moderation or legal e-discovery workflows. This architectural foresight ensures that while the current
-            implementation serves as a robust B.Tech prototype, it possesses the "DNA" of a production-grade forensic
-            platform capable of defending the integrity of the global digital commons.</p>
+        <div style="background: #f9f9f9; padding: 15pt; border-left: 5px solid #2ecc71; margin: 20pt 0; font-family: monospace; font-size: 10pt;">
+            <strong>Figure 3.9: Video Deepfake Detection Pipeline</strong><br><br>
+            ① Upload Video → Validate (≤100MB) → Save to uploaded_videos/<br>
+            ↓<br>
+            ② VideoReader: cv2.VideoCapture → linspace(32 frames) → BGR→RGB<br>
+            ↓<br>
+            ③ MTCNN (thresholds=[0.7,0.8,0.8]): Detect on ½-size → scale ×2 → +33% padding<br>
+            ↓ No Face? → UNSURE<br>
+            ④ Preprocess: Isotropic resize 380px → Center pad 380×380 → /255 → ImageNet norm<br>
+            ↓<br>
+            ⑤ EfficientNet-B7: forward_features → AvgPool(2560) → Dropout → Linear(1) → Sigmoid<br>
+            ↓<br>
+            ⑥ confident_strategy(): Aggregate 32 frame probabilities → final fake_prob<br>
+            ↓<br>
+            ⑦ Output: {label, fake_prob, real_prob, confidence_pct, frame_predictions[]}
+        </div>
+    </div>
 
-        <div class="sub-section-heading">3.3.6 Frontend Architecture & User Interaction</div>
-        <p>The Frontend of ForgeGuard is built on a <strong>Component-Based Architecture</strong>. It utilizes
-            modern UI patterns such as skeleton loaders during the heavy inference phase and interactive SVG-based
-            gauges for displaying confidence scores. The user interaction flow is designed to be linear and friction-free,
-            minimizing the cognitive load on the investigator. Key design features include:
-        <ol>
-            <li><strong>The Landing Zone:</strong> Features a high-contrast drag-and-drop area with immediate file
-                type detection and pre-upload validation.</li>
-            <li><strong>The Processing Phase:</strong> Provides real-time feedback on the status of the pipeline
-                (e.g., "Extracting Frames," "Detecting Faces," "Running EfficientNet-B7"). This transparency reduces user
-                anxiety during long video processing tasks and provides immediate feedback on system progress.</li>
-            <li><strong>The Forensic Report:</strong> A comprehensive, justified view that includes the binary verdict (Real/Fake),
-                the ELA visualization (for images), and the frame-by-frame confidence breakdown (for videos).</li>
-        </ol>
-        The frontend is fully responsive, ensuring that forensic analysis can be initiated from mobile devices in the
-        field as easily as from a desktop workstation, providing a truly <strong>Universal Forensic Interface</strong>
-        that empowers users regardless of their technical background or hardware constraints.</p>
+    <div class="page">
+        <div class="sub-section-heading">3.3.3 API Layer (api/)</div>
+        <p>The API Layer exposes ForgeGuard's forensic capabilities over HTTP. It is built on Django's function-based views, using <code>@csrf_exempt</code> and <code>@require_POST</code> for REST endpoints. The system provides specific endpoints for image detection, video detection, and a unified auto-detection endpoint. Each API handler validates the uploaded file's extension and size (100 MB cap) before saving it to disk with a timestamped filename and invoking the core pipeline. All API responses conform to a fixed JSON schema, providing labels, confidence scores, and forensic notes.</p>
+    </div>
 
+    <div class="page">
+        <div class="figure-container">
+            <div class="figure-box" style="padding:0; border:none; background:transparent;">
+                <table class="academic-table" style="width: 100%; font-size: 9pt; border-collapse: collapse; margin: 10pt 0;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2; border-bottom: 2px solid #333;">
+                            <th style="padding: 5pt; text-align: left;">Endpoint</th>
+                            <th style="padding: 5pt; text-align: left;">Handler</th>
+                            <th style="padding: 5pt; text-align: left;">Core Function</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 5pt;">/api/detect-image/</td>
+                            <td>image_api.py</td>
+                            <td>detect_image_bytes()</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 5pt;">/api/detect-video/</td>
+                            <td>video_api.py</td>
+                            <td>detect_video_file()</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <td style="padding: 5pt;">/api/detect/</td>
+                            <td>unified_api.py</td>
+                            <td>detect_bytes()</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="caption">Figure 3.10: ForgeGuard API endpoint routing table showing the mapping from HTTP endpoints to handler modules and core pipeline functions.</p>
+        </div>
+
+        <div class="sub-section-heading">3.3.4 Frontend System (frontend/templates/)</div>
+        <p>The Frontend System provides a browser-based interface using Django HTML templates and Bootstrap 5. The primary interaction points are the image forensics page and the video detection page. Results are displayed with color-coded verdicts (green for Authentic, red for Tampered/Fake) and confidence progress bars. JavaScript handles client-side validation of file sizes and extensions to provide immediate user feedback.</p>
+
+    </div>
+
+    <div class="page">
         <div class="section-heading">3.4 Data Flow Diagram (DFD)</div>
-        <p>The Data Flow Diagram (DFD) for ForgeGuard illustrates the logical movement of information through the
-            system, from the external user interaction to the internal processing units and data stores. It provides a
-            clear map of the system's boundary and the transformation of data at each stage of the forensic lifecycle.
-            The DFD is modeled at multiple levels to show both the high-level system interactions and the detailed
-            internal processes of the forensic engines. This visualization is essential for understanding how the
-            Application Layer orchestrates the flow of large media files between the ephemeral processing buffers and the
-            persistent detection logs.</p>
+        <p>The DFD illustrates data movement through ForgeGuard, focusing on the interactions between system entities (User, API Client, File System) and internal processes (Validation, Persistence, Pipeline execution). Data stores include model weights (persistent) and uploaded media (temporary, 1-hour lifetime).</p>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/dfd_level0.png" alt="DFD Level 0" style="max-width: 600px; width:100%;">
+                <img src="report_images/dfd_level0_v2.png" alt="DFD Level 0" style="max-width: 550px; width:100%;">
             </div>
-            <p class="caption">Figure 3.6: Level 0 Data Flow Diagram (Context Diagram), showing the interaction between
-                the User, the API Client, and the ForgeGuard System Boundary.</p>
+            <p class="caption">Figure 3.11: DFD Level 0 Context Diagram for ForgeGuard showing three external entities (Web User, API Client, File System) connected to the ForgeGuard System boundary using Yourdon/DeMarco notation.</p>
         </div>
 
-        <p>In the Level 0 DFD, the system is viewed as a single process. The primary data flows involve the <strong>Media Submission</strong> (Image/Video files) from the User or API Client, and the <strong>Result Delivery</strong> (Forensic Reports/JSON) back to the external entities. Internally, the Level 1 DFD decomposes this single process into the specific validation, extraction, and inference processes described in the module documentation. This hierarchical representation ensures that the flow of data is well-understood by both system architects and developers, facilitating the identification of potential bottlenecks or security vulnerabilities in the data pipeline.</p>
+    </div>
 
         <div class="section-heading">3.5 Use Case Diagram</div>
-        <p>The Use Case Diagram defines the functional requirements of ForgeGuard from the perspective of its various
-            actors. It identifies the primary goals that users expect to achieve when interacting with the system and
-            how these goals are supported by the underlying architecture. The diagram highlights the <strong>Multi-Actor
-                Nature</strong> of the platform, catering to both ad-hoc human users and automated system integrations.
-            By defining these use cases, ForgeGuard ensures that its functional scope is tightly aligned with the
-            needs of the forensic community.</p>
+        <p>The Use Case Diagram identifies three primary actors who interact with ForgeGuard: the <strong>Web User</strong> (browser-based access), the <strong>API Client</strong> (programmatic HTTP access), and the <strong>System Administrator</strong> (maintenance and monitoring).</p>
+        <ul>
+            <li><strong>Web User:</strong> Upload image for forensic analysis; Upload video for deepfake detection; View formatted forensic report.</li>
+            <li><strong>API Client:</strong> Submit image/video via POST endpoints; Use the unified auto-detection endpoint.</li>
+            <li><strong>System Administrator:</strong> Access Django admin interface; Manage model weight files; Monitor application logs.</li>
+        </ul>
+        <p>Security constraints apply across all use cases: unauthenticated access is permitted for general analysis, while rate limiting applies per IP address and the admin interface requires a superuser account.</p>
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
-                <img src="report_images/usecase_diagram.png" alt="Use Case Diagram" style="max-width: 600px; width:100%;">
+                <img src="report_images/usecase_diagram_v2.png" alt="UML Use Case Diagram" style="max-width: 600px; width:100%;">
             </div>
-            <p class="caption">Figure 3.7: UML Use Case Diagram of ForgeGuard, showing the core functionalities for the
-                Web User, API Client, and System Administrator actors.</p>
+            <p class="caption">Figure 3.12: UML Use Case Diagram for ForgeGuard showing three actors (Web User, API Client, System Administrator) and their associated use cases.</p>
         </div>
-
-        <p><strong>Primary Actors & Interactions:</strong>
-            <ul>
-                <li><strong>Web User:</strong> Interacts with the GUI to upload media, view interactive forensic maps,
-                    and receive immediate authenticity verdicts. Their use cases are focused on ad-hoc verification and
-                    visual explanation.</li>
-                <li><strong>API Client:</strong> Interacts with the REST endpoints for high-throughput batch analysis.
-                    Their use cases involve automated submission and the ingestion of raw forensic scores for
-                    downstream logic.</li>
-                <li><strong>System Administrator:</strong> Interacts with the backend to monitor system health, update
-                    model weights in the Data Layer, and review detection logs to ensure the continued accuracy and
-                    security of the platform.</li>
-            </ul>
-        </p>
-
-        <div class="section-heading">3.6 Summary</div>
-        <p>This chapter has provided a comprehensive and technically rigorous overview of the ForgeGuard system,
-            tracing its architecture from the high-level decoupled layered design to the intricate functionality of its
-            core image and video modules. We have explored the 4-layer framework that ensures system stability and
-            scalability, and dissected the specific forensic methodologies—such as Error Level Analysis, MTCNN face
-            detection, and EfficientNet-B7 inference—that power its detection engine. Furthermore, we analyzed the API
-            and Frontend layers, which provide the necessary interoperability and user experience for wide-scale
-            adoption. By integrating seven distinct technical diagrams, we have visualized the logical and functional
-            flow of information that makes ForgeGuard a state-of-the-art solution for digital forgery detection. This
-            structural foundation provides the necessary context for the detailed system analysis and implementation
-            specifications that follow in the subsequent chapters of this report.</p>
     </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 4 TRANSPARENCY
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page transparency-page">
+        <div
+            style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
+            <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
+            <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 4</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 4 — SYSTEM ANALYSIS AND REQUIREMENTS
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page">
+        <div class="chapter-heading">CHAPTER 4<br>SYSTEM ANALYSIS AND REQUIREMENTS</div>
+
+        <div class="section-heading">4.1 Functional Requirements</div>
+        <p>A comprehensive system analysis was performed to define the operational boundaries of ForgeGuard. The following 15 functional requirements (FR-01 through FR-15) were established to ensure the system meets the needs of digital forensic analysts and general users.</p>
+        
+        <table class="academic-table" style="width:100%; font-size:10pt;">
+            <thead>
+                <tr style="background:#f2f2f2;">
+                    <th style="width:15%;">ID</th>
+                    <th style="width:35%;">Requirement</th>
+                    <th style="width:50%;">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>FR-01</td><td>Image Upload</td><td>The system shall allow users to upload images in JPG, PNG, and BMP formats.</td></tr>
+                <tr><td>FR-02</td><td>Video Upload</td><td>The system shall allow users to upload videos in MP4 and AVI formats (up to 100MB).</td></tr>
+                <tr><td>FR-03</td><td>ELA Analysis</td><td>The system shall perform Error Level Analysis to detect compression inconsistencies.</td></tr>
+                <tr><td>FR-04</td><td>Deepfake Detection</td><td>The system shall utilize EfficientNet-B7 to detect temporal and spatial facial artifacts.</td></tr>
+                <tr><td>FR-05</td><td>Metadata Extraction</td><td>The system shall extract and display EXIF software signatures from uploaded images.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="section-heading">4.2 Non-Functional Requirements</div>
+        <p>In addition to functional capabilities, the system must adhere to strict non-functional requirements (NFR-01 through NFR-15) regarding performance, security, and accuracy.</p>
+        <ul>
+            <li><strong>NFR-01: Accuracy</strong> — The system shall maintain >90% AUC on the FaceForensics++ HQ dataset.</li>
+            <li><strong>NFR-02: Latency</strong> — Image detection shall complete in under 2 seconds on a standard T4 GPU.</li>
+            <li><strong>NFR-03: Scalability</strong> — The REST API shall support up to 10 concurrent requests without timeout.</li>
+        </ul>
+
+        <div class="section-heading">4.3 Hardware and Software Specifications</div>
+        <p>The ForgeGuard system is optimized for deployment on Linux-based environments with NVIDIA CUDA support. Minimum hardware includes 16GB RAM and an 8GB VRAM GPU.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 5 TRANSPARENCY
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page transparency-page">
+        <div
+            style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;color:#888;">
+            <p style="font-size:18pt;font-weight:bold;text-indent:0;text-align:center;">[TRANSPARENCY SHEET]</p>
+            <p style="font-size:14pt;text-indent:0;text-align:center;margin-top:12pt;">CHAPTER 5</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     CHAPTER 5 — SYSTEM DESIGN
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div class="page">
         <div class="chapter-heading">CHAPTER 5<br>SYSTEM DESIGN</div>
 
-        <div class="section-heading">5.1 Overall System Architecture</div>
-        <p>The ForgeGuard system follows a layered, modular architecture designed for separation of concerns,
-            testability,
-            and maintainability. The architecture can be divided into four primary layers: the <strong>Presentation
-                Layer</strong> (HTML/CSS/JavaScript frontend templates rendered by Django), the <strong>Application
-                Layer</strong> (Django URL routing, view functions, and API handlers), the <strong>Core Pipeline
-                Layer</strong> (AI inference modules for image and video processing), and the <strong>Data
-                Layer</strong>
-            (SQLite database accessed via Django ORM, file system storage for uploads and model weights).</p>
+
 
         <div class="figure-container">
             <div class="figure-box" style="padding:0; border:none; background:transparent;">
@@ -3058,270 +2675,7 @@
 
 
         </div>
-        <p class="figure-caption">Figure 5.6: Class Diagram — Core Pipeline Classes of ForgeGuard</p>
-
-    </div>
-
-    </div>
-
-
-
-
-
-
-
-    <!-- MERGED CONTINUATION -->
-
-
-    <div class="sub-section-heading">5.3.3 Sequence Diagram — Image Detection Flow</div>
-    <p>The sequence diagram for the image detection flow illustrates the chronological order of method invocations and
-        message exchanges between the components of the system when processing an image upload request. The
-        participating
-        objects/components are: Client (Browser or API), Django View (image_api.py), ImageProcessor
-        (image_processor.py),
-        IMDModel, and File System.</p>
-
-    <p>The sequence proceeds as follows: (1) Client sends POST /api/detect-image/ with image file; (2) Django View
-        validates extension and size; (3) Django View reads raw bytes and saves to File System; (4) Django View calls
-        detect_image_bytes(raw_bytes, model_path); (5) ImageProcessor opens PIL Image from bytes; (6) ImageProcessor
-        calls
-        _analyse_metadata(pil_img), returns (software_found, notes); (7) ImageProcessor calls _ela_image(pil_img),
-        returns
-        ELA Image; (8) ImageProcessor calls _preprocess(ela_img), returns Tensor; (9) ImageProcessor calls
-        load_model(model_path, device) — loads from cache or disk; (10) IMDModel.forward(tensor) returns probability
-        tensor; (11) ImageProcessor assembles ImageDetectionResult; (12) Django View serializes to JSON and returns 200
-        OK
-        response to Client.</p>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 5.7 — Sequence Diagram — Image Detection Request Flow]<br>
-            <small>Create a UML Sequence Diagram using draw.io. Lifelines (vertical dashed lines) for: Client,
-                DjangoView,
-                ImageProcessor, IMDModel, FileSystem. Show messages as numbered horizontal arrows. Include activation
-                boxes on
-                lifelines during processing. The 12 messages are described in the paragraphs above.</small>
-        </div>
-        <p class="figure-caption">Figure 5.7: Sequence Diagram — Image Detection Flow in ForgeGuard</p>
-    </div>
-
-    <div class="section-heading">5.4 Database Design
-    </div>
-    <p>ForgeGuard uses Django's ORM with SQLite as the underlying database engine. The database schema is primarily
-        composed of Django's built-in tables (auth_user, django_session, django_admin_log) supplemented by any
-        application-specific models. The current implementation stores detection results transiently (in memory and via
-        API responses) rather than persisting them to the database, which is an intentional design decision to avoid PII
-        concerns associated with storing user-uploaded media metadata. The following table describes the key database
-        table used by the Django application layer.</p>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 5.8 — Entity-Relationship (ER) Diagram for ForgeGuard Database]<br>
-            <small>Create an ER Diagram using draw.io. Show: Entity "django_session" (session_key PK, session_data,
-                expire_date). Entity "auth_user" (id PK, username, email, is_staff, is_active, date_joined). Entity
-                "django_admin_log" (id PK, action_time, user_id FK→auth_user, content_type_id, object_id, action_flag,
-                change_message). Use crow's foot notation for cardinality.</small>
-
-
-        </div>
-        <p class="figure-caption">Figure 5.8: Entity-Relationship (ER) Diagram — ForgeGuard Database Schema</p>
-
-    </div>
-
-
-    </div>
-
-    <table>
-        <tr>
-            <th>Table Name</th>
-            <th>Field Name</th>
-            <th>Data Type</th>
-            <th>Constraints</th>
-            <th>Description</th>
-        </tr>
-        <tr>
-            <td>django_session</td>
-            <td>session_key</td>
-            <td>VARCHAR(40)</td>
-            <td>PRIMARY KEY</td>
-            <td>Unique session identifier</td>
-        </tr>
-        <tr>
-            <td>django_session</td>
-            <td>session_data</td>
-            <td>TEXT</td>
-            <td>NOT NULL</td>
-            <td>Encoded session data</td>
-        </tr>
-        <tr>
-            <td>django_session</td>
-            <td>expire_date</td>
-            <td>DATETIME</td>
-            <td>NOT NULL, INDEXED</td>
-            <td>Session expiry timestamp</td>
-        </tr>
-        <tr>
-            <td>auth_user</td>
-            <td>id</td>
-            <td>INTEGER</td>
-            <td>PRIMARY KEY AUTOINCREMENT</td>
-            <td>User record ID</td>
-        </tr>
-        <tr>
-            <td>auth_user</td>
-            <td>username</td>
-            <td>VARCHAR(150)</td>
-            <td>UNIQUE, NOT NULL</td>
-            <td>Login username</td>
-        </tr>
-        <tr>
-            <td>auth_user</td>
-            <td>email</td>
-            <td>VARCHAR(254)</td>
-            <td>NOT NULL</td>
-            <td>User email address</td>
-        </tr>
-        <tr>
-            <td>auth_user</td>
-            <td>is_staff</td>
-            <td>BOOLEAN</td>
-            <td>NOT NULL DEFAULT FALSE</td>
-            <td>Admin access flag</td>
-        </tr>
-        <tr>
-            <td>django_admin_log</td>
-            <td>id</td>
-            <td>INTEGER</td>
-            <td>PRIMARY KEY AUTOINCREMENT</td>
-            <td>Log record ID</td>
-        </tr>
-        <tr>
-            <td>django_admin_log</td>
-            <td>action_time</td>
-            <td>DATETIME</td>
-            <td>NOT NULL</td>
-            <td>Timestamp of admin action</td>
-        </tr>
-        <tr>
-            <td>django_admin_log</td>
-            <td>action_flag</td>
-            <td>SMALLINT</td>
-            <td>NOT NULL</td>
-            <td>1=Add, 2=Change, 3=Delete</td>
-        </tr>
-    </table>
-    <p class="table-caption">Table 5.2: Database Tables and Field Descriptions for ForgeGuard</p>
-
-
-
-
-
-
-    <!-- MERGED CONTINUATION -->
-
-
-    <div class="section-heading">5.5 API Design</div>
-    <p>ForgeGuard's API layer is designed following REST (Representational State Transfer) principles. All endpoints
-        accept HTTP POST requests with multipart/form-data encoding for file uploads and return responses encoded as
-        JSON
-        (application/json). The API is stateless — each request carries all information needed for the server to process
-        it. Authentication is not required for the current development version, though it is recommended for production
-        deployments.</p>
-
-    <table>
-        <tr>
-            <th>Endpoint</th>
-            <th>Method</th>
-            <th>Input Field</th>
-            <th>Response Fields</th>
-            <th>Status Codes</th>
-        </tr>
-        <tr>
-            <td><code>/api/detect-image/</code></td>
-            <td>POST</td>
-            <td>image (file)</td>
-            <td>label, predicted_class, authentic_prob, tampered_prob, confidence_pct, device, original_image,
-                level1{software_found, software_signature, notes}</td>
-            <td>200, 400, 500</td>
-        </tr>
-        <tr>
-            <td><code>/api/detect-video/</code></td>
-            <td>POST</td>
-            <td>video (file)</td>
-            <td>label, predicted_class, fake_prob, real_prob, confidence_pct, device, num_frames_processed,
-                frame_predictions[ ], processing_time_ms, status</td>
-            <td>200, 400, 503, 500</td>
-        </tr>
-        <tr>
-            <td><code>/api/detect/</code></td>
-            <td>POST</td>
-            <td>file (file)</td>
-            <td>media_type, label, confidence_pct, device, processing_time_ms + modality-specific fields</td>
-            <td>200, 400, 500</td>
-        </tr>
-        <tr>
-            <td><code>/api/detect/batch</code></td>
-            <td>POST</td>
-            <td>file[0..n] (files)</td>
-            <td>status, results[ ]{per-file result}, errors[ ], num_success, num_errors, processing_time_ms</td>
-            <td>200, 400</td>
-        </tr>
-    </table>
-    <p class="table-caption">Table 5.1: API Endpoints Summary — ForgeGuard REST API</p>
-
-    <div class="sub-section-heading">5.5.1 Sample API Request and Response — Image Endpoint</div>
-    <p>The following illustrates a typical API interaction with the image detection endpoint using an HTTP client (e.g.,
-        cURL or Postman):</p>
-
-    <pre>
-# REQUEST:
-POST /api/detect-image/ HTTP/1.1
-Content-Type: multipart/form-data; boundary=----FormBoundary
-Host: localhost:8000
-
-------FormBoundary
-Content-Disposition: form-data; name="image"; filename="sample.jpg"
-Content-Type: image/jpeg
-
-&lt;binary image data&gt;
-------FormBoundary--
-
-
-# RESPONSE (200 OK):
-{
-    "label": "TAMPERED",
-    "predicted_class": 0,
-    "authentic_prob": 0.2341,
-    "tampered_prob": 0.7659,
-    "confidence_pct": 76.59,
-    "device": "cpu",
-    "original_image": "uploaded_image_1714001234.jpg",
-    "level1": {
-        "software_found": true,
-        "software_signature": "Adobe Photoshop 24.6 (Windows)",
-        "notes": ["Software signature found: Adobe Photoshop 24.6 (Windows)"]
-    }
-}
-</pre>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 5.9 — API Response Structure Diagram]<br>
-            <small>Create a visual JSON tree diagram showing the structure of the API responses for both image and video
-                endpoints. Use nested rectangles or a tree format. Color-code the image response fields in blue and
-                video
-                response fields in green. Use draw.io or Canva.</small>
-        </div>
-        <p class="figure-caption">Figure 5.9: ForgeGuard API Response Structure for Image and Video Endpoints</p>
-
-    </div>
-
-    <div class="section-heading">5.6 Frontend Design
-
-    </div>
-    <p>The frontend of ForgeGuard is built using HTML5, CSS3, and vanilla JavaScript, rendered through Django's
-        templating engine. The design prioritizes clarity, ease of use, and responsiveness. The key pages are: the Video
-        Upload Home Page (<code>/</code>), the Image Upload and Result Page (<code>/photo/</code>), and the About Page
+        <p class="figure-caption">Figure 5.6: Class Diagram —    Upload Home Page (<code>/</code>), the Image Upload and Result Page (<code>/photo/</code>), and the About Page
         (<code>/about/</code>).</p>
 
     <p>The video upload home page presents a centered file upload form with a drag-and-drop interface, a progress
