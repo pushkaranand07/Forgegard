@@ -889,74 +889,83 @@
             </tr>
             <tr>
                 <td>Figure 6.1</td>
-                <td>Project Directory Structure</td>
-                <td>109</td>
+                <td>ELA Process Diagram</td>
+                <td>3887</td>
             </tr>
             <tr>
                 <td>Figure 6.2</td>
-                <td>IMDModel Architecture – CNN Layers</td>
-                <td>114</td>
+                <td>ELA Comparison Heatmap</td>
+                <td>4031</td>
             </tr>
             <tr>
                 <td>Figure 6.3</td>
-                <td>ELA Process – Original vs. Re-compressed vs. Difference</td>
-                <td>121</td>
+                <td>IMDModel Architecture Diagram</td>
+                <td>4209</td>
             </tr>
             <tr>
                 <td>Figure 6.4</td>
-                <td>EfficientNet B7 Scaling Architecture</td>
-                <td>128</td>
+                <td>Training and Validation Loss Curves</td>
+                <td>4475</td>
             </tr>
             <tr>
                 <td>Figure 6.5</td>
-                <td>MTCNN Face Detection Pipeline</td>
-                <td>135</td>
+                <td>Inference Speed Benchmark (CPU vs GPU)</td>
+                <td>4637</td>
             </tr>
             <tr>
                 <td>Figure 6.6</td>
-                <td>ForgeGuard Home Page – Screenshot</td>
-                <td>149</td>
+                <td>ROC Curves Comparison (IMDModel vs ResNet)</td>
+                <td>4713</td>
             </tr>
             <tr>
                 <td>Figure 6.7</td>
-                <td>Image Upload Page – Screenshot</td>
-                <td>150</td>
+                <td>Photo Detection Page – Screenshot</td>
+                <td>4748</td>
             </tr>
             <tr>
                 <td>Figure 6.8</td>
                 <td>Image Result Page – AUTHENTIC Result</td>
-                <td>151</td>
+                <td>4755</td>
             </tr>
             <tr>
                 <td>Figure 6.9</td>
                 <td>Image Result Page – TAMPERED Result</td>
-                <td>152</td>
-            </tr>
-        </table>
-
-    </div>
-
-    <div class="fm-flow">
-        <table class="lof-table">
-            <tr>
-                <th>Figure No.</th>
-                <th>Figure Description</th>
-                <th>Page No.</th>
+                <td>4762</td>
             </tr>
             <tr>
                 <td>Figure 6.10</td>
-                <td>Video Upload Page – Screenshot</td>
-                <td>153</td>
+                <td>REST API Testing via Postman – Image Detection</td>
+                <td>4769</td>
             </tr>
             <tr>
                 <td>Figure 6.11</td>
-                <td>API Test via Postman – Detect Image</td>
-                <td>154</td>
+                <td>About ForgeGuard – System Walkthrough</td>
+                <td>4776</td>
             </tr>
             <tr>
                 <td>Figure 6.12</td>
-                <td>API Test via Postman – Detect Video</td>
-                <td>155</td>
+                <td>Project Directory Structure</td>
+                <td>4825</td>
+            </tr>
+            <tr>
+                <td>Figure 6.13</td>
+                <td>IMDModel Architecture – Technical View</td>
+                <td>5128</td>
+            </tr>
+            <tr>
+                <td>Figure 6.14</td>
+                <td>ELA Difference Image Analysis</td>
+                <td>5263</td>
+            </tr>
+            <tr>
+                <td>Figure 6.15</td>
+                <td>EfficientNet B7 Architecture</td>
+                <td>5381</td>
+            </tr>
+            <tr>
+                <td>Figure 6.16</td>
+                <td>MTCNN Face Detection Pipeline</td>
+                <td>5485</td>
             </tr>
             <tr>
                 <td>Figure 7.1</td>
@@ -4730,7 +4739,41 @@ def load_model(model_path, device):
 
     </div>
 
-    </div>
+    <div class="page">
+        <div class="section-heading">6.6 System Walkthrough and User Interface</div>
+        <p>This section provides a visual walkthrough of the ForgeGuard system as experienced by the end-user. The interface is designed to be intuitive, with separate pathways for video and image detection. The following screenshots illustrate the primary functional pages, detection result layouts, and API testing procedures.</p>
+
+
+        <div class="figure-container">
+            <div class="figure-box">
+                <img src="report_images/figure6_7_photo.png" alt="ForgeGuard Photo Detection Page" style="width: 100%; border-radius: 8px;">
+            </div>
+            <p class="figure-caption">Figure 6.7: ForgeGuard Image Detection Page — Upload Interface</p>
+        </div>
+
+        <div class="figure-container">
+            <div class="figure-box">
+                <img src="report_images/figure6_8_authentic.png" alt="ForgeGuard Authentic Result" style="width: 100%; border-radius: 8px;">
+            </div>
+            <p class="figure-caption">Figure 6.8: ForgeGuard Image Detection Result — AUTHENTIC Classification</p>
+        </div>
+
+        <div class="figure-container">
+            <div class="figure-box">
+                <img src="report_images/figure6_9_tampered.png" alt="ForgeGuard Tampered Result" style="width: 100%; border-radius: 8px;">
+            </div>
+            <p class="figure-caption">Figure 6.9: ForgeGuard Image Detection Result — TAMPERED Classification with EXIF Warning</p>
+        </div>
+
+        <div class="figure-container">
+            <div class="figure-box">
+                <img src="report_images/figure6_11_postman_cropped.png" alt="Postman Image API Test Cropped" style="width: 100%; border-radius: 8px;">
+            </div>
+            <p class="figure-caption">Figure 6.10: REST API Testing via Postman — Image Detection Endpoint</p>
+        </div>
+
+        
+
 
     
 
@@ -4777,7 +4820,7 @@ ForgeGuard/
 
 
             </div>
-            <p class="figure-caption">Figure 6.1: ForgeGuard Project Directory Structure</p>
+            <p class="figure-caption">Figure 6.12: ForgeGuard Project Directory Structure</p>
 
         </div>
 
@@ -5080,7 +5123,7 @@ ForgeGuard/
                 FC+BN+ReLU (1024) → FC+BN+ReLU (64) → FC+Softmax (2). Label each block with dimensions.</small>
 
         </div>
-        <p class="figure-caption">Figure 6.2: IMDModel Architecture — Convolutional Neural Network for Image
+        <p class="figure-caption">Figure 6.13: IMDModel Architecture — Convolutional Neural Network for Image
             Manipulation
             Detection</p>
 
@@ -5215,7 +5258,7 @@ def _ela_image(original: Image.Image,
             <img src="report_images/technical/fig_6_3_ela_comparison.png"
                 alt="Figure 6.3: Error Level Analysis — Original vs. Re-compressed vs. ELA Difference Image" />
         </div>
-        <p class="figure-caption">Figure 6.3: Error Level Analysis — Original vs. Re-compressed vs. ELA Difference Image
+        <p class="figure-caption">Figure 6.14: Error Level Analysis — Original vs. Re-compressed vs. ELA Difference Image
         </p>
 
     </div>
@@ -5333,7 +5376,7 @@ def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
                 box showing how the DeepFakeClassifier wraps EfficientNet B7 with a custom head (AvgPool → Dropout →
                 Linear(2560→1) → Sigmoid). Reference the original EfficientNet paper figure style.</small>
         </div>
-        <p class="figure-caption">Figure 6.4: EfficientNet B7 Compound Scaling and DeepFakeClassifier Architecture</p>
+        <p class="figure-caption">Figure 6.15: EfficientNet B7 Compound Scaling and DeepFakeClassifier Architecture</p>
 
     </div>
 
@@ -5437,7 +5480,7 @@ def confident_strategy(predictions: List[float],
                 bounding
                 box images. Reference MTCNN paper figure style.</small>
         </div>
-        <p class="figure-caption">Figure 6.5: MTCNN Three-Stage Cascaded Face Detection Pipeline</p>
+        <p class="figure-caption">Figure 6.16: MTCNN Three-Stage Cascaded Face Detection Pipeline</p>
     </div>
 
     <div class="sub-section-heading">6.5.2 Training-Matched Face Extraction
@@ -5707,93 +5750,6 @@ def extract_face(self, frame: np.ndarray) -> Optional[np.ndarray]:
         before delivering the page to the client.</p>
 
     <div class="sub-section-heading">6.7.1 Key Frontend Pages and Screenshots</div>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 6.6 — ForgeGuard Home Page Screenshot]<br>
-            <small>Take a screenshot of the ForgeGuard home page (http://localhost:8000/) in your browser showing the
-                video
-                upload interface. Save as PNG and insert here. The page should show the upload form, ForgeGuard
-                branding, and
-                the submission button.</small>
-        </div>
-        <p class="figure-caption">Figure 6.6: ForgeGuard Home Page — Video Upload Interface</p>
-    </div>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 6.7 — Image Upload Page Screenshot (http://localhost:8000/photo/)]<br>
-            <small>Take a screenshot of the image upload page. Show the file selection form, image preview panel, and
-                the
-                "Analyze" button. Save as PNG.</small>
-        </div>
-        <p class="figure-caption">Figure 6.7: ForgeGuard Image Detection Page — Upload Interface</p>
-    </div>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 6.8 — Image Result Page — AUTHENTIC Result]<br>
-            <small>Take a screenshot after submitting a genuine, unedited image. Show the result panel displaying:
-                Label:
-                AUTHENTIC, Confidence: XX%, Authentic Probability: XX%, Tampered Probability: XX%, Level-1: No software
-                signature detected.</small>
-        </div>
-        <p class="figure-caption">Figure 6.8: ForgeGuard Image Detection Result — AUTHENTIC Classification</p>
-    </div>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 6.9 — Image Result Page — TAMPERED Result with software signature]<br>
-            <small>Take a screenshot after submitting a manipulated or Photoshop-edited image. Show result panel with:
-                Label: TAMPERED, Confidence: XX%, Level-1: Software signature found: Adobe Photoshop XX.X.</small>
-        </div>
-        <p class="figure-caption">Figure 6.9: ForgeGuard Image Detection Result — TAMPERED Classification with EXIF
-            Warning</p>
-    </div>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 6.10 — Video Upload Page Screenshot]<br>
-            <small>Take a screenshot of the video upload interface at http://localhost:8000/ showing the upload form and
-                any
-                results from a previous video analysis. Show the REAL/FAKE label, confidence score, and frame
-                count.</small>
-        </div>
-        <p class="figure-caption">Figure 6.10: ForgeGuard Video Detection Page — Upload Interface and Results</p>
-    </div>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 6.11 — Postman API Test — POST /api/detect-image/]<br>
-            <small>Take a screenshot of Postman (or Insomnia) showing a POST request to
-                http://localhost:8000/api/detect-image/ with a test image file in the body, and the JSON response shown
-                in the
-                response pane. Include the full request and response.</small>
-        </div>
-        <p class="figure-caption">Figure 6.11: REST API Testing via Postman — Image Detection Endpoint</p>
-
-    </div>
-
-    <div class="figure-container">
-        <div class="figure-box">
-            [IMAGE: Figure 6.12 — Postman API Test — POST /api/detect-video/]<br>
-            <small>Similar to above but for the video endpoint. Show the POST request with a video file in the form-data
-                body, and the JSON response with label, confidence_pct, num_frames_processed, and frame_predictions
-                array.</small>
-
-
-        </div>
-        <p class="figure-caption">Figure 6.12: REST API Testing via Postman — Video Detection Endpoint</p>
-
-    </div>
-
-    </div>
-
-
-
-
-
-
 
     <!-- MERGED CONTINUATION -->
 
