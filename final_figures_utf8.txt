@@ -1,0 +1,37 @@
+﻿<td>Figure 6.1</td>
+<td>Figure 6.2</td>
+<td>Figure 6.3</td>
+<td>Figure 6.4</td>
+<td>Figure 6.5</td>
+<td>Figure 6.6</td>
+<td>Figure 6.7</td>
+<td>Figure 6.8</td>
+<td>Figure 6.9</td>
+<td>Figure 6.10</td>
+<td>Figure 6.11</td>
+<td>Figure 6.12</td>
+<td>Figure 6.13</td>
+<td>Figure 6.14</td>
+<td>Figure 6.15</td>
+<td>Figure 6.16</td>
+<p class="caption">Figure 6.1: Diagram showing the complete ELA process: original image &rarr; JPEG
+<p class="caption">Figure 6.2: A four-panel comparison</p>
+<p class="caption">Figure 6.3: Block diagram of IMDModel architecture showing orange for Conv2d, blue for
+<p class="caption">Figure 6.4: Training and validation loss curves over 50 epochs showing convergence and
+<p class="caption">Figure 6.5: Bar chart comparing inference time breakdown for CPU vs GPU configurations.
+<p class="caption">Figure 6.6: ROC curves comparison between IMDModel, Mantra-Net, and ResNet-50 based
+<p class="figure-caption">Figure 6.7: ForgeGuard Image Detection Page â€” Upload Interface</p>
+<p class="figure-caption">Figure 6.8: ForgeGuard Image Detection Result â€” AUTHENTIC Classification</p>
+<p class="figure-caption">Figure 6.9: ForgeGuard Image Detection Result â€” TAMPERED Classification with EXIF Warning</p>
+<p class="figure-caption">Figure 6.10: REST API Testing via Postman â€” Image Detection Endpoint</p>
+<p class="figure-caption">Figure 6.11: About ForgeGuard â€” System Documentation and Guidelines</p>
+[IMAGE: Figure 6.1 â€” ForgeGuard Project Directory Structure]<br>
+<p class="figure-caption">Figure 6.12: ForgeGuard Project Directory Structure</p>
+[IMAGE: Figure 6.2 â€” IMDModel CNN Architecture Diagram]<br>
+<p class="figure-caption">Figure 6.13: IMDModel Architecture â€” Convolutional Neural Network for Image
+alt="Figure 6.3: Error Level Analysis â€” Original vs. Re-compressed vs. ELA Difference Image" />
+<p class="figure-caption">Figure 6.14: Error Level Analysis â€” Original vs. Re-compressed vs. ELA Difference Image
+[IMAGE: Figure 6.4 â€” EfficientNet B7 Compound Scaling Architecture]<br>
+<p class="figure-caption">Figure 6.15: EfficientNet B7 Compound Scaling and DeepFakeClassifier Architecture</p>
+[IMAGE: Figure 6.5 â€” MTCNN Three-Stage Face Detection Pipeline]<br>
+<p class="figure-caption">Figure 6.16: MTCNN Three-Stage Cascaded Face Detection Pipeline</p>
