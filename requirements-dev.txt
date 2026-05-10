@@ -1,0 +1,12 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ForgeGuard — Development-only Dependencies
+# Install AFTER requirements.txt:
+#   pip install -r requirements-dev.txt
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Interactive Python shell
+ipython==8.12.3
+
+# Jupyter / notebook support (for training notebooks)
+jupyter==1.0.0
+notebook>=7.0.0

@@ -1,6 +1,4 @@
-"""project_settings URL Configuration
-"""
-from django.contrib import admin
+"""ForgeGuard URL Configuration"""
 from django.urls import path, include
 
 from django.conf import settings
