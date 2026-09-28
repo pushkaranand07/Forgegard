@@ -139,6 +139,31 @@ MEDIA_ROOT = os.path.join(PROJECT_DIR, 'uploaded_images')
 # ─────────────────────────────────────────────
 
 if not DEBUG:
+    LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+    handlers = {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    }
+    active_handlers = ['console']
+
+    # File logging is disabled on serverless platforms (e.g., Vercel) where the filesystem is read-only
+    if not os.getenv('VERCEL'):
+        try:
+            os.makedirs(LOGS_DIR, exist_ok=True)
+            handlers['file'] = {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': os.path.join(LOGS_DIR, 'deepguard.log'),
+                'maxBytes': 1024 * 1024 * 50,  # 50 MB
+                'backupCount': 5,
+                'formatter': 'verbose',
+            }
+            active_handlers.append('file')
+        except (OSError, PermissionError):
+            pass
+
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -148,29 +173,17 @@ if not DEBUG:
                 'style': '{',
             },
         },
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-            },
-            'file': {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(BASE_DIR, 'logs', 'deepguard.log'),
-                'maxBytes': 1024 * 1024 * 50, # 50 MB
-                'backupCount': 5,
-                'formatter': 'verbose',
-            },
-        },
+        'handlers': handlers,
         'loggers': {
             'django': {
-                'handlers': ['console', 'file'],
+                'handlers': active_handlers,
                 'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
             },
             'django.utils.autoreload': {
                 'level': 'INFO',
             },
             'forgeguard.video': {
-                'handlers': ['console', 'file'],
+                'handlers': active_handlers,
                 'level': 'DEBUG',
                 'propagate': True,
             },
