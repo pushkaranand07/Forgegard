@@ -3,8 +3,6 @@ ml_core/image_model/imd.py
 ==========================
 Image Manipulation Detection pipeline.
 
-Two-level analysis (mirrors the upstream z1311/Image-Manipulation-Detection repo):
-
   Level 1 — Metadata analysis
       Checks EXIF data for software signatures that indicate editing.
 
