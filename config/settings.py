@@ -182,7 +182,7 @@ if not DEBUG:
         'loggers': {
             'django': {
                 'handlers': active_handlers,
-                'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+                'level': os.getenv('DJANGO_LOG_LEVEL', '').strip().upper() or 'INFO',
             },
             'django.utils.autoreload': {
                 'level': 'INFO',
