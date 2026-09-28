@@ -148,14 +148,19 @@ if not DEBUG:
     }
     active_handlers = ['console']
 
-    # File logging is disabled on serverless platforms (e.g., Vercel) where the filesystem is read-only
-    if not os.getenv('VERCEL'):
+    # File logging only if explicitly enabled and not on serverless platforms (e.g. Vercel)
+    is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME') or os.getenv('K_SERVICE'))
+    if os.getenv('ENABLE_FILE_LOGGING', 'false').lower() in ('1', 'true', 'yes') and not is_serverless:
         try:
             os.makedirs(LOGS_DIR, exist_ok=True)
+            log_filepath = os.path.join(LOGS_DIR, 'deepguard.log')
+            # Test that file is genuinely writable before registering handler
+            with open(log_filepath, 'a') as f:
+                pass
             handlers['file'] = {
                 'level': 'DEBUG',
                 'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(LOGS_DIR, 'deepguard.log'),
+                'filename': log_filepath,
                 'maxBytes': 1024 * 1024 * 50,  # 50 MB
                 'backupCount': 5,
                 'formatter': 'verbose',
