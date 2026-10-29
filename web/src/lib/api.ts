@@ -86,28 +86,34 @@ function postForm<T>(url: string, form: FormData, cb: UploadCallbacks = {}): Pro
   });
 }
 
+const API_BASE = (
+  (import.meta.env.VITE_API_BASE as string | undefined) ||
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  ""
+).replace(/\/+$/, "");
+
 export function detectImage(file: File, cb?: UploadCallbacks) {
   const form = new FormData();
   form.append("image", file);
-  return postForm<ImageApiResponse>("/api/detect-image/", form, cb);
+  return postForm<ImageApiResponse>(`${API_BASE}/api/detect-image/`, form, cb);
 }
 
 export function detectVideo(file: File, cb?: UploadCallbacks) {
   const form = new FormData();
   form.append("video", file);
-  return postForm<VideoApiResponse>("/api/detect-video/", form, cb);
+  return postForm<VideoApiResponse>(`${API_BASE}/api/detect-video/`, form, cb);
 }
 
 export function detectBatch(files: File[], cb?: UploadCallbacks) {
   const form = new FormData();
   for (const f of files) form.append("file", f);
-  return postForm<BatchApiResponse>("/api/detect/batch", form, cb);
+  return postForm<BatchApiResponse>(`${API_BASE}/api/detect/batch`, form, cb);
 }
 
 export async function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
   let res: Response;
   try {
-    res = await fetch("/api/health/", { signal, headers: { Accept: "application/json" } });
+    res = await fetch(`${API_BASE}/api/health/`, { signal, headers: { Accept: "application/json" } });
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") throw new AbortedError();
     throw new ApiError(messageFor(0, null), 0);
