@@ -1,6 +1,6 @@
 """
-ml_core/image_model/imd.py
-==========================
+core/pipeline/image_processor.py
+================================
 Image Manipulation Detection pipeline.
 
   Level 1 — Metadata analysis
@@ -22,6 +22,7 @@ Public entry-points
 from __future__ import annotations
 
 import io
+import logging
 import os
 import threading
 from dataclasses import dataclass, field
@@ -32,6 +33,16 @@ import torch
 from PIL import Image, ImageChops
 from PIL.ExifTags import TAGS
 from torch import nn
+
+logger = logging.getLogger("forgeguard.image")
+
+# Larger images are rejected before decoding: ELA holds several full-size
+# copies in memory, so a crafted 100+ MP file could exhaust RAM.
+MAX_IMAGE_PIXELS = 50_000_000
+
+
+class InvalidImageError(ValueError):
+    """The upload is not a decodable image, or is too large to analyse safely."""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -144,10 +155,9 @@ def _select_device() -> torch.device:
     """Use GPU if available, fall back to CPU safely."""
     try:
         if torch.cuda.is_available():
-            print("[IMD] GPU detected — using CUDA for image inference.")
             return torch.device("cuda")
     except Exception as exc:
-        print(f"[IMD] CUDA check failed ({exc}), falling back to CPU.")
+        logger.warning(f"[IMD] CUDA check failed ({exc}), falling back to CPU.")
     return torch.device("cpu")
 
 
@@ -167,26 +177,34 @@ def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
     software_found = False
     software_value = ""
 
+    # Must be called on the image as opened, before any .convert() — converting
+    # drops EXIF and format-specific info chunks.
     try:
-        exif_data = img._getexif()  # type: ignore[attr-defined]
-        if exif_data is None:
-            notes.append("No EXIF data found.")
-            return software_found, software_value, notes
+        exif_data = img.getexif()
 
         for tag_id, value in exif_data.items():
             tag_name = TAGS.get(tag_id, str(tag_id))
-            if tag_name == "Software":
+            if tag_name == "Software" and str(value).strip():
                 software_found = True
                 software_value = str(value).strip()
-                notes.append(f"Software signature found: {software_value}")
                 break
 
+        # PNG/WebP may carry the signature as a text chunk instead of EXIF
         if not software_found:
+            for key in ("Software", "software"):
+                value = img.info.get(key)
+                if isinstance(value, str) and value.strip():
+                    software_found = True
+                    software_value = value.strip()
+                    break
+
+        if software_found:
+            notes.append(f"Software signature found: {software_value}")
+        elif not exif_data:
+            notes.append("No EXIF data found.")
+        else:
             notes.append("No software signature in EXIF — metadata looks clean.")
 
-    except AttributeError:
-        # PNG, BMP, etc. have no _getexif()
-        notes.append("Image format does not support EXIF metadata.")
     except Exception as exc:
         notes.append(f"Metadata scan failed: {exc}")
 
@@ -284,7 +302,7 @@ def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Mod
                 except Exception:
                     payload = torch.load(abs_path, map_location=device, weights_only=False)
             else:
-                print(f"Safe load failed: {e}. Retrying with weights_only=False.")
+                logger.warning(f"[IMD] Safe load failed ({e}); retrying with weights_only=False.")
                 payload = torch.load(abs_path, map_location=device, weights_only=False)
 
         if isinstance(payload, nn.Module):
@@ -299,7 +317,7 @@ def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Mod
         model.to(device)
         model.eval()
         _MODEL_CACHE[cache_key] = model
-        print(f"[IMD] Model loaded from {abs_path} on {device.type.upper()}")
+        logger.info(f"[IMD] Model loaded from {abs_path} on {device.type.upper()}")
         return model
 
 
@@ -315,8 +333,9 @@ def _run_inference(pil_img: Image.Image, model_path: str,
     """
     device = device or _select_device()
 
-    # Level 1 — metadata
+    # Level 1 — metadata (on the image as opened, before RGB conversion)
     software_found, software_sig, notes = _analyse_metadata(pil_img)
+    pil_img = pil_img.convert("RGB")
 
     # Level 2 — ELA + CNN
     model = load_model(model_path=model_path, device=device)
@@ -338,7 +357,7 @@ def _run_inference(pil_img: Image.Image, model_path: str,
     predicted_class = int(torch.argmax(probs).item())
     label = "AUTHENTIC" if predicted_class == 1 else "TAMPERED"
 
-    print(f"[IMD] Result: {label}  "
+    logger.info(f"[IMD] Result: {label}  "
           f"(authentic={authentic_prob:.3f}, tampered={tampered_prob:.3f})")
 
     return ImageDetectionResult(
@@ -357,6 +376,31 @@ def _run_inference(pil_img: Image.Image, model_path: str,
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _open_image(source) -> Image.Image:
+    """Open and fully decode an image, rejecting non-images and oversized files."""
+    try:
+        img = Image.open(source)
+    except (Image.UnidentifiedImageError, Image.DecompressionBombError) as exc:
+        raise InvalidImageError("The file is not a readable image.") from exc
+    if img.width * img.height > MAX_IMAGE_PIXELS:
+        raise InvalidImageError(
+            f"Image is {img.width}×{img.height}; the maximum is "
+            f"{MAX_IMAGE_PIXELS // 1_000_000} megapixels."
+        )
+    try:
+        img.load()  # surface truncated / corrupt files here rather than mid-pipeline
+    except (OSError, SyntaxError) as exc:
+        raise InvalidImageError("The image file is corrupt or truncated.") from exc
+    return img
+
+
+def is_model_loaded(model_path: str) -> bool:
+    """True once load_model() has cached these weights on any device."""
+    path = os.path.abspath(model_path)
+    with _MODEL_LOCK:
+        return any(key[0] == path for key in _MODEL_CACHE)
+
+
 def detect_image_file(
     image_path: str,
     model_path: str,
@@ -373,7 +417,7 @@ def detect_image_file(
     Returns:
         ImageDetectionResult with Level-1 and Level-2 findings.
     """
-    pil_img = Image.open(image_path).convert("RGB")
+    pil_img = _open_image(image_path)
     return _run_inference(pil_img, model_path=model_path, device=device)
 
 
@@ -393,5 +437,5 @@ def detect_image_bytes(
     Returns:
         ImageDetectionResult with Level-1 and Level-2 findings.
     """
-    pil_img = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
+    pil_img = _open_image(io.BytesIO(raw_bytes))
     return _run_inference(pil_img, model_path=model_path, device=device)

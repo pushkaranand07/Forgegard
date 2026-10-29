@@ -1,6 +1,6 @@
 """
-ml_core/video_model/vmd.py
-==========================
+core/pipeline/video_processor.py
+================================
 Video Deepfake Detection pipeline based on DFDC challenge solution.
 
 Frame-by-frame classification approach using EfficientNet B7 encoder.
@@ -18,8 +18,7 @@ import os
 import threading
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Dict, Any
-from concurrent.futures import ThreadPoolExecutor
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -117,8 +116,8 @@ class DeepFakeClassifier(nn.Module):
         
         if params["init_op"] is None:
             raise ImportError(
-                f"EfficientNet encoder not available. "
-                f"Install timm: pip install timm>=0.9.0"
+                "EfficientNet encoder not available. "
+                "Install timm: pip install timm>=0.9.0"
             )
         
         self.encoder = params["init_op"]()
@@ -474,44 +473,63 @@ def load_model(
     """
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    # Check cache
+
+    # One cached instance per (weights, encoder, device), loaded under the lock
+    # so concurrent first requests do not each read the multi-GB checkpoint.
+    cache_key = (os.path.abspath(model_path), encoder, device)
     with _cache_lock:
-        if model_path in _model_cache:
-            return _model_cache[model_path].to(device)
-    
-    # Load model
-    model = DeepFakeClassifier(encoder=encoder)
-    
-    if os.path.exists(model_path):
-        import numpy as np
+        cached = _model_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        if not os.path.isfile(model_path):
+            raise FileNotFoundError(f"Video model weights not found: {model_path}")
+
+        model = DeepFakeClassifier(encoder=encoder)
+
+        # The checkpoint pickles a few NumPy scalars (e.g. 'bce_best') under their
+        # NumPy 1.x names; NumPy 2 moved them to numpy._core, so allow-list them
+        # by their old name to keep the safe weights_only loader working.
+        np_core = getattr(np, "_core", None) or np.core
+        safe_globals = [
+            (np_core.multiarray.scalar, "numpy.core.multiarray.scalar"),
+            np.dtype,
+            type(np.dtype("float64")),
+        ]
+
         try:
-            torch.serialization.add_safe_globals([np.core.multiarray.scalar])
-        except AttributeError:
-            pass  # Compatibility with older PyTorch versions
-            
-        try:
-            checkpoint = torch.load(model_path, map_location=device, weights_only=True)
+            with torch.serialization.safe_globals(safe_globals):
+                checkpoint = torch.load(model_path, map_location=device, weights_only=True)
         except Exception as e:
-            print(f"Safe load failed: {e}. Retrying with weights_only=False.")
+            logger.warning(f"[load_model] Safe load failed ({e}); retrying with weights_only=False.")
             checkpoint = torch.load(model_path, map_location=device, weights_only=False)
-        
+
         # Handle different checkpoint formats
         if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
-            state_dict = checkpoint['state_dict']
             # Remove 'module.' prefix if present (from DataParallel)
-            state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
-            model.load_state_dict(state_dict, strict=False)
+            state_dict = {k.replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
         else:
-            model.load_state_dict(checkpoint, strict=False)
-    
-    model = model.to(device).eval()
-    
-    # Cache model
+            state_dict = checkpoint
+
+        missing, unexpected = model.load_state_dict(state_dict, strict=False)
+        if missing:
+            logger.warning(f"[load_model] {len(missing)} weights missing from checkpoint "
+                           f"(left at random init), e.g. {missing[:3]}")
+        if unexpected:
+            logger.warning(f"[load_model] {len(unexpected)} unexpected checkpoint keys ignored, "
+                           f"e.g. {unexpected[:3]}")
+
+        model = model.to(device).eval()
+        _model_cache[cache_key] = model
+        logger.info(f"[load_model] Loaded {os.path.basename(model_path)} ({encoder}) on {device}")
+        return model
+
+
+def is_model_loaded(model_path: str) -> bool:
+    """True once load_model() has cached these weights on any device."""
+    path = os.path.abspath(model_path)
     with _cache_lock:
-        _model_cache[model_path] = model.cpu()
-    
-    return model
+        return any(key[0] == path for key in _model_cache)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -525,7 +543,7 @@ def detect_video_frames(
     device: Optional[str] = None,
     extract_faces: bool = True,
     target_size: int = 380,
-    batch_size: int = 32
+    batch_size: int = 8
 ) -> VideoDetectionResult:
     """
     Detect deepfakes in a list of frames.
@@ -537,7 +555,8 @@ def detect_video_frames(
         device: Computation device
         extract_faces: Whether to extract faces before classification
         target_size: Target frame size for model
-        batch_size: Batch size for inference
+        batch_size: Faces per forward pass. 8 keeps peak RAM ~1.7 GB on CPU
+            (32 peaks at ~4 GB) with the same throughput and identical outputs.
     
     Returns:
         VideoDetectionResult with predictions
@@ -569,7 +588,7 @@ def detect_video_frames(
             logger.warning(f"[detect_video] No faces found in any of {len(frames)} frames → returning UNSURE")
             return VideoDetectionResult(
                 label="UNSURE", predicted_class=-1, fake_prob=0.5, real_prob=0.5,
-                confidence_pct=0.5, device=device, num_frames_processed=len(frames),
+                confidence_pct=50.0, device=device, num_frames_processed=len(frames),
                 notes=["NO_FACE_DETECTED"]
             )
             
@@ -586,7 +605,7 @@ def detect_video_frames(
             tensor = preprocess_frame(frame, target_size, normalize=True)
             preprocessed.append(tensor)
         except Exception as e:
-            print(f"Error preprocessing frame: {e}")
+            logger.warning(f"[detect_video] Skipping frame that failed preprocessing: {e}")
             continue
     
     if not preprocessed:
@@ -679,6 +698,3 @@ def detect_video_file(
         frames, model_path, encoder, device,
         extract_faces=extract_faces, target_size=target_size
     )
-
-# Trigger server reload
-

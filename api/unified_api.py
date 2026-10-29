@@ -10,25 +10,18 @@ from __future__ import annotations
 
 import time
 from django.conf import settings
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 
-from .unified_detection import detect_file_bytes
+from .common import (
+    IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, ServerBusy,
+    busy_response, error_response, inference_slot, rate_limited, validate_upload,
+)
+from .unified_detection import detect_uploaded_file
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Constants
-# ─────────────────────────────────────────────────────────────────────────────
-
-MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
-
-ALLOWED_EXTENSIONS = {
-    # Images
-    'jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif',
-    # Videos
-    'mp4', 'avi', 'webm', 'mov', 'mkv', 'flv', '3gp', 'wmv'
-}
+ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -37,6 +30,7 @@ ALLOWED_EXTENSIONS = {
 
 @csrf_exempt
 @require_POST
+@rate_limited
 def api_detect(request) -> JsonResponse:
     """
     Unified forgery detection endpoint for images and videos.
@@ -86,63 +80,33 @@ def api_detect(request) -> JsonResponse:
             break
     
     if file_obj is None:
-        return JsonResponse({
-            'error': 'No file provided. Use field name: "file"',
-            'status': 'error'
-        }, status=400)
-    
-    # Validate file
-    if file_obj.size > MAX_FILE_SIZE:
-        return JsonResponse({
-            'error': f'File size exceeds {MAX_FILE_SIZE / (1024*1024):.0f}MB limit',
-            'status': 'error'
-        }, status=400)
-    
-    # Check file extension
-    file_name = file_obj.name.lower()
-    ext = file_name.split('.')[-1] if '.' in file_name else ''
-    
-    if ext not in ALLOWED_EXTENSIONS:
-        return JsonResponse({
-            'error': f'Unsupported file format. Allowed: {", ".join(sorted(ALLOWED_EXTENSIONS))}',
-            'status': 'error'
-        }, status=400)
-    
+        return error_response('No file provided. Use field name: "file"', 400)
+
+    invalid = validate_upload(file_obj, ALLOWED_EXTENSIONS)
+    if invalid:
+        return error_response(invalid, 400)
+
     try:
-        # Read file bytes
-        file_bytes = file_obj.read()
-        
-        if not file_bytes:
-            return JsonResponse({
-                'error': 'File is empty',
-                'status': 'error'
-            }, status=400)
-        
-        # Run unified detection
-        result = detect_file_bytes(
-            file_bytes=file_bytes,
-            file_name=file_name,
-            auto_detect_type=True,
-            device=None  # Auto-select
-        )
-        
-        # Format response
-        response_data = result.to_dict()
-        response_data['status'] = 'success' if result.label != 'ERROR' else 'error'
-        response_data['processing_time_ms'] = (time.time() - start_time) * 1000
-        
-        return JsonResponse(response_data, status=200)
-    
-    except Exception as e:
-        return JsonResponse({
-            'error': f'Processing error: {str(e)}',
-            'status': 'error',
-            'processing_time_ms': (time.time() - start_time) * 1000
-        }, status=500)
+        with inference_slot():
+            result = detect_uploaded_file(file_obj)
+    except ServerBusy:
+        return busy_response()
+
+    response_data = result.to_dict()
+    response_data['status'] = 'success' if result.label != 'ERROR' else 'error'
+    response_data['processing_time_ms'] = (time.time() - start_time) * 1000
+
+    if result.label != 'ERROR':
+        status = 200
+    else:
+        # 422: the media itself could not be analysed (corrupt, unreadable, ...)
+        status = 500 if result.internal_error else 422
+    return JsonResponse(response_data, status=status)
 
 
 @csrf_exempt
 @require_POST
+@rate_limited
 def api_detect_multi(request) -> JsonResponse:
     """
     Batch detection endpoint for multiple files.
@@ -172,55 +136,48 @@ def api_detect_multi(request) -> JsonResponse:
     
     # Get all files
     files = request.FILES.getlist('file')
-    
+
     if not files:
-        return JsonResponse({
-            'error': 'No files provided',
-            'status': 'error'
-        }, status=400)
-    
+        return error_response('No files provided', 400)
+
+    max_files = settings.FORGEGUARD_MAX_BATCH_FILES
+    if len(files) > max_files:
+        return error_response(f'Too many files: at most {max_files} per batch.', 400)
+
     results = []
     errors = []
-    
+
     for idx, file_obj in enumerate(files):
+        invalid = validate_upload(file_obj, ALLOWED_EXTENSIONS)
+        if invalid:
+            errors.append({'file_index': idx, 'file_name': file_obj.name, 'error': invalid})
+            continue
+
+        # One slot per file, so other clients interleave with a long batch
         try:
-            # Validate
-            if file_obj.size > MAX_FILE_SIZE:
-                errors.append({
-                    'file_index': idx,
-                    'file_name': file_obj.name,
-                    'error': f'File size exceeds {MAX_FILE_SIZE / (1024*1024):.0f}MB'
-                })
-                continue
-            
-            # Check extension
-            file_name = file_obj.name.lower()
-            ext = file_name.split('.')[-1] if '.' in file_name else ''
-            
-            if ext not in ALLOWED_EXTENSIONS:
-                errors.append({
-                    'file_index': idx,
-                    'file_name': file_name,
-                    'error': 'Unsupported file format'
-                })
-                continue
-            
-            # Detect
-            file_bytes = file_obj.read()
-            result = detect_file_bytes(file_bytes, file_name)
-            
-            result_dict = result.to_dict()
-            result_dict['file_index'] = idx
-            result_dict['file_name'] = file_name
-            results.append(result_dict)
-        
-        except Exception as e:
+            with inference_slot():
+                result = detect_uploaded_file(file_obj)
+        except ServerBusy:
             errors.append({
                 'file_index': idx,
                 'file_name': file_obj.name,
-                'error': str(e)
+                'error': 'Server busy; file was not analysed. Retry it later.',
             })
-    
+            continue
+
+        if result.label == 'ERROR':
+            errors.append({
+                'file_index': idx,
+                'file_name': file_obj.name,
+                'error': result.error or 'Detection failed'
+            })
+            continue
+
+        result_dict = result.to_dict()
+        result_dict['file_index'] = idx
+        result_dict['file_name'] = file_obj.name
+        results.append(result_dict)
+
     # Determine overall status
     if not results and errors:
         overall_status = 'error'

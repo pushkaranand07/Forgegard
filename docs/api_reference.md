@@ -1,66 +1,115 @@
 # ForgeGuard API Reference
 
-ForgeGuard implements a dual-endpoint detection API via standard HTTP POST operations. Both endpoints return JSON responses. A dedicated `/api/detect-unified/` endpoint handles multi-modal inputs dynamically depending on their magic bytes.
+All endpoints speak JSON and accept `multipart/form-data` uploads. The web UI's
+**API** page shows the same reference with copy-paste `curl` examples.
 
-## Endpoints
+Limits are configurable (see `docs/deployment_guide.md`); clients should read
+the live values from `GET /api/health/` rather than hard-coding them.
 
-### 1. Video Deepfake Detection (`POST /api/detect-video/`)
+| Media | Extensions |
+|---|---|
+| Image | jpg, jpeg, png, bmp, tif, tiff, webp (max 50 megapixels) |
+| Video | mp4, avi, webm, mov, mkv, flv, 3gp, wmv, gif |
 
-Accurately classify deepfakes based on temporal and morphological pixel boundaries.
+## `POST /api/detect-image/`
 
-**Payload Requirements**
-- Content-Type: `multipart/form-data`
-- Body Parameter: `video` (File representation of the MP4/AVI clip. Maximum threshold dictates 100 MB caps).
+Field `image`. Level 1 checks metadata for editing-software signatures; Level 2
+runs error-level analysis (ELA) through a CNN.
 
-**Success Response (200 OK)**
 ```json
 {
-    "label": "FAKE",
-    "confidence_pct": 98.7,
-    "device": "cuda",
-    "processing_time_ms": 2154.2,
-    "num_frames_processed": 32,
-    "frame_predictions": [
-        {"frame": 0, "confidence": 98.6},
-        {"frame": 1, "confidence": 97.4}
-    ]
+  "label": "TAMPERED",
+  "predicted_class": 0,
+  "authentic_prob": 0.1584,
+  "tampered_prob": 0.8416,
+  "confidence_pct": 84.16,
+  "device": "cpu",
+  "level1": {
+    "software_found": true,
+    "software_signature": "Adobe Photoshop 25.0 (Windows)",
+    "notes": ["Software signature found: Adobe Photoshop 25.0 (Windows)"]
+  },
+  "original_image": null,
+  "processing_time_ms": 461.6
 }
 ```
 
-### 2. Image Manipulation Detection (`POST /api/detect-image/`)
+`predicted_class`: 0 = tampered, 1 = authentic. `original_image` is the saved
+filename only when the server runs with `FORGEGUARD_KEEP_UPLOADS=true`.
 
-Classifies manipulated images (photoshops, generative faces) relying heavily on Level-1 Software specific flags and Level-2 Error-Level Analysis (ELA).
+## `POST /api/detect-video/`
 
-**Payload Requirements**
-- Content-Type: `multipart/form-data`
-- Body Parameter: `image` (JPEG/PNG variants)
+Field `video`. Samples 32 evenly spaced frames, crops the face in each with
+MTCNN, and scores each crop with EfficientNet-B7.
 
-**Success Response (200 OK)**
 ```json
 {
-    "label": "TAMPERED",
-    "confidence_pct": 84.1,
-    "device": "cuda",
-    "level1": {
-        "software_found": true,
-        "software_signature": "Adobe Photoshop 2023",
-        "notes": ["Software signature found: Adobe Photoshop 2023"]
-    },
-    "level2": {
-        "authentic_prob": 0.158,
-        "tampered_prob": 0.841,
-        "method": "ELA + CNN"
-    }
+  "label": "FAKE",
+  "predicted_class": 0,
+  "fake_prob": 0.987,
+  "real_prob": 0.013,
+  "confidence_pct": 98.7,
+  "device": "cpu",
+  "num_frames_processed": 32,
+  "frame_predictions": [0.98, 0.97, 0.99],
+  "processing_time_ms": 21540.2,
+  "notes": [],
+  "status": "success"
 }
 ```
 
-## Exceptions & Status Codes
+`label` is `REAL`, `FAKE`, or `UNSURE` when no face was found in any frame
+(then `status` is `NO_FACE_DETECTED`). `frame_predictions` holds one fake
+probability per detected face.
 
-All API endpoints map proprietary logic exceptions correctly to explicit API Status Codes:
+## `POST /api/detect/`
 
-| Exception Trigger | Detail | HTTP Status |
-| --- | --- | --- |
-| `InvalidFileException` | Incorrect Magic Bytes / Compression type | 400 Bad Request |
-| `EmptyVideoException` | Missing visual payload but audio stream exists | 400 Bad Request |
-| `NoVisualFramesException`| File was corrupted during pipeline iteration | 400 Bad Request |
-| Server Side / OOM | Hardware Memory Exhaustion | 500 Internal Error |
+Field `file`. Routes to the image or video model by extension and returns a
+unified result: `media_type`, `label`, `confidence_pct`, `device`,
+`processing_time_ms`, plus `level1`/`level2` for images or
+`num_frames_processed`/`frame_predictions`/`notes` for videos. If the file is
+accepted but cannot be analysed, the response is 422 (bad media) or 500
+(server fault) with `"label": "ERROR"` and the reason in `error`.
+
+## `POST /api/detect/batch`
+
+Repeat the `file` field for each file (up to 20). Files are analysed in order.
+
+```json
+{
+  "status": "partial_error",
+  "results": [{ "...unified result...": "", "file_index": 0, "file_name": "a.jpg" }],
+  "errors": [{ "file_index": 1, "file_name": "b.mp4", "error": "Cannot open video file" }],
+  "num_success": 1,
+  "num_errors": 1,
+  "processing_time_ms": 23110.0
+}
+```
+
+HTTP 200 unless every file failed (then 400).
+
+## `GET /api/health/` and `GET /api/health/live`
+
+`/api/health/live` always returns `{"status": "ok"}` while the process is up.
+`/api/health/` reports device, model files (`present`, `loaded`, `size_mb`)
+and the active limits; it returns 503 with `"status": "degraded"` when a
+weight file is missing.
+
+## Errors
+
+Every error body is `{"error": "<human-readable message>", "status": "<CODE>"}`,
+and every response carries an `X-Request-ID` header to quote in bug reports.
+
+| HTTP | `status` | When |
+|---|---|---|
+| 400 | `error` | No file, unsupported extension, empty or oversized file, too many batch files |
+| 400 | `INVALID_IMAGE` | Not a decodable image, truncated, or over 50 megapixels |
+| 400 | `INVALID_FILE`, `EMPTY_VIDEO`, `NO_VISUAL_FRAMES` | Video cannot be opened or has no frames |
+| 404 | `NOT_FOUND` | Unknown `/api/` path |
+| 405 | — | Wrong HTTP method |
+| 413 | `TOO_LARGE` | Request body over `FORGEGUARD_MAX_REQUEST_MB` |
+| 422 | `error` | `/api/detect/` only: accepted but could not be analysed |
+| 429 | `RATE_LIMITED` | Per-IP limit reached; see `Retry-After` |
+| 500 | `error` | Unexpected server failure (details are logged, never returned) |
+| 503 | `model_not_found` | Weights missing on the server |
+| 503 | `BUSY` | All inference slots busy for too long; see `Retry-After` |

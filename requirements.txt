@@ -1,56 +1,34 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# ForgeGuard — Production Dependencies (Windows Python 3.13)
-# Install via: pip install -r requirements.txt
+# ForgeGuard — runtime dependencies (Python 3.11–3.13)
 #
-# ⚠️  IMPORTANT: PyTorch must be installed via Conda, NOT pip!
-#     conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
+# Install in this order (the Dockerfile does exactly this):
 #
-# For development tools (jupyter, ipython), see requirements-dev.txt
+#   1. PyTorch for your platform — CPU wheels shown; see https://pytorch.org for CUDA
+#        pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   2. This file
+#        pip install -r requirements.txt
+#   3. facenet-pytorch WITHOUT its dependencies. Its metadata pins torch<2.3,
+#      numpy<2 and Pillow<10.3, which would downgrade the whole stack; the code
+#      itself works with the versions below.
+#        pip install --no-deps "facenet-pytorch==2.6.0"
+#
+# Development/test tools: requirements-dev.txt
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Core Web Framework
-Django==5.0.6
-asgiref==3.8.1
-sqlparse==0.5.0
+# Web
+Django>=5.2,<6.1
+whitenoise>=6.7,<7
+gunicorn>=23,<24
+python-dotenv>=1.0,<2
 
-# Data Processing
-numpy>=2.0.0,<3.0.0
-pandas==2.2.2
+# Numerics, images & video
+numpy>=2.0,<3
+Pillow>=11.0,<13
+opencv-python-headless>=4.10,<5
 
-# Image & Video Processing
-opencv-python==4.10.0.84
-Pillow==10.3.0
+# Model backbone (torch / torchvision installed separately, see above)
+timm>=1.0,<2
 
-# Deep Learning (MUST BE INSTALLED VIA CONDA!)
-# torch==2.3.1  # ← Install via: conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
-# torchvision==0.18.1  # ← Same as above
-facenet-pytorch>=0.2.2.post4
-
-# Face Detection Models
-# (facenet-pytorch includes MTCNN and InceptionResnetV1)
-
-# Utilities
-requests==2.32.3
-tqdm>=4.66.0
-pyYAML==6.0.1
-
-# ─────────────────────────────────────────────────────────────────────────────
-# INSTALLATION INSTRUCTIONS
-# ─────────────────────────────────────────────────────────────────────────────
-#
-# 1. Activate virtual environment:
-#    .venv\Scripts\Activate.ps1
-#
-# 2. Install PyTorch via conda (CRITICAL!):
-#    conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia
-#
-# 3. Install production dependencies:
-#    pip install -r requirements.txt
-#
-# 4. (Optional) Install dev tools (jupyter, ipython):
-#    pip install -r requirements-dev.txt
-#
-# 5. Verify installation:
-#    python -c "import torch; import cv2; import django; print('✓ All OK')"
-#
-# ─────────────────────────────────────────────────────────────────────────────
+# Used by facenet-pytorch at import time
+requests>=2.32,<3
+tqdm>=4.66,<5

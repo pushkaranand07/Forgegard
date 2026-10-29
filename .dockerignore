@@ -1,0 +1,38 @@
+.git
+.github
+.venv
+venv
+**/__pycache__
+**/*.pyc
+.env
+.env.*
+!.env.example
+.vscode
+.idea
+.cursor
+
+# Built inside the image
+web/node_modules
+web/dist
+frontend/static/app
+staticfiles
+
+# Local runtime data
+db.sqlite3
+logs
+uploaded_images
+uploaded_videos
+calibration
+
+# Mounted at runtime (remove this line to bake the weights into the image)
+weights
+
+# Training data and artifacts
+training
+data
+artifacts
+checkpoints
+GenImage_download
+*.zip
+*.tar
+*.tar.gz

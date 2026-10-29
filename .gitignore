@@ -16,6 +16,11 @@ db.sqlite3
 *.pot
 *.py[cod]
 staticfiles/
+frontend/static/app/
+
+# React app
+web/node_modules/
+web/dist/
 uploaded_videos/
 uploaded_images/
 calibration/
@@ -50,3 +55,4 @@ models/
 .vscode/
 .idea/
 .cursor/
+*.tsbuildinfo

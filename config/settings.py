@@ -1,32 +1,99 @@
 """
-Django settings for the DeepGuard Deepfake Detection web application.
+Django settings for ForgeGuard.
+
+Every deployment-specific value comes from environment variables (optionally
+loaded from a `.env` file in the project root). See `.env.example` for the
+full list. Defaults are tuned for local development; `DJANGO_DEBUG=false`
+switches on the production hardening below.
 """
 
 import os
+import tempfile
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Absolute path to the Django project directory (one level above this file)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_DIR = BASE_DIR
+
+try:
+    from dotenv import load_dotenv
+
+    # Real environment variables always win over the .env file
+    load_dotenv(os.path.join(BASE_DIR, '.env'), override=False)
+except ImportError:  # python-dotenv is optional
+    pass
+
+
+def env_str(name: str, default: str = '') -> str:
+    return os.getenv(name, '').strip() or default
+
+
+def env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name, '').strip().lower()
+    if not raw:
+        return default
+    return raw in ('1', 'true', 'yes', 'on')
+
+
+def env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, '').strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f'{name} must be an integer, got {raw!r}') from exc
+
+
+def env_list(name: str, default: str = '') -> list:
+    return [item.strip() for item in env_str(name, default).split(',') if item.strip()]
 
 
 # ─────────────────────────────────────────────
 # Security
 # ─────────────────────────────────────────────
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# This project expects SECRET_KEY/DEBUG/ALLOWED_HOSTS to be provided via
-# environment variables for safety in public deployments.
-#
-# For local development, you can use `.env` + `django-environ` or simply set
-# environment variables in your shell.
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-change-me")
+_INSECURE_DEV_KEY = 'dev-insecure-secret-change-me'
 
-# SECURITY WARNING: do not run with DEBUG=True in production!
-DEBUG = os.getenv("DJANGO_DEBUG", "true").strip().lower() in ("1", "true", "yes", "on")
+DEBUG = env_bool('DJANGO_DEBUG', True)
 
-# Set to your actual domain or IP in production
-allowed_hosts_raw = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost")
-ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_raw.split(",") if h.strip()]
+SECRET_KEY = env_str('DJANGO_SECRET_KEY', _INSECURE_DEV_KEY)
+if not DEBUG and SECRET_KEY in (_INSECURE_DEV_KEY, 'change-me'):
+    raise ImproperlyConfigured(
+        'DJANGO_SECRET_KEY must be set to a unique, random value when DJANGO_DEBUG=false. '
+        'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(50))"'
+    )
+
+ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost')
+
+# Origins allowed to POST forms with a CSRF token, e.g. https://forgeguard.example.com
+CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+
+# Set when a reverse proxy / PaaS router sits in front of the app and sets
+# X-Forwarded-Proto and X-Forwarded-For. Never enable it without a proxy:
+# clients could then spoof their IP (and dodge the rate limit).
+BEHIND_PROXY = env_bool('DJANGO_BEHIND_PROXY', False)
+if BEHIND_PROXY:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Set when the site is served over HTTPS: redirects http→https, marks cookies
+# secure and sends HSTS.
+HTTPS = env_bool('DJANGO_HTTPS', False)
+if HTTPS:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = env_int('DJANGO_HSTS_SECONDS', 60 * 60 * 24 * 30)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('DJANGO_HSTS_INCLUDE_SUBDOMAINS', False)
+    # Health checks from the platform usually arrive over plain HTTP
+    SECURE_REDIRECT_EXEMPT = [r'^api/health/']
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+X_FRAME_OPTIONS = 'DENY'
+SESSION_COOKIE_HTTPONLY = True
 
 
 # ─────────────────────────────────────────────
@@ -44,6 +111,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'api.middleware.RequestContextMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,12 +144,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ─────────────────────────────────────────────
 # Database
 # ─────────────────────────────────────────────
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# ForgeGuard stores no records; the database only backs Django's session and
+# messages frameworks used by the legacy template UI.
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(PROJECT_DIR, 'db.sqlite3'),
+        "NAME": env_str('DJANGO_SQLITE_PATH', os.path.join(PROJECT_DIR, 'db.sqlite3')),
+    }
+}
+
+# Rate-limit counters. The in-process cache is per worker process; switch to a
+# shared backend (e.g. Redis) if the limit must hold across workers/replicas.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'forgeguard',
     }
 }
 
@@ -92,7 +171,7 @@ DATABASES = {
 LANGUAGE_CODE = 'en-us'
 
 # IST – Indian Standard Time (UTC+5:30)
-TIME_ZONE = 'Asia/Kolkata'
+TIME_ZONE = env_str('DJANGO_TIME_ZONE', 'Asia/Kolkata')
 
 USE_I18N = False
 
@@ -101,9 +180,8 @@ USE_TZ = False
 
 
 # ─────────────────────────────────────────────
-# Static Files
+# Static Files (served by WhiteNoise)
 # ─────────────────────────────────────────────
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 # Directory where `collectstatic` gathers files for production deployments
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -114,20 +192,67 @@ STATICFILES_DIRS = [
     os.path.join(PROJECT_DIR, 'frontend', 'static'),
 ]
 
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    # Compression only, no manifest: the React build already fingerprints its
+    # files, and the legacy CSS references images that a manifest would reject.
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
+}
+
+
+def _is_fingerprinted(path, url):
+    """Vite emits content-hashed files under app/assets/ — cache them forever."""
+    return url.startswith(STATIC_URL + 'app/assets/')
+
+
+WHITENOISE_IMMUTABLE_FILE_TEST = _is_fingerprinted
+
 
 # ─────────────────────────────────────────────
-# Upload Limits
+# Uploads & Inference
 # ─────────────────────────────────────────────
 
-# Only 'video' content-type is accepted on the video upload endpoint
-CONTENT_TYPES = ['video']
+# Per-file limit enforced by every detection endpoint
+FORGEGUARD_MAX_UPLOAD_MB = env_int('FORGEGUARD_MAX_UPLOAD_MB', 100)
 
-# Maximum permitted upload size: 100 MB = 100 × 1024 × 1024 bytes
-MAX_UPLOAD_SIZE = "104857600"
+# Maximum files accepted by POST /api/detect/batch
+FORGEGUARD_MAX_BATCH_FILES = env_int('FORGEGUARD_MAX_BATCH_FILES', 20)
+
+# Whole-request cap, checked against Content-Length before the body is read
+FORGEGUARD_MAX_REQUEST_MB = env_int('FORGEGUARD_MAX_REQUEST_MB', 500)
+
+# Inference jobs allowed to run at once per process. A video job adds ~0.8 GB
+# of B7 activations on top of the ~0.9 GB of loaded models, and on CPU parallel
+# jobs only compete for the same cores, so 1 is right unless you have a GPU.
+FORGEGUARD_MAX_CONCURRENT_INFERENCES = env_int('FORGEGUARD_MAX_CONCURRENT_INFERENCES', 1)
+
+# Seconds a request waits for a free inference slot before getting a 503
+FORGEGUARD_INFERENCE_QUEUE_TIMEOUT = env_int('FORGEGUARD_INFERENCE_QUEUE_TIMEOUT', 120)
+
+# Detection requests allowed per client IP per minute (0 disables the limit)
+FORGEGUARD_RATE_LIMIT_PER_MINUTE = env_int('FORGEGUARD_RATE_LIMIT_PER_MINUTE', 30)
+
+# Keep a copy of every uploaded image in MEDIA_ROOT (needed by the legacy UI's
+# result page). Off by default: uploads are analysed and discarded.
+FORGEGUARD_KEEP_UPLOADS = env_bool('FORGEGUARD_KEEP_UPLOADS', False)
+
+# Scratch space for uploads while they are analysed
+FORGEGUARD_TMP_DIR = env_str('FORGEGUARD_TMP_DIR', tempfile.gettempdir())
+
+# Directory holding model_c1.pth and deepfake_detector_b7.pth
+FORGEGUARD_WEIGHTS_DIR = env_str('FORGEGUARD_WEIGHTS_DIR', os.path.join(BASE_DIR, 'weights'))
+
+# Load both models when the WSGI app starts instead of on the first request
+FORGEGUARD_WARMUP_MODELS = env_bool('FORGEGUARD_WARMUP_MODELS', not DEBUG)
+
+# Django buffers uploads above this size to disk instead of memory
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+FILE_UPLOAD_TEMP_DIR = FORGEGUARD_TMP_DIR
+DATA_UPLOAD_MAX_NUMBER_FILES = FORGEGUARD_MAX_BATCH_FILES + 5
 
 
 # ─────────────────────────────────────────────
-# Media Files (uploaded videos)
+# Media Files (uploads kept when FORGEGUARD_KEEP_UPLOADS is on)
 # ─────────────────────────────────────────────
 
 MEDIA_URL  = "/media/"
@@ -135,62 +260,67 @@ MEDIA_ROOT = os.path.join(PROJECT_DIR, 'uploaded_images')
 
 
 # ─────────────────────────────────────────────
-# Logging (production only)
+# Logging
 # ─────────────────────────────────────────────
 
-if not DEBUG:
+LOG_LEVEL = env_str('DJANGO_LOG_LEVEL', 'INFO').upper()
+
+_handlers = {
+    'console': {
+        'class': 'logging.StreamHandler',
+        'formatter': 'verbose',
+        'filters': ['request_id'],
+    },
+}
+_active_handlers = ['console']
+
+# File logging only if explicitly enabled and not on serverless platforms (e.g. Vercel)
+_is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME') or os.getenv('K_SERVICE'))
+if env_bool('ENABLE_FILE_LOGGING', False) and not _is_serverless:
     LOGS_DIR = os.path.join(BASE_DIR, 'logs')
-    handlers = {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-    }
-    active_handlers = ['console']
-
-    # File logging only if explicitly enabled and not on serverless platforms (e.g. Vercel)
-    is_serverless = bool(os.getenv('VERCEL') or os.getenv('AWS_LAMBDA_FUNCTION_NAME') or os.getenv('K_SERVICE'))
-    if os.getenv('ENABLE_FILE_LOGGING', 'false').lower() in ('1', 'true', 'yes') and not is_serverless:
-        try:
-            os.makedirs(LOGS_DIR, exist_ok=True)
-            log_filepath = os.path.join(LOGS_DIR, 'deepguard.log')
-            # Test that file is genuinely writable before registering handler
-            with open(log_filepath, 'a') as f:
-                pass
-            handlers['file'] = {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': log_filepath,
-                'maxBytes': 1024 * 1024 * 50,  # 50 MB
-                'backupCount': 5,
-                'formatter': 'verbose',
-            }
-            active_handlers.append('file')
-        except (OSError, PermissionError):
+    try:
+        os.makedirs(LOGS_DIR, exist_ok=True)
+        _log_filepath = os.path.join(LOGS_DIR, 'forgeguard.log')
+        # Test that file is genuinely writable before registering handler
+        with open(_log_filepath, 'a'):
             pass
+        _handlers['file'] = {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': _log_filepath,
+            'maxBytes': 1024 * 1024 * 50,  # 50 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'filters': ['request_id'],
+        }
+        _active_handlers.append('file')
+    except OSError:
+        pass
 
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'verbose': {
-                'format': '{levelname} {asctime} {module} {message}',
-                'style': '{',
-            },
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'request_id': {'()': 'api.middleware.RequestIdLogFilter'},
+    },
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} [{request_id}] {message}',
+            'style': '{',
         },
-        'handlers': handlers,
-        'loggers': {
-            'django': {
-                'handlers': active_handlers,
-                'level': os.getenv('DJANGO_LOG_LEVEL', '').strip().upper() or 'INFO',
-            },
-            'django.utils.autoreload': {
-                'level': 'INFO',
-            },
-            'forgeguard.video': {
-                'handlers': active_handlers,
-                'level': 'DEBUG',
-                'propagate': True,
-            },
+    },
+    'handlers': _handlers,
+    'loggers': {
+        'django': {
+            'handlers': _active_handlers,
+            'level': LOG_LEVEL,
         },
-    }
+        'django.utils.autoreload': {
+            'level': 'INFO',
+        },
+        'forgeguard': {
+            'handlers': _active_handlers,
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}

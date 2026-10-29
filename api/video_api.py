@@ -18,54 +18,58 @@ Form fields accepted
 Response (200 OK)
 -----------------
 {
-    "label":              "REAL" | "FAKE",
-    "predicted_class":    1 | 0,
+    "label":              "REAL" | "FAKE" | "UNSURE",
+    "predicted_class":    1 | 0 | -1,
     "fake_prob":          float,
     "real_prob":          float,
     "confidence_pct":     float,
     "device":             "cpu" | "cuda",
     "num_frames_processed": int,
     "frame_predictions":  [float, ...],
-    "processing_time_ms": float
+    "processing_time_ms": float,
+    "notes":              [str, ...],
+    "status":             "success" | "NO_FACE_DETECTED"
 }
+
+Errors use {"error": str, "status": str}: 400 for bad uploads
+(INVALID_FILE, EMPTY_VIDEO, NO_VISUAL_FRAMES), 429 when rate limited,
+503 when the model is missing or the server is busy.
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import time
-import tempfile
-import logging
-from typing import Dict, Any
+from typing import Any
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.conf import settings
 from core.pipeline.video_processor import (
-    detect_video_file, 
+    detect_video_file,
     InvalidFileException, EmptyVideoException, NoVisualFramesException
 )
+
+from .common import (
+    VIDEO_EXTENSIONS, ServerBusy, busy_response, error_response, inference_slot,
+    rate_limited, upload_to_temp_file, validate_upload, video_model_path,
+)
+
+logger = logging.getLogger("forgeguard.video")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-# 100 MB video limit
-MAX_VIDEO_SIZE = 100 * 1024 * 1024
-
 # Supported video formats
-ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi', 'webm', 'mov', 'mkv', 'flv', '3gp', 'wmv', 'gif'}
+ALLOWED_VIDEO_EXTENSIONS = VIDEO_EXTENSIONS
 
 # Model configuration
 DEFAULT_ENCODER = "tf_efficientnet_b7_ns"
 NUM_FRAMES = 32
 TARGET_FRAME_SIZE = 380
-
-# Path to model weights
-MODEL_WEIGHTS_DIR = os.path.join(settings.BASE_DIR, 'weights')
-DEFAULT_MODEL_PATH = os.path.join(MODEL_WEIGHTS_DIR, 'deepfake_detector_b7.pth')
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -75,23 +79,12 @@ DEFAULT_MODEL_PATH = os.path.join(MODEL_WEIGHTS_DIR, 'deepfake_detector_b7.pth')
 def validate_video_file(file_obj: Any) -> tuple[bool, str]:
     """
     Validate uploaded video file.
-    
-    Args:
-        file_obj: Django uploaded file object
-    
+
     Returns:
         (is_valid, error_message)
     """
-    # Check file size
-    if file_obj.size > MAX_VIDEO_SIZE:
-        return False, f"File size exceeds {MAX_VIDEO_SIZE / (1024*1024):.0f}MB limit"
-    
-    # Check file extension
-    file_name = file_obj.name.lower()
-    if not any(file_name.endswith(f".{ext}") for ext in ALLOWED_VIDEO_EXTENSIONS):
-        return False, f"Unsupported video format. Allowed: {', '.join(ALLOWED_VIDEO_EXTENSIONS)}"
-    
-    return True, ""
+    error = validate_upload(file_obj, ALLOWED_VIDEO_EXTENSIONS)
+    return error is None, error or ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -100,147 +93,82 @@ def validate_video_file(file_obj: Any) -> tuple[bool, str]:
 
 @csrf_exempt
 @require_POST
+@rate_limited
 def api_detect_video(request) -> JsonResponse:
     """
     Video deepfake detection API endpoint.
-    
+
     Accepts a video file upload and returns deepfake detection results.
     """
     start_time = time.time()
-    
+
     # Get video file from request
     video_file = None
     for field_name in ['video', 'upload_video_file']:
         if field_name in request.FILES:
             video_file = request.FILES[field_name]
             break
-    
+
     if video_file is None:
-        return JsonResponse({
-            'error': 'No video file provided',
-            'status': 'error'
-        }, status=400)
-    
-    # Validate video file
+        return error_response('No video file provided', 400)
+
     is_valid, error_msg = validate_video_file(video_file)
     if not is_valid:
-        return JsonResponse({
-            'error': error_msg,
-            'status': 'error'
-        }, status=400)
-    
-    # Save uploaded file temporarily
-    temp_dir = os.path.join(settings.PROJECT_DIR, 'uploaded_videos')
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    temp_path = os.path.join(temp_dir, video_file.name)
-    
-    try:
-        # Write uploaded file to disk
-        with open(temp_path, 'wb+') as dest:
-            for chunk in video_file.chunks():
-                dest.write(chunk)
-        
-        # Check if model file exists
-        if not os.path.exists(DEFAULT_MODEL_PATH):
-            return JsonResponse({
-                'error': (
-                    'Video deepfake detection model not found. '
-                    'Please download the model weights and place them in the models/ directory. '
-                    'See SETUP_VIDEO_MODEL.md for instructions.'
-                ),
-                'status': 'model_not_found',
-                'model_path': DEFAULT_MODEL_PATH
-            }, status=503)  # Use 503 Service Unavailable for missing resources
-        
-        # Run inference
-        result = detect_video_file(
-            video_path=temp_path,
-            model_path=DEFAULT_MODEL_PATH,
-            encoder=DEFAULT_ENCODER,
-            device=None,  # Auto-select
-            num_frames=NUM_FRAMES,
-            extract_faces=True,
-            target_size=TARGET_FRAME_SIZE
+        return error_response(error_msg, 400)
+
+    model_path = video_model_path()
+    if not os.path.isfile(model_path):
+        logger.error("Video model weights missing at %s", model_path)
+        return error_response(
+            'Video deepfake detection model is not installed on this server.',
+            503,
+            'model_not_found',
         )
-        
-        # Format response
-        processing_time = (time.time() - start_time) * 1000  # Convert to milliseconds
-        
-        status_val = 'success'
-        if result.notes and "NO_FACE_DETECTED" in result.notes:
-            status_val = 'NO_FACE_DETECTED'
-            
-        response_data = {
-            'label': result.label,
-            'predicted_class': result.predicted_class,
-            'fake_prob': float(result.fake_prob),
-            'real_prob': float(result.real_prob),
-            'confidence_pct': float(result.confidence_pct),
-            'device': result.device,
-            'num_frames_processed': result.num_frames_processed,
-            'frame_predictions': [float(p) for p in result.frame_predictions],
-            'processing_time_ms': processing_time,
-            'status': status_val
-        }
-        
-        return JsonResponse(response_data, status=200)
-    
-    
+
+    try:
+        with upload_to_temp_file(video_file) as temp_path, inference_slot():
+            result = detect_video_file(
+                video_path=temp_path,
+                model_path=model_path,
+                encoder=DEFAULT_ENCODER,
+                device=None,  # Auto-select
+                num_frames=NUM_FRAMES,
+                extract_faces=True,
+                target_size=TARGET_FRAME_SIZE
+            )
+    except ServerBusy:
+        return busy_response()
     except InvalidFileException as e:
-        return JsonResponse({
-            'error': str(e),
-            'status': 'INVALID_FILE'
-        }, status=400)
-        
+        return error_response(str(e), 400, 'INVALID_FILE')
     except EmptyVideoException as e:
-        return JsonResponse({
-            'error': str(e),
-            'status': 'EMPTY_VIDEO'
-        }, status=400)
-        
+        return error_response(str(e), 400, 'EMPTY_VIDEO')
     except NoVisualFramesException as e:
-        return JsonResponse({
-            'error': str(e),
-            'status': 'NO_VISUAL_FRAMES'
-        }, status=400)
-        
-    except Exception as e:
-        return JsonResponse({
-            'error': f'Processing error: {str(e)}',
-            'status': 'error'
-        }, status=500)
-    
-    finally:
-        # Clean up temporary file
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except:
-                pass
+        return error_response(str(e), 400, 'NO_VISUAL_FRAMES')
+    except Exception:
+        logger.exception("Video analysis failed for %s", video_file.name)
+        return error_response('Video analysis failed due to a server error.', 500)
+
+    status_val = 'success'
+    if result.notes and "NO_FACE_DETECTED" in result.notes:
+        status_val = 'NO_FACE_DETECTED'
+
+    return JsonResponse({
+        'label': result.label,
+        'predicted_class': result.predicted_class,
+        'fake_prob': float(result.fake_prob),
+        'real_prob': float(result.real_prob),
+        'confidence_pct': float(result.confidence_pct),
+        'device': result.device,
+        'num_frames_processed': result.num_frames_processed,
+        'frame_predictions': [float(p) for p in result.frame_predictions],
+        'processing_time_ms': (time.time() - start_time) * 1000,
+        'notes': list(result.notes),
+        'status': status_val
+    }, status=200)
 
 
 @csrf_exempt
 @require_POST
 def predict_video(request):
-    """
-    Legacy endpoint for video deepfake detection results page.
-    
-    Redirects to unified API endpoint and renders results page.
-    """
-    # Get video file
-    video_file = request.FILES.get('upload_video_file') or request.FILES.get('video')
-    
-    if video_file is None:
-        return JsonResponse({'error': 'No video file provided'}, status=400)
-    
-    # Validate
-    is_valid, error_msg = validate_video_file(video_file)
-    if not is_valid:
-        return JsonResponse({'error': error_msg}, status=400)
-    
-    # Process using API
-    request.FILES['video'] = video_file
-    api_response = api_detect_video(request)
-    
-    return api_response
+    """Legacy endpoint (old template UI): same behaviour as /api/detect-video/."""
+    return api_detect_video(request)

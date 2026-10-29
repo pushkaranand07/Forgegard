@@ -1,0 +1,27 @@
+[project]
+name = "forgeguard"
+version = "1.0.0"
+description = "AI-powered image manipulation and video deepfake detection"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+testpaths = ["tests", "api/tests.py"]
+python_files = ["test_*.py", "tests.py"]
+addopts = "-ra --strict-markers"
+markers = [
+    "models: needs the real weights in weights/ (skipped when they are absent)",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["web", "frontend", "training", "staticfiles"]
+
+[tool.ruff.lint]
+# Real bugs only: pyflakes, syntax/IO errors, bare excepts, pytest/bugbear essentials
+select = ["F", "E9", "E722", "B006", "B008", "B904"]

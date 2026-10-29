@@ -1,0 +1,218 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── Design tokens ─────────────────────────────────────────────────────────
+   Light is the base; dark is selected (not inverted) and applied either by
+   the OS preference or by an explicit data-theme on <html>. */
+:root {
+  --bg: #f6f6f4;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e3e2dd;
+  --border-strong: #cfcdc6;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #75736d;
+  --accent: #2a78d6;
+  --accent-hover: #1f63b5;
+  --accent-soft: #e6f0fc;
+  --accent-ink: #ffffff;
+
+  /* Status — fixed steps, always paired with an icon + label */
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --good-soft: #e5f5e5;
+  --warning: #fab219;
+  --warning-ink: #7a5200;
+  --warning-soft: #fef4dc;
+  --critical: #d03b3b;
+  --critical-ink: #a32020;
+  --critical-soft: #fbe9e9;
+
+  --chart-series: #2a78d6;
+  --chart-grid: #e3e2dd;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.04);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #232322;
+    --border: #2e2e2c;
+    --border-strong: #3d3d3a;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --text-3: #9a998f;
+    --accent: #3987e5;
+    --accent-hover: #5a9cec;
+    --accent-soft: #172a42;
+    --accent-ink: #ffffff;
+    --good-ink: #4cc94c;
+    --good-soft: #142a14;
+    --warning-ink: #fab219;
+    --warning-soft: #2e2510;
+    --critical-ink: #ef7272;
+    --critical-soft: #331616;
+    --chart-series: #3987e5;
+    --chart-grid: #2e2e2c;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #121211;
+  --surface: #1a1a19;
+  --surface-2: #232322;
+  --border: #2e2e2c;
+  --border-strong: #3d3d3a;
+  --text: #f0efec;
+  --text-2: #c3c2b7;
+  --text-3: #9a998f;
+  --accent: #3987e5;
+  --accent-hover: #5a9cec;
+  --accent-soft: #172a42;
+  --accent-ink: #ffffff;
+  --good-ink: #4cc94c;
+  --good-soft: #142a14;
+  --warning-ink: #fab219;
+  --warning-soft: #2e2510;
+  --critical-ink: #ef7272;
+  --critical-soft: #331616;
+  --chart-series: #3987e5;
+  --chart-grid: #2e2e2c;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text-2);
+  --color-ink-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-good: var(--good);
+  --color-good-ink: var(--good-ink);
+  --color-good-soft: var(--good-soft);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning-soft: var(--warning-soft);
+  --color-critical: var(--critical);
+  --color-critical-ink: var(--critical-ink);
+  --color-critical-soft: var(--critical-soft);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  --shadow-card: var(--shadow);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@keyframes fg-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.fg-indeterminate {
+  animation: fg-indeterminate 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Print: reports render as clean, paginated A4 documents ─────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+
+  :root,
+  :root[data-theme="dark"] {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f4f4f2;
+    --border: #d6d5d0;
+    --border-strong: #bdbbb4;
+    --text: #000000;
+    --text-2: #3a3a38;
+    --text-3: #5a5955;
+    --accent: #1f63b5;
+    --good-ink: #006300;
+    --good-soft: #eef8ee;
+    --warning-ink: #6b4800;
+    --warning-soft: #fdf5e2;
+    --critical-ink: #a32020;
+    --critical-soft: #fbeeee;
+    --chart-series: #1f63b5;
+    --chart-grid: #d6d5d0;
+    --shadow: none;
+    color-scheme: light;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 11pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+
+  .print-page-break {
+    break-before: page;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

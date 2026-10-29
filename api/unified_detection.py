@@ -9,15 +9,21 @@ detection (EfficientNet frame classifier) into a unified API.
 from __future__ import annotations
 
 import os
-import mimetypes
+import logging
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any
 
 import torch
-from django.conf import settings
 
-from core.pipeline.image_processor import detect_image_bytes, ImageDetectionResult
-from core.pipeline.video_processor import detect_video_file, VideoDetectionResult
+from core.pipeline.image_processor import detect_image_bytes, InvalidImageError
+from core.pipeline.video_processor import (
+    detect_video_file,
+    InvalidFileException, EmptyVideoException, NoVisualFramesException,
+)
+
+from . import common
+
+logger = logging.getLogger("forgeguard.unified")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -41,6 +47,12 @@ class UnifiedDetectionResult:
     # Video-specific fields
     num_frames_processed: Optional[int] = None
     frame_predictions: Optional[list] = None
+
+    # Pipeline notes (e.g. NO_FACE_DETECTED) and failure reason, if any
+    notes: Optional[list] = None
+    error: Optional[str] = None
+    # True when the failure was ours (bug, OOM, ...) rather than a bad upload
+    internal_error: bool = False
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to JSON-serializable dictionary."""
@@ -60,6 +72,10 @@ class UnifiedDetectionResult:
             result['num_frames_processed'] = self.num_frames_processed
         if self.frame_predictions:
             result['frame_predictions'] = self.frame_predictions
+        if self.notes:
+            result['notes'] = self.notes
+        if self.error:
+            result['error'] = self.error
         
         return result
 
@@ -101,29 +117,12 @@ def detect_file(
             confidence_pct=0,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
+            error="File not found.",
         )
     
-    # Determine media type
-    media_type = None
-    if auto_detect_type:
-        mime_type, _ = mimetypes.guess_type(file_path)
-        if mime_type:
-            if mime_type.startswith('image/'):
-                media_type = 'image'
-            elif mime_type.startswith('video/'):
-                media_type = 'video'
-    
-    # Fallback to extension-based detection
-    if media_type is None:
-        ext = os.path.splitext(file_path)[1].lower().lstrip('.')
-        image_exts = {'jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'}
-        video_exts = {'mp4', 'avi', 'webm', 'mov', 'mkv', 'flv', '3gp', 'wmv'}
-        
-        if ext in image_exts:
-            media_type = 'image'
-        elif ext in video_exts:
-            media_type = 'video'
-    
+    # Extension decides the model (same rules as the upload validation)
+    media_type = common.media_type_for(file_path)
+
     # Process based on media type
     if media_type == 'image':
         return _detect_image(file_path, image_model_path, device, start_time)
@@ -136,6 +135,7 @@ def detect_file(
             confidence_pct=0,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
+            error="Could not determine media type from file extension.",
         )
 
 
@@ -155,7 +155,7 @@ def _detect_image(
         device = "cuda" if torch.cuda.is_available() else "cpu"
     
     if model_path is None:
-        model_path = os.path.join(settings.BASE_DIR, 'weights', 'model_c1.pth')
+        model_path = common.image_model_path()
     
     try:
         # Read image bytes
@@ -178,9 +178,9 @@ def _detect_image(
             device=device,
             processing_time_ms=processing_time,
             image_level1={
-                'software_found': imd_result.level1_software_found,
-                'software_signature': imd_result.level1_software_signature,
-                'notes': imd_result.level1_notes,
+                'software_found': imd_result.software_found,
+                'software_signature': imd_result.software_signature,
+                'notes': list(imd_result.level1_notes),
             },
             image_level2={
                 'authentic_prob': float(imd_result.authentic_prob),
@@ -189,14 +189,28 @@ def _detect_image(
             }
         )
     
-    except Exception as e:
+    except InvalidImageError as e:
+        error = str(e)
+    except Exception:
+        logger.exception("Unified image detection failed")
         return UnifiedDetectionResult(
             media_type="image",
             label="ERROR",
             confidence_pct=0,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
+            error="Image analysis failed due to a server error.",
+            internal_error=True,
         )
+
+    return UnifiedDetectionResult(
+        media_type="image",
+        label="ERROR",
+        confidence_pct=0,
+        device=device,
+        processing_time_ms=(time.time() - start_time) * 1000,
+        error=error,
+    )
 
 
 def _detect_video(
@@ -215,7 +229,7 @@ def _detect_video(
         device = "cuda" if torch.cuda.is_available() else "cpu"
     
     if model_path is None:
-        model_path = os.path.join(settings.BASE_DIR, 'weights', 'deepfake_detector_b7.pth')
+        model_path = common.video_model_path()
     
     try:
         # Run video detection
@@ -238,16 +252,31 @@ def _detect_video(
             processing_time_ms=processing_time,
             num_frames_processed=vmd_result.num_frames_processed,
             frame_predictions=vmd_result.frame_predictions,
+            notes=list(vmd_result.notes) or None,
         )
     
-    except Exception as e:
+    except (InvalidFileException, EmptyVideoException, NoVisualFramesException) as e:
+        error = str(e)
+    except Exception:
+        logger.exception("Unified video detection failed")
         return UnifiedDetectionResult(
             media_type="video",
             label="ERROR",
             confidence_pct=0,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
+            error="Video analysis failed due to a server error.",
+            internal_error=True,
         )
+
+    return UnifiedDetectionResult(
+        media_type="video",
+        label="ERROR",
+        confidence_pct=0,
+        device=device,
+        processing_time_ms=(time.time() - start_time) * 1000,
+        error=error,
+    )
 
 
 def detect_file_bytes(
@@ -299,5 +328,17 @@ def detect_file_bytes(
         # Clean up temp file
         try:
             os.remove(tmp_path)
-        except:
+        except OSError:
             pass
+
+
+def detect_uploaded_file(file_obj, device: Optional[str] = None) -> UnifiedDetectionResult:
+    """Detect forgery in a Django upload, streaming it to a scratch file first."""
+    import time
+
+    start_time = time.time()
+    with common.upload_to_temp_file(file_obj) as tmp_path:
+        result = detect_file(tmp_path, device=device)
+    # Include the upload's disk I/O in the reported time
+    result.processing_time_ms = (time.time() - start_time) * 1000
+    return result

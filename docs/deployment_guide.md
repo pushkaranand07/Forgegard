@@ -1,52 +1,135 @@
 # ForgeGuard Deployment Guide
 
-## System Requirements
-- **OS**: Windows / Linux (Ubuntu 20.04+ recommended)
-- **Engine**: CUDA 11.8+ (NVIDIA GPU required for inference < 5 seconds)
-- **RAM**: Minimum 16GB (32GB+ recommended)
-- **Storage**: ~2GB Disk space minimum for weights
+ForgeGuard ships as a single container: gunicorn serves the Django API and the
+pre-built React UI (static files via WhiteNoise). No database, queue or
+external service is required.
 
-## Environment Setup
-1. Instantiate the conda environment natively. Avoid Python version mismatches by locking exactly to Python 3.9+.
+## Sizing
+
+Measured on CPU (PyTorch 2.11, 32 sampled frames):
+
+| | RAM | Time |
+|---|---|---|
+| Process with both models loaded | ~0.9 GB | ~5–10 s load (done at startup by warm-up) |
+| Peak during one video analysis | ~1.7 GB | ~20–25 s for 32 faces |
+| Image analysis | negligible extra | well under 1 s |
+
+Give the container **3 GB of RAM** for the defaults. A GPU cuts video time to a
+few seconds but needs a CUDA build of PyTorch (swap the index URL in the
+Dockerfile) and a CUDA base image.
+
+Model weights (~320 MB) are not in git. Put `model_c1.pth` and
+`deepfake_detector_b7.pth` in `weights/` (or wherever `FORGEGUARD_WEIGHTS_DIR`
+points).
+
+## Docker (recommended)
+
 ```bash
-conda env create -f environment.yml
-conda activate ForgeGuard
+cp .env.example .env
+# edit .env: DJANGO_DEBUG=false, a real DJANGO_SECRET_KEY, your DJANGO_ALLOWED_HOSTS
+docker compose up --build -d
+curl http://localhost:8000/api/health/
 ```
 
-## Django WSGI / ASGI Configuration
-While local development utilizes `python manage.py runserver`, production environments should immediately transition to WSGI/ASGI handlers (e.g., Gunicorn or Daphne) mapped behind NGINX.
+`docker-compose.yml` mounts `./weights` read-only. For hosts without volumes,
+delete the `weights` line in `.dockerignore` and rebuild so the weights ship
+inside the image.
 
-**Example Gunicorn Configuration:**
-```bash
-gunicorn config.wsgi:application \
-    --workers 4 \
-    --timeout 120 \
-    --bind 127.0.0.1:8000
+The image runs as a non-root user, listens on `$PORT` (default 8000), and has a
+Docker `HEALTHCHECK` against `/api/health/live`.
+
+## Platform hosting
+
+Any container host with ≥3 GB RAM works (Render, Railway, Fly.io, Google Cloud
+Run, Azure Container Apps, a VM). Typical settings behind the platform's HTTPS
+router:
+
 ```
-*Note on Workers*: Each Django worker instantiated via Gunicorn will instantiate a separate instance of the PyTorch DeepfakeClassifier if memory is not managed. It is highly recommended to offload inference logic to a secondary background queue (Celery/Redis) rather than tying it to the Django synchronous request thread, though `ForgeGuard` uses Thread Pooling Singletons for VRAM mitigation on local instances.
+DJANGO_DEBUG=false
+DJANGO_SECRET_KEY=<python -c "import secrets; print(secrets.token_urlsafe(50))">
+DJANGO_ALLOWED_HOSTS=forgeguard.example.com
+DJANGO_CSRF_TRUSTED_ORIGINS=https://forgeguard.example.com
+DJANGO_BEHIND_PROXY=true
+DJANGO_HTTPS=true
+GUNICORN_FORWARDED_ALLOW_IPS=*
+```
 
-## NGINX Reverse Proxy
-Ensure that the NGINX configuration allocates massive client buffer sizes, since video payloads frequently exceed traditional web traffic limitations.
+Set `GUNICORN_FORWARDED_ALLOW_IPS=*` only when the container is reachable
+solely through the platform router.
+
+**Serverless platforms (Vercel, AWS Lambda) are not suitable**: PyTorch plus
+the B7 checkpoint far exceeds their bundle size limits, and a video analysis
+outlasts typical function timeouts.
+
+## Configuration reference
+
+All settings are environment variables; `.env.example` lists them with
+defaults. The important ones:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DJANGO_DEBUG` | `true` | Must be `false` in production; the app refuses to start without a real `DJANGO_SECRET_KEY` then |
+| `DJANGO_HTTPS` | `false` | HTTPS redirect, secure cookies, HSTS |
+| `DJANGO_BEHIND_PROXY` | `false` | Trust `X-Forwarded-Proto` / `X-Forwarded-For` |
+| `FORGEGUARD_MAX_UPLOAD_MB` | `100` | Per-file limit (UI reads it from `/api/health/`) |
+| `FORGEGUARD_MAX_BATCH_FILES` | `20` | Files per batch request |
+| `FORGEGUARD_MAX_REQUEST_MB` | `500` | Whole request body, rejected with 413 before reading |
+| `FORGEGUARD_MAX_CONCURRENT_INFERENCES` | `1` | Model runs at once per worker; extra requests queue |
+| `FORGEGUARD_INFERENCE_QUEUE_TIMEOUT` | `120` | Seconds a queued request waits before a 503 `BUSY` |
+| `FORGEGUARD_RATE_LIMIT_PER_MINUTE` | `30` | Detection requests per client IP; `0` disables |
+| `FORGEGUARD_KEEP_UPLOADS` | `false` | Keep analysed images in `uploaded_images/` |
+| `FORGEGUARD_WARMUP_MODELS` | `not DEBUG` | Load models when the worker starts |
+| `GUNICORN_WORKERS` / `GUNICORN_THREADS` | `1` / `4` | Each worker loads its own models — scale threads first |
+| `GUNICORN_TIMEOUT` | `300` | Long enough for CPU video analysis |
+
+The rate-limit counters live in each worker's memory. With several workers or
+replicas, either accept a per-worker limit or configure a shared Django cache
+(e.g. Redis) in `config/settings.py`.
+
+## Without Docker (Linux VM)
+
+```bash
+python3.12 -m venv .venv && . .venv/bin/activate
+pip install "torch==2.11.0" "torchvision==0.26.0" --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
+pip install --no-deps "facenet-pytorch==2.6.0"
+(cd web && npm ci && npm run build)
+python manage.py collectstatic --noinput
+python manage.py migrate --noinput
+gunicorn config.wsgi:application -c gunicorn.conf.py
+```
+
+Run it under systemd (or similar) with the environment variables above.
+
+## Reverse proxy (nginx)
+
+Raise the body limit to match `FORGEGUARD_MAX_REQUEST_MB` and the read timeout
+to cover CPU video analysis:
 
 ```nginx
 server {
-    listen 80;
-    server_name forgeguard.internal;
+    listen 443 ssl;
+    server_name forgeguard.example.com;
 
-    # Override 1MB default limits
-    client_max_body_size 150M;
+    client_max_body_size 500M;
 
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_request_buffering on;
     }
 }
 ```
 
-## Health Checks
-Ping the models passively using the internal network:
-```bash
-curl -X POST http://127.0.0.1:8000/api/detect-unified/ -F "video=@test.mp4"
-```
-Check `logs/deepguard.log` for Stack Traces correlating to Model Thread Locks or OOM exceptions.
+## Health checks & operations
+
+- `GET /api/health/live` — liveness: 200 whenever the process serves requests.
+- `GET /api/health/` — readiness: 200 when both weight files are present,
+  503 (`"status": "degraded"`) otherwise; `models.*.loaded` turns `true` once
+  warm-up has finished.
+- Every response carries `X-Request-ID` (an incoming one is honoured), and
+  every log line includes it, so a user-reported ID finds the exact request.
+- Logs go to stdout. `ENABLE_FILE_LOGGING=true` adds a rotating file in `logs/`.
