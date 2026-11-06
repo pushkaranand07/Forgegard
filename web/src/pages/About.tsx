@@ -15,7 +15,9 @@ const VIDEO_STEPS = [
 ];
 
 const LIMITS = [
-  "The video model judges faces only. Deepfakes that alter the voice, background or body are out of scope.",
+  "The video model judges faces only, and only the most prominent face in each frame. Deepfakes that alter the voice, background or body are out of scope.",
+  "The video model is a pretrained DFDC face-swap detector (2020). It has not been tested on diffusion-generated video, lip-sync edits or face reenactment.",
+  "The image model detects splicing and retouching in JPEGs. It does not detect AI-generated images.",
   "Re-encoding, heavy compression, screenshots and very low resolution remove the artefacts both models rely on.",
   "Image metadata is easily stripped or forged, so a clean metadata scan is weak evidence of authenticity.",
   "Confidence describes the model's certainty, not the probability that it is right. Treat results as one input to an investigation.",

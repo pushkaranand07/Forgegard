@@ -16,7 +16,7 @@ const FEATURES = [
   {
     icon: ScanFace,
     title: "Video deepfake detection",
-    body: "Samples 32 frames, isolates faces with MTCNN and scores each one with an EfficientNet-B7 classifier trained on large deepfake datasets.",
+    body: "Samples 32 frames, isolates faces with MTCNN and scores each one with a pretrained EfficientNet-B7 face-swap classifier from the DFDC 1st-place solution.",
   },
   {
     icon: FileStack,
