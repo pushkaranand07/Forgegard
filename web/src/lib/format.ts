@@ -42,7 +42,8 @@ export function shortId(id: string): string {
 }
 
 /** Model confidence (0–100). Never rounds up to a claim of 100% certainty. */
-export function formatConfidence(pct: number): string {
+export function formatConfidence(pct: number | null): string {
+  if (pct === null) return "—";
   return pct >= 99.95 ? ">99.9%" : `${pct.toFixed(1)}%`;
 }
 

@@ -121,6 +121,23 @@ def inference_slot() -> Iterator[None]:
         sem.release()
 
 
+def model_unavailable_response(kind: str) -> JsonResponse:
+    """503 for a model that exists but cannot be served (hash mismatch, bad checkpoint).
+
+    The reason is logged server-side and visible in /api/health/, never echoed here.
+    """
+    return error_response(
+        f"The {kind} model is unavailable on this server. See /api/health/.", 503, "MODEL_UNAVAILABLE"
+    )
+
+
+def model_info(path: str) -> dict:
+    """Version block attached to detection responses (model name, weights hash, pipeline version)."""
+    from core import model_registry
+
+    return model_registry.model_info(path)
+
+
 def busy_response() -> JsonResponse:
     response = error_response(
         "The server is busy analysing other files. Please retry shortly.", 503, "BUSY"

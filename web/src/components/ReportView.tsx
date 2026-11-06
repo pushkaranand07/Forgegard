@@ -24,7 +24,7 @@ const toneBg: Record<string, string> = {
   accent: "bg-accent-soft text-accent",
 };
 
-function ConfidenceRing({ pct, tone }: { pct: number; tone: string }) {
+function ConfidenceRing({ pct, tone }: { pct: number | null; tone: string }) {
   const r = 34;
   const c = 2 * Math.PI * r;
   return (
@@ -39,7 +39,7 @@ function ConfidenceRing({ pct, tone }: { pct: number; tone: string }) {
           stroke={toneRing[tone]}
           strokeWidth="6"
           strokeLinecap="round"
-          strokeDasharray={`${(pct / 100) * c} ${c}`}
+          strokeDasharray={`${((pct ?? 0) / 100) * c} ${c}`}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">

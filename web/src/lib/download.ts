@@ -33,7 +33,7 @@ export function downloadCsv(rows: Analysis[], filename = "forgeguard-results.csv
       r.mediaType,
       r.verdict,
       r.label,
-      r.confidencePct.toFixed(2),
+      r.confidencePct?.toFixed(2) ?? "",
       r.probs?.authentic.toFixed(4),
       r.probs?.manipulated.toFixed(4),
       r.image?.softwareFound ? r.image.softwareSignature : "",

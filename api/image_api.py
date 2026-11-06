@@ -48,10 +48,12 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from core.model_registry import ModelUnavailableError
 from core.pipeline.image_processor import detect_image_bytes, InvalidImageError
 from .common import (
     IMAGE_EXTENSIONS, ServerBusy, busy_response, error_response, extension_of,
-    image_model_path, inference_slot, rate_limited, validate_upload,
+    image_model_path, inference_slot, model_info, model_unavailable_response,
+    rate_limited, validate_upload,
 )
 from .forms import ImageUploadForm
 
@@ -122,11 +124,15 @@ def api_detect_image(request):
         return busy_response()
     except InvalidImageError as exc:
         return error_response(str(exc), 400, "INVALID_IMAGE")
+    except ModelUnavailableError:
+        logger.exception("Image model unavailable")
+        return model_unavailable_response("image")
     except Exception:
         logger.exception("Image analysis failed for %s", image_file.name)
         return error_response("Image analysis failed due to a server error.", 500)
 
     payload = result.as_dict()
+    payload["model"] = model_info(model_path)
     payload["original_image"] = (
         _save_upload(image_file.name, raw_bytes) if settings.FORGEGUARD_KEEP_UPLOADS else None
     )

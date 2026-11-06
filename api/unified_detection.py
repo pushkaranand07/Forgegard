@@ -21,6 +21,8 @@ from core.pipeline.video_processor import (
     InvalidFileException, EmptyVideoException, NoVisualFramesException,
 )
 
+from core.model_registry import ModelUnavailableError
+
 from . import common
 
 logger = logging.getLogger("forgeguard.unified")
@@ -35,8 +37,8 @@ class UnifiedDetectionResult:
     """Unified result from image or video forgery detection."""
     
     media_type: str  # "image" or "video"
-    label: str  # "AUTHENTIC", "TAMPERED", "REAL", "FAKE", "ERROR"
-    confidence_pct: float
+    label: str  # "AUTHENTIC", "TAMPERED", "REAL", "FAKE", "UNSURE", "ERROR"
+    confidence_pct: Optional[float]  # None when there is no score
     device: str
     processing_time_ms: float
     
@@ -53,6 +55,10 @@ class UnifiedDetectionResult:
     error: Optional[str] = None
     # True when the failure was ours (bug, OOM, ...) rather than a bad upload
     internal_error: bool = False
+    # True when the model exists but cannot be served (hash mismatch, bad checkpoint)
+    model_unavailable: bool = False
+    # Version block: model name, weights hash, pipeline version
+    model: Optional[Dict[str, Any]] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to JSON-serializable dictionary."""
@@ -76,6 +82,8 @@ class UnifiedDetectionResult:
             result['notes'] = self.notes
         if self.error:
             result['error'] = self.error
+        if self.model:
+            result['model'] = self.model
         
         return result
 
@@ -114,7 +122,7 @@ def detect_file(
         return UnifiedDetectionResult(
             media_type="unknown",
             label="ERROR",
-            confidence_pct=0,
+            confidence_pct=None,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
             error="File not found.",
@@ -132,7 +140,7 @@ def detect_file(
         return UnifiedDetectionResult(
             media_type="unknown",
             label="ERROR",
-            confidence_pct=0,
+            confidence_pct=None,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
             error="Could not determine media type from file extension.",
@@ -186,17 +194,29 @@ def _detect_image(
                 'authentic_prob': float(imd_result.authentic_prob),
                 'tampered_prob': float(imd_result.tampered_prob),
                 'method': 'ELA + CNN',
-            }
+            },
+            model=common.model_info(model_path),
         )
     
     except InvalidImageError as e:
         error = str(e)
+    except ModelUnavailableError:
+        logger.exception("Image model unavailable")
+        return UnifiedDetectionResult(
+            media_type="image",
+            label="ERROR",
+            confidence_pct=None,
+            device=device,
+            processing_time_ms=(time.time() - start_time) * 1000,
+            error="The image model is unavailable on this server.",
+            model_unavailable=True,
+        )
     except Exception:
         logger.exception("Unified image detection failed")
         return UnifiedDetectionResult(
             media_type="image",
             label="ERROR",
-            confidence_pct=0,
+            confidence_pct=None,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
             error="Image analysis failed due to a server error.",
@@ -206,7 +226,7 @@ def _detect_image(
     return UnifiedDetectionResult(
         media_type="image",
         label="ERROR",
-        confidence_pct=0,
+        confidence_pct=None,
         device=device,
         processing_time_ms=(time.time() - start_time) * 1000,
         error=error,
@@ -253,16 +273,28 @@ def _detect_video(
             num_frames_processed=vmd_result.num_frames_processed,
             frame_predictions=vmd_result.frame_predictions,
             notes=list(vmd_result.notes) or None,
+            model=common.model_info(model_path),
         )
     
     except (InvalidFileException, EmptyVideoException, NoVisualFramesException) as e:
         error = str(e)
+    except ModelUnavailableError:
+        logger.exception("Video model unavailable")
+        return UnifiedDetectionResult(
+            media_type="video",
+            label="ERROR",
+            confidence_pct=None,
+            device=device,
+            processing_time_ms=(time.time() - start_time) * 1000,
+            error="The video model is unavailable on this server.",
+            model_unavailable=True,
+        )
     except Exception:
         logger.exception("Unified video detection failed")
         return UnifiedDetectionResult(
             media_type="video",
             label="ERROR",
-            confidence_pct=0,
+            confidence_pct=None,
             device=device,
             processing_time_ms=(time.time() - start_time) * 1000,
             error="Video analysis failed due to a server error.",
@@ -272,7 +304,7 @@ def _detect_video(
     return UnifiedDetectionResult(
         media_type="video",
         label="ERROR",
-        confidence_pct=0,
+        confidence_pct=None,
         device=device,
         processing_time_ms=(time.time() - start_time) * 1000,
         error=error,
