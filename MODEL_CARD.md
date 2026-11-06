@@ -46,9 +46,9 @@ ForgeGuard serves two models, each documented below. Metrics are filled in only 
 
 | | |
 |---|---|
-| **File** | `weights/model_c1.pth` (SHA-256 `5839a0d90084…`; currently a pickled full module) |
+| **File** | `weights/model_c1.pth` (SHA-256 `b6b76a422a82…`, a `state_dict` converted from the original pickled module `5839a0d90084…` with bit-identical outputs) |
 | **Source** | Trained by the project author in `training/notebooks/train.ipynb`. Architecture adapted from public code (source URL pending, see [CREDITS.md](CREDITS.md)). |
-| **Architecture** | Two conv blocks (3→64→16 channels, 3×3, BN, maxpool, ReLU) → MLP 14400→1024→64→2 → softmax. Index 0 = tampered, 1 = authentic. |
+| **Architecture** | Two conv blocks (3→64→16 channels, 3×3, BN, maxpool, ReLU) → MLP 14400→1024→64→2 (ReLU, no BN) → logits; softmax is applied at inference. Index 0 = tampered, 1 = authentic. This is the architecture stored in the deployed checkpoint, which differs from the notebook's current cell. |
 | **Input** | ELA map: the image re-saved as JPEG at quality 90, absolute difference ×10, resized to 128×128, scaled to [0, 1]. |
 | **Training data** | 1,721 CASIA images (count consistent with CASIA v1.0), unseeded random split 1000/500/221. ELA maps were precomputed by a script that isn't in the project. |
 | **Also reported** | EXIF/PNG `Software` tag as a separate, weak metadata hint. Not used by the CNN. |

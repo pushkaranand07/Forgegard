@@ -14,6 +14,7 @@ Both sit behind a hardened Django API and a React UI. The serving layer, the UI,
 - **Serving layer:** Django API with per-file, per-request and per-batch size limits; a 50-megapixel decode cap; an inference concurrency guard that queues and then returns `503 BUSY`; per-IP rate limiting; request IDs; a consistent JSON error shape with no stack traces or paths; liveness and readiness probes; model warm-up at startup.
 - **Video pipeline port:** adapted the upstream DFDC preprocessing (MTCNN crop, isotropic resize, centre padding, ImageNet normalisation) and `confident_strategy` aggregation to a single-checkpoint, CPU-friendly inference path. Fixed a BGR/RGB colour-order mismatch between frame decoding and the model.
 - **Image model:** trained `IMDModel` (a small CNN on ELA maps; architecture adapted from public code, see [CREDITS.md](CREDITS.md)) on CASIA in `training/notebooks/train.ipynb`.
+- **Fail-safe model loading:** every weight file is SHA-256-checked against `core/model_manifest.json`, loaded with `weights_only=True` and strict key matching (no unsafe-unpickling fallback). A bad model makes `/api/health/` report unhealthy and requests return `503 MODEL_UNAVAILABLE`. Responses carry the model name, weights hash and pipeline version. Golden-sample tests pin the image pipeline's outputs; video fixtures are pending.
 - **Inference engineering:** a thread-safe, device-aware model cache, so concurrent first requests share one checkpoint load and the model stays on its target device. Batched face classification at 8 faces per forward pass instead of 32, which lowered peak RAM in a manual measurement (about 4.1 GB → 1.7 GB on CPU, same outputs). Not yet reproduced by a committed script.
 - **Web UI:** single and batch analysis with upload progress, browser-local history, printable reports, and status and API pages.
 - **Delivery:** multi-stage Docker image (non-root, health check), docker-compose, and GitHub Actions CI (lint, Django deploy checks, tests, UI build, image build).
@@ -95,7 +96,7 @@ Manual measurement on CPU (not yet scripted): ~0.9 GB RAM with both models loade
 
 ## Testing
 ```bash
-pytest          # 46 tests; the two real-model tests skip automatically when weights/ is empty
+pytest          # real-model and golden-sample tests skip automatically when weights/ is empty
 ruff check .
 cd web && npm run build    # includes the TypeScript type check
 ```

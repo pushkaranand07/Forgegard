@@ -47,6 +47,8 @@ This document records how each model in ForgeGuard was obtained. It covers only 
 
 **Model:** `IMDModel`, two conv+BN+maxpool blocks (64 and 16 channels), then a three-layer MLP to 2 classes, on a 128×128 input normalised to [0, 1]. Architecture adapted from public code (source URL pending, see [CREDITS.md](../CREDITS.md)).
 
+**The deployed checkpoint has a different architecture from the notebook's current code.** The `IMDModel` cell in `train.ipynb` has `BatchNorm1d` after each hidden linear layer and a final `Softmax`. The deployed `model_c1.pth` (the reloaded `model_c1_e100_v2` checkpoint) has **neither**: its MLP is `Linear(14400,1024) → ReLU → Linear(1024,64) → ReLU → Linear(64,2)` and it outputs logits. So the deployed model came from an earlier version of the notebook, not from the 100-epoch run whose outputs are printed. The serving code didn't notice: the checkpoint was a pickled module that carried its own layers, and inference applied softmax whenever outputs didn't sum to 1. Phase 2 fixed `IMDModel` in `core/pipeline/image_processor.py` to match the deployed weights, and the model now loads strictly.
+
 **Training setup, as in the notebook:**
 - Adam, lr 1e-4, batch size 128, 100 epochs.
 - `CrossEntropyLoss`, with validation every 10 epochs.
@@ -62,10 +64,10 @@ This document records how each model in ForgeGuard was obtained. It covers only 
 
    Because the earlier run used a different random split, many of these 221 test images were probably in that checkpoint's training set. The 0.937 is therefore likely inflated and **isn't a valid held-out result**.
 3. **Small test set.** Even without leakage, 221 images give a 95 % confidence interval of roughly ±3 percentage points, and it's in-distribution CASIA only.
-4. **Double softmax.** The model ends in `nn.Softmax`, and `CrossEntropyLoss` applies log-softmax again. Training still converges, but gradients are weaker than with raw logits.
-5. **Saved as a pickled module.** `torch.save(model, ...)` stores the whole object rather than a `state_dict`. Loading it needs unsafe unpickling (`weights_only=False`) and the class has to be importable as `__main__.IMDModel`.
+4. **Double softmax in the notebook's current code.** That version of the model ends in `nn.Softmax`, and `CrossEntropyLoss` applies log-softmax again, which weakens gradients. The deployed checkpoint doesn't have this layer (see above), so this affects the notebook's 0.827 run, not the served model.
+5. **Saved as a pickled module.** `torch.save(model, ...)` stored the whole object, which needed unsafe unpickling to load. **Fixed:** `scripts/convert_imd_to_state_dict.py` re-saved it as a `state_dict`, after checking the outputs are bit-identical on random inputs. It now loads with `weights_only=True`.
 
-**Planned:** re-evaluate on a seeded, committed split with bootstrap confidence intervals and a recompression stress test, and re-save as a `state_dict`.
+**Planned:** re-evaluate on a seeded, committed split with bootstrap confidence intervals and a recompression stress test.
 
 ## 3. Earlier experiment (not deployed): ResNeXt50 + LSTM
 
