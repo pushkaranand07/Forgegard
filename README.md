@@ -1,29 +1,45 @@
-# ForgeGuard — AI-Powered Deepfake Detection System
+# ForgeGuard: Deepfake & Image-Forgery Detection Service
 
-## Overview
-ForgeGuard is an enterprise-grade AI pipeline designed to detect forged, tampered, and deepfake media across both image and video modalities. Built from the ground up for robustness and integration, this system allows production security environments to ingest varying media formats and deploy state-of-the-art Convolutional Neural Networks (CNN) combined with metadata forensics to accurately flag manipulated content.
+ForgeGuard is a production-style serving system built around two detectors:
 
-## Architecture
-I designed the ForgeGuard architecture as a highly modular Django-backed inference engine composed of parallel detection graphs:
-1. **Video Ingestion Layer**: Frame sampling is evenly distributed across a video. 
-2. **Face Detection Layer**: Utilizing a thread-safe Singleton instantiation of MTCNN configured to optimal detection thresholds.
-3. **Classification Layer**: The extracted crops are normalized and fed into an EfficientNet B7 architecture yielding a Frame-Level confidence score.
-4. **Exception Handling Layer**: A bespoke exception framework safely captures corrupted streams and faceless inputs returning structured contextual alerts (`NO_FACE_DETECTED`).
-5. **API Response Layer**: Both Video and Image endpoints return parsed JSON indicating authenticity percentages, hardware devices used, and software signatures.
+- a **pretrained face-swap video detector**, the EfficientNet-B7 model from Selim Seferbekov's [DFDC 1st-place solution](https://github.com/selimsef/dfdc_deepfake_challenge), used as-is;
+- an **ELA image-splicing classifier** that I trained on CASIA.
 
-## Dataset & Training
-The classifier engine was adapted leveraging data from extensive datasets spanning over 100,000 video clips representing modern forgery techniques. I chose a dataset primarily composed of diversely lit and varied resolution deepfakes to ensure the model could generalize to edge-cases and anomalous codecs.
+Both sit behind a hardened Django API and a React UI. The serving layer, the UI, the deployment setup and the image model's training are my work. The video model's weights and its aggregation logic are third-party; see [CREDITS.md](CREDITS.md). Neither model has been evaluated by a script in this repo yet. An evaluation and calibration harness is in progress, and until it lands this README reports no accuracy figures.
 
-## Model Selection
-I selected the EfficientNet B7 backbone because of its mathematically proven efficiency scaling. Traditional architectures heavily trade-off computational overhead for detection accuracy; however, EfficientNet scales depth, width, and resolution isotropically. The B7 configuration allows ForgeGuard to process 380x380 resolution face crops—significantly higher than typical networks—to detect sub-pixel manipulation blurring.
+> **Research demo, not proof.** Model output is not evidence about a real person or event. Don't use it to make decisions about people.
 
-## Key Engineering Challenges Solved
-- **Double color conversion bug (BGR→RGB)**: Discovered and fixed a critical integration misalignment where inference and training tensors received inverted color channels.
-- **Face-less video handling**: Designed early-exit architectures avoiding invalid classifications on landscape or empty videos.
-- **Singleton model caching**: Architected a thread-locking mechanism to retain Multi-GB PyTorch models in VRAM preventing out-of-memory crashes on concurrent API requests.
-- **Edge case exception framework**: Built from scratch for robust client-facing error structures.
-- **Device-safe model cache**: Fixed a cache that moved the B7 model back to the CPU in place after loading, which broke the first GPU request, and made concurrent first requests share a single checkpoint load.
-- **Peak-memory reduction**: Measured inference memory and cut the video pipeline's peak from ~4.1 GB to ~1.7 GB by classifying faces in batches of 8 instead of 32, with bit-identical outputs and unchanged speed.
+## What I built
+
+- **Serving layer:** Django API with per-file, per-request and per-batch size limits; a 50-megapixel decode cap; an inference concurrency guard that queues and then returns `503 BUSY`; per-IP rate limiting; request IDs; a consistent JSON error shape with no stack traces or paths; liveness and readiness probes; model warm-up at startup.
+- **Video pipeline port:** adapted the upstream DFDC preprocessing (MTCNN crop, isotropic resize, centre padding, ImageNet normalisation) and `confident_strategy` aggregation to a single-checkpoint, CPU-friendly inference path. Fixed a BGR/RGB colour-order mismatch between frame decoding and the model.
+- **Image model:** trained `IMDModel` (a small CNN on ELA maps; architecture adapted from public code, see [CREDITS.md](CREDITS.md)) on CASIA in `training/notebooks/train.ipynb`.
+- **Inference engineering:** a thread-safe, device-aware model cache, so concurrent first requests share one checkpoint load and the model stays on its target device. Batched face classification at 8 faces per forward pass instead of 32, which lowered peak RAM in a manual measurement (about 4.1 GB → 1.7 GB on CPU, same outputs). Not yet reproduced by a committed script.
+- **Web UI:** single and batch analysis with upload progress, browser-local history, printable reports, and status and API pages.
+- **Delivery:** multi-stage Docker image (non-root, health check), docker-compose, and GitHub Actions CI (lint, Django deploy checks, tests, UI build, image build).
+
+## How it works
+
+**Video** (`POST /api/detect-video/`)
+1. Sample 32 evenly spaced frames.
+2. Detect faces with MTCNN on a half-resolution copy, keep the highest-confidence face per frame, and pad the box by one third on each side.
+3. Resize each crop isotropically to 380 px, centre-pad it, and normalise with ImageNet statistics.
+4. Run the EfficientNet-B7 classifier. It outputs a logit per face; the sigmoid of that is the per-face fake score.
+5. Aggregate the scores with upstream's `confident_strategy`. If no face is found, the result is `UNSURE`.
+
+**Image** (`POST /api/detect-image/`)
+1. **Metadata:** report the EXIF/PNG `Software` tag if one is present. This is a weak hint, not a verdict; phone firmware also writes this tag.
+2. **ELA:** re-save the image as JPEG at quality 90, take the amplified per-pixel difference, resize it to 128×128, and classify it with `IMDModel` as authentic or tampered.
+
+## Scope & limitations
+
+- **Video detects face-swap manipulation of the kind in DFDC (2019–2020 methods).** It hasn't been tested against, and should be assumed weak on, diffusion-generated or fully synthetic video, lip-sync edits and face reenactment.
+- **Only one face per frame is classified** (the most confident detection). A manipulated face that isn't the most prominent can be missed. Upstream classifies all faces.
+- **Single checkpoint.** Upstream's competition entry averaged an ensemble, so its published results don't transfer to this single model.
+- **The image pipeline detects splicing and retouching in JPEGs.** It does **not** detect AI-generated images.
+- **ELA degrades on re-encoded images** (social-media uploads, screenshots, resized files) and isn't meaningful for lossless sources such as PNG.
+- **Scores are uncalibrated.** "Confidence" in the current API and UI is `max(p, 1 − p)`, not a probability of being correct.
+- **Licences:** the training datasets (DFDC, CASIA) allow non-commercial research only. See [CREDITS.md](CREDITS.md).
 
 ## Installation & Setup
 Requires Python 3.11–3.13 and Node 22+.
@@ -75,7 +91,7 @@ What production mode adds:
 - **Privacy by default**: uploads are analysed from a scratch file and deleted; nothing is kept unless `FORGEGUARD_KEEP_UPLOADS=true`.
 - **Operability**: liveness (`/api/health/live`) and readiness (`/api/health/`) probes, models warmed up at startup, an `X-Request-ID` on every response and log line, and no stack traces or internal paths in API responses.
 
-Measured on CPU: ~0.9 GB RAM with both models loaded, ~1.7 GB peak while analysing a video (~20–25 s for 32 faces). Allow 3 GB. Serverless hosts such as Vercel cannot run it (bundle size and timeouts). Full guide and every setting: [docs/deployment_guide.md](docs/deployment_guide.md).
+Manual measurement on CPU (not yet scripted): ~0.9 GB RAM with both models loaded, ~1.7 GB peak while analysing a video (~20–25 s for 32 faces). Allow 3 GB. Batch requests run synchronously, so a batch of many videos can exceed the 300 s worker timeout; moving video to background jobs is planned. Serverless hosts such as Vercel cannot run it (bundle size and timeouts). Full guide and every setting: [docs/deployment_guide.md](docs/deployment_guide.md).
 
 ## Testing
 ```bash
@@ -100,4 +116,16 @@ Full reference with response examples and error codes: [docs/api_reference.md](d
 Errors are always `{"error": "...", "status": "<CODE>"}` with a meaningful HTTP status.
 
 ## Results
-The system holds >89% confidence thresholds on validation tests effectively trapping 90% of visually imperceptible manipulated frames on out-of-distribution real world clips.
+
+**Not yet evaluated.** No accuracy figure in this repo has been produced by a committed, reproducible evaluation script yet. An earlier version of this README cited ">89% / 90% on out-of-distribution clips". That claim had no supporting evaluation and has been withdrawn.
+
+| Model | Test set | Metrics |
+|---|---|---|
+| Video: DFDC B7 (single checkpoint) | Celeb-DF v2 official test list (out of distribution) | not yet evaluated |
+| Image: ELA + `IMDModel` | CASIA, seeded held-out split | not yet evaluated |
+
+The notebook accuracies printed in `train.ipynb` are not reported here; [docs/training_methodology.md](docs/training_methodology.md) explains why.
+
+## Credits & Licenses
+
+The video model's weights and aggregation logic come from Selim Seferbekov's [DFDC 1st-place solution](https://github.com/selimsef/dfdc_deepfake_challenge) (MIT). Face detection uses [facenet-pytorch](https://github.com/timesler/facenet-pytorch) (MIT), and the backbone definition comes from [timm](https://github.com/huggingface/pytorch-image-models) (Apache-2.0). The training datasets (DFDC, CASIA; Celeb-DF for evaluation) allow **non-commercial research use only**. Full list: [CREDITS.md](CREDITS.md). Model details and limitations: [MODEL_CARD.md](MODEL_CARD.md).
