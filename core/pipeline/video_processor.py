@@ -1,9 +1,13 @@
 """
 core/pipeline/video_processor.py
 ================================
-Video Deepfake Detection pipeline based on DFDC challenge solution.
+Video deepfake detection: inference path ported from the DFDC 1st-place
+solution by Selim Seferbekov (https://github.com/selimsef/dfdc_deepfake_challenge,
+MIT). The weights are upstream's pretrained checkpoint; see CREDITS.md.
 
-Frame-by-frame classification approach using EfficientNet B7 encoder.
+Differences from upstream kernel_utils.py: only the highest-confidence face per
+frame is classified (upstream classifies all faces), and a single checkpoint is
+used (upstream averages an ensemble).
 
 Public entry-points
 -------------------
@@ -103,8 +107,10 @@ class DeepFakeClassifier(nn.Module):
     """
     EfficientNet-based binary classifier for deepfake detection.
     
+    Architecture from the upstream DFDC solution.
+
     Input: RGB image tensor normalized to ImageNet statistics
-    Output: Logit for binary classification (Real=1, Fake=0)
+    Output: one logit per face; sigmoid(logit) = P(fake)
     """
     
     def __init__(self, encoder: str = "tf_efficientnet_b7_ns", dropout_rate: float = 0.0) -> None:
@@ -219,11 +225,11 @@ class FaceDetectionEngine:
     """
     Detects and extracts faces from video frames using MTCNN.
 
-    IMPORTANT: This implementation exactly replicates the training pipeline from
-    dfdc_model_source/kernel_utils.py. Any deviation causes a train/inference
-    distribution mismatch that causes real videos to be misclassified as FAKE.
+    Crop settings match upstream kernel_utils.py (FaceExtractor); deviating
+    from them causes a train/inference mismatch that pushes real videos
+    towards FAKE. Unlike upstream, extract_face keeps only one face per frame.
 
-    Training pipeline (kernel_utils.py line 202):
+    Upstream settings:
         detector = MTCNN(margin=0, thresholds=[0.7, 0.8, 0.8])
         img = img.resize(size=[s // 2 for s in img.size])       # half-size detection
         boxes *= 2                                                # scale boxes back
@@ -247,8 +253,8 @@ class FaceDetectionEngine:
     
     def extract_face(self, frame: np.ndarray) -> Optional[np.ndarray]:
         """
-        Extracts the largest/most-confident face from a frame.
-        EXACTLY replicates dfdc_model_source/kernel_utils.py FaceDetectionEngine.process_videos
+        Extracts the most-confident face from a frame.
+        Crop matches upstream kernel_utils.py; upstream keeps every face.
 
         Args:
             frame: RGB numpy array (H, W, 3), uint8
@@ -309,7 +315,7 @@ class FaceDetectionEngine:
 class VideoDetectionResult:
     """Results from video deepfake detection."""
     
-    label: str  # "REAL" or "FAKE"
+    label: str  # "REAL", "FAKE", "UNSURE", "UNKNOWN" or "ERROR"
     predicted_class: int  # 0 = FAKE, 1 = REAL
     fake_prob: float
     real_prob: float
@@ -322,7 +328,7 @@ class VideoDetectionResult:
 
 def confident_strategy(predictions: List[float], threshold: float = 0.8) -> float:
     """
-    Heuristic for aggregating per-frame predictions.
+    Aggregate per-face P(fake) scores (upstream kernel_utils.py, unchanged).
     
     Returns average of high-confidence predictions if most frames agree,
     otherwise returns overall average.
@@ -356,7 +362,7 @@ def confident_strategy(predictions: List[float], threshold: float = 0.8) -> floa
 def _isotropically_resize(img: np.ndarray, size: int) -> np.ndarray:
     """
     Resize image so the largest side equals `size`, keeping aspect ratio.
-    EXACTLY matches dfdc_model_source/kernel_utils.py:isotropically_resize_image
+    Matches upstream kernel_utils.py:isotropically_resize_image
     """
     h, w = img.shape[:2]
     if max(w, h) == size:
@@ -375,8 +381,8 @@ def _isotropically_resize(img: np.ndarray, size: int) -> np.ndarray:
 
 def _put_to_center(img: np.ndarray, input_size: int) -> np.ndarray:
     """
-    Crop to input_size then zero-pad into a centered square, EXACTLY as
-    dfdc_model_source/kernel_utils.py:put_to_center
+    Crop to input_size then zero-pad into a centered square, as in
+    upstream kernel_utils.py:put_to_center
     """
     img = img[:input_size, :input_size]
     canvas = np.zeros((input_size, input_size, 3), dtype=np.uint8)
@@ -394,8 +400,7 @@ def preprocess_frame(
     """
     Preprocess a face crop for model inference.
 
-    IMPORTANT: Exactly replicates the training preprocessing from
-    dfdc_model_source/kernel_utils.py:predict_on_video  (lines 315-329):
+    Matches the preprocessing in upstream kernel_utils.py:predict_on_video:
         resized_face = isotropically_resize_image(face, input_size)
         resized_face = put_to_center(resized_face, input_size)
         x[n] = resized_face

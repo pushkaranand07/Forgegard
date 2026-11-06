@@ -9,7 +9,9 @@ Image Manipulation Detection pipeline.
   Level 2 — Error Level Analysis (ELA) + CNN
       Re-saves the image at reduced JPEG quality and measures the difference
       (ELA image).  The ELA output is fed into a small CNN (IMDModel) that
-      was trained on the CASIA tampered-image dataset.
+      was trained on the CASIA tampered-image dataset in
+      training/notebooks/train.ipynb (architecture adapted from public code;
+      see CREDITS.md).  It does not detect AI-generated images.
       Class indices: 0 = Tampered, 1 = Authentic.
 
 Public entry-points
