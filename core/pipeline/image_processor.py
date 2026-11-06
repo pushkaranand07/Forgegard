@@ -36,6 +36,9 @@ from PIL import Image, ImageChops
 from PIL.ExifTags import TAGS
 from torch import nn
 
+from core import model_registry
+from core.model_registry import CheckpointMismatchError, ModelUnavailableError
+
 logger = logging.getLogger("forgeguard.image")
 
 # Larger images are rejected before decoding: ELA holds several full-size
@@ -55,8 +58,12 @@ class IMDModel(nn.Module):
     """
     Small CNN for image-manipulation detection trained on the CASIA dataset.
 
+    This is the architecture stored in the deployed weights/model_c1.pth (the
+    `model_c1_e100_v2` checkpoint). It differs from the class in the current
+    train.ipynb cell, which adds BatchNorm1d layers and a final Softmax.
+
     Input:  ELA image resized to 128×128, normalised to [0, 1].
-    Output: Softmax probabilities over two classes.
+    Output: logits over two classes (softmax is applied by the caller).
       - index 0: Tampered
       - index 1: Authentic
     """
@@ -79,13 +86,10 @@ class IMDModel(nn.Module):
         )
         self.linear = nn.Sequential(
             nn.Linear(in_features=16 * 30 * 30, out_features=1024),
-            nn.BatchNorm1d(1024),
             relu,
             nn.Linear(in_features=1024, out_features=64),
-            nn.BatchNorm1d(64),
             relu,
             nn.Linear(in_features=64, out_features=2),
-            nn.Softmax(dim=1),
         )
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
@@ -256,19 +260,16 @@ def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Mod
     """
     Load and cache the image manipulation detector model.
 
-    Supports:
-      - A pickled nn.Module  (``torch.load`` returns a Module directly)
-      - A state-dict         (``torch.load`` returns a dict)
+    The checkpoint must be a plain state_dict (optionally under "state_dict")
+    that matches IMDModel exactly. It is hash-checked against
+    core/model_manifest.json and loaded with ``weights_only=True``; there is no
+    fallback to unsafe unpickling. Convert old pickled checkpoints once with
+    scripts/convert_imd_to_state_dict.py.
 
-    Args:
-        model_path : Absolute or relative path to the .pth weight file.
-        device     : Target device; auto-selected if None.
-
-    Returns:
-        Loaded, eval-mode IMDModel on the target device.
+    Raises:
+        FileNotFoundError: the file does not exist.
+        ModelUnavailableError: hash mismatch, unreadable or incompatible checkpoint.
     """
-    import sys
-    
     device = device or _select_device()
     abs_path = os.path.abspath(model_path)
     cache_key = (abs_path, device.type)
@@ -281,44 +282,34 @@ def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Mod
         if not os.path.isfile(abs_path):
             raise FileNotFoundError(f"Model weights not found: {abs_path}")
 
-        # Ensure IMDModel is available in multiple namespaces for torch.load to find it
-        # This fixes: "Can't get attribute 'IMDModel' on <module '__main__'..."
-        import __main__
-        __main__.IMDModel = IMDModel
-        sys.modules['__main__'].IMDModel = IMDModel
-        
-        import numpy as np
         try:
-            torch.serialization.add_safe_globals([np.core.multiarray.scalar])
-        except AttributeError:
-            pass
+            model_registry.verify_weights(abs_path)
+            try:
+                payload = torch.load(abs_path, map_location=device, weights_only=True)
+            except Exception as exc:
+                raise ModelUnavailableError(
+                    f"{os.path.basename(abs_path)} is not a loadable state_dict ({type(exc).__name__}). "
+                    "Pickled checkpoints must be converted once with "
+                    "scripts/convert_imd_to_state_dict.py."
+                ) from exc
+            if not isinstance(payload, dict):
+                raise ModelUnavailableError(f"Unsupported checkpoint payload: {type(payload).__name__}")
 
-        try:
-            payload = torch.load(abs_path, map_location=device, weights_only=True)
-        except Exception as e:
-            if "IMDModel" in str(e) or "can't get attribute" in str(e).lower():
-                # Retry with explicit class registration
-                __main__.IMDModel = IMDModel
-                try:
-                    payload = torch.load(abs_path, map_location=device, weights_only=True)
-                except Exception:
-                    payload = torch.load(abs_path, map_location=device, weights_only=False)
-            else:
-                logger.warning(f"[IMD] Safe load failed ({e}); retrying with weights_only=False.")
-                payload = torch.load(abs_path, map_location=device, weights_only=False)
-
-        if isinstance(payload, nn.Module):
-            model = payload
-        elif isinstance(payload, dict):
             model = IMDModel()
-            state = payload.get("state_dict", payload)
-            model.load_state_dict(state)
-        else:
-            raise TypeError(f"Unsupported model payload type: {type(payload)}")
+            try:
+                model.load_state_dict(payload.get("state_dict", payload), strict=True)
+            except RuntimeError as exc:
+                raise CheckpointMismatchError(
+                    f"{os.path.basename(abs_path)} does not match the IMDModel architecture: {exc}"
+                ) from exc
+        except ModelUnavailableError as exc:
+            model_registry.record_failed(abs_path, exc)
+            raise
 
         model.to(device)
         model.eval()
         _MODEL_CACHE[cache_key] = model
+        model_registry.record_loaded(abs_path)
         logger.info(f"[IMD] Model loaded from {abs_path} on {device.type.upper()}")
         return model
 
@@ -345,14 +336,8 @@ def _run_inference(pil_img: Image.Image, model_path: str,
     x = _preprocess(ela_img).to(device)
 
     with torch.no_grad():
-        out = model(x)  # shape: (1, 2)
-
-        # Guard: normalise if not already a probability distribution
-        if not torch.allclose(out.sum(dim=1),
-                              torch.ones_like(out.sum(dim=1)), atol=1e-3):
-            out = torch.softmax(out, dim=1)
-
-        probs = out.squeeze(0).detach().float().cpu()
+        logits = model(x)  # shape: (1, 2)
+        probs = torch.softmax(logits, dim=1).squeeze(0).float().cpu()
 
     tampered_prob = float(probs[0].item())
     authentic_prob = float(probs[1].item())

@@ -11,6 +11,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
 from api import common
+from core import model_registry
 
 WEIGHTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "weights")
 HAS_WEIGHTS = all(
@@ -26,8 +27,10 @@ def _isolated(settings, tmp_path):
     settings.FORGEGUARD_RATE_LIMIT_PER_MINUTE = 0
     cache.clear()
     common._slots = None
+    model_registry.reset_state()
     yield
     common._slots = None
+    model_registry.reset_state()
 
 
 @pytest.fixture
