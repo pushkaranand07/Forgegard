@@ -14,7 +14,7 @@ dependencies = [
     # Numerics, images & video
     "numpy>=2.0,<3",
     "Pillow>=13.0,<14",
-    "opencv-python-headless>=4.10,<5",
+    "opencv-python-headless>=5.0,<6",
     # Models (torch/torchvision come from the PyTorch CPU index, see [tool.uv.sources])
     "torch==2.11.0",
     "torchvision==0.26.0",
