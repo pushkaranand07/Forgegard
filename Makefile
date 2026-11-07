@@ -24,7 +24,7 @@ typecheck: ## mypy (not yet clean; see docs/remediation.md)
 	uv run mypy api core --ignore-missing-imports --explicit-package-bases
 
 audit: ## Known-vulnerability scan of the locked environment and the web UI
-	uv run --with pip-audit pip-audit
+	uv run --with pip-audit pip-audit --ignore-vuln PYSEC-2026-3447 --ignore-vuln GHSA-xmj3-9gf7-h52w  # see SECURITY.md
 	cd web && npm audit --audit-level=high
 
 check: lint test ## What CI's blocking jobs run

@@ -13,7 +13,7 @@ dependencies = [
     "python-dotenv>=1.0,<2",
     # Numerics, images & video
     "numpy>=2.0,<3",
-    "Pillow>=11.0,<13",
+    "Pillow>=13.0,<14",
     "opencv-python-headless>=4.10,<5",
     # Models (torch/torchvision come from the PyTorch CPU index, see [tool.uv.sources])
     "torch==2.11.0",
@@ -50,7 +50,7 @@ override-dependencies = [
     "torch==2.11.0",
     "torchvision==0.26.0",
     "numpy>=2.0,<3",
-    "Pillow>=11.0,<13",
+    "Pillow>=13.0,<14",
 ]
 
 [[tool.uv.index]]
