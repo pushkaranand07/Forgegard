@@ -34,6 +34,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DJANGO_DEBUG=false \
     DJANGO_SQLITE_PATH=/tmp/forgeguard.sqlite3 \
     FORGEGUARD_TMP_DIR=/tmp/forgeguard \
+    FORGEGUARD_SPOOL_DIR=/var/forgeguard \
     FORGEGUARD_WEIGHTS_DIR=/app/weights \
     PORT=8000
 
@@ -56,8 +57,8 @@ COPY --from=web /src/frontend/static/app ./frontend/static/app
 # collectstatic only needs settings to import; this throwaway key never serves traffic
 RUN DJANGO_SECRET_KEY=collectstatic-only python manage.py collectstatic --noinput \
     && useradd --create-home --uid 10001 forgeguard \
-    && mkdir -p /app/weights /tmp/forgeguard \
-    && chown -R forgeguard /app/weights /tmp/forgeguard
+    && mkdir -p /app/weights /tmp/forgeguard /var/forgeguard \
+    && chown -R forgeguard /app/weights /tmp/forgeguard /var/forgeguard
 
 USER forgeguard
 EXPOSE 8000
@@ -65,4 +66,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\", \"8000\")}/api/health/live', timeout=4)"
 
+# Default command: the web server. The worker runs the same image with
+# `python manage.py run_worker` (see docker-compose.yml).
 CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn config.wsgi:application -c gunicorn.conf.py"]
