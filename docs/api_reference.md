@@ -58,9 +58,12 @@ MTCNN, and scores each crop with EfficientNet-B7.
 }
 ```
 
-`label` is `REAL`, `FAKE`, or `UNSURE` when no face was found in any frame
-(then `status` is `NO_FACE_DETECTED`). `frame_predictions` holds one fake
-probability per detected face.
+(Values are illustrative, not measured results.)
+
+`label` is `REAL`, `FAKE`, or `UNSURE` when no face was found in any frame.
+In the `UNSURE` case `status` is `NO_FACE_DETECTED` and the three score fields are `null`.
+`frame_predictions` holds one fake score per detected face (one face per sampled frame).
+The response also carries the `model` version block described below.
 
 ## `POST /api/detect/`
 
@@ -91,9 +94,26 @@ HTTP 200 unless every file failed (then 400).
 ## `GET /api/health/` and `GET /api/health/live`
 
 `/api/health/live` always returns `{"status": "ok"}` while the process is up.
-`/api/health/` reports device, model files (`present`, `loaded`, `size_mb`)
-and the active limits; it returns 503 with `"status": "degraded"` when a
-weight file is missing.
+`/api/health/` reports `pipeline_version`, the device, the active limits and,
+per model: `present`, `loaded`, `size_mb`, `weights_sha256` (first 12 hex
+digits), `verified` (hash matches `core/model_manifest.json`; `null` if not
+checked), `load_state` (`loaded` / `failed` / `not_loaded`), `load_error` and
+`healthy`. It returns 503 with `"status": "degraded"` unless both models are
+healthy: present, not failing verification, and not failed to load.
+
+## Model version block
+
+Every successful detection response (and each batch result) includes:
+
+```json
+"model": {"model_name": "IMDModel (ELA + CNN)", "weights_sha256": "b6b76a422a82", "pipeline_version": "1.1.0"}
+```
+
+## Missing scores
+
+When the model produces no score (no face detected, unreadable input), the
+score fields `fake_prob`, `real_prob` and `confidence_pct` are `null` rather
+than a placeholder number.
 
 ## Errors
 
@@ -112,4 +132,5 @@ and every response carries an `X-Request-ID` header to quote in bug reports.
 | 429 | `RATE_LIMITED` | Per-IP limit reached; see `Retry-After` |
 | 500 | `error` | Unexpected server failure (details are logged, never returned) |
 | 503 | `model_not_found` | Weights missing on the server |
+| 503 | `MODEL_UNAVAILABLE` | Weights present but failed the hash check or could not be loaded (see `/api/health/`) |
 | 503 | `BUSY` | All inference slots busy for too long; see `Retry-After` |

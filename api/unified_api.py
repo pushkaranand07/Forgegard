@@ -100,7 +100,12 @@ def api_detect(request) -> JsonResponse:
         status = 200
     else:
         # 422: the media itself could not be analysed (corrupt, unreadable, ...)
-        status = 500 if result.internal_error else 422
+        if result.model_unavailable:
+            status = 503
+        elif result.internal_error:
+            status = 500
+        else:
+            status = 422
     return JsonResponse(response_data, status=status)
 
 

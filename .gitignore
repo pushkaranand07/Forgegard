@@ -56,3 +56,6 @@ models/
 .idea/
 .cursor/
 *.tsbuildinfo
+
+# The training notebook is reviewed and committed with outputs stripped
+!training/notebooks/train.ipynb

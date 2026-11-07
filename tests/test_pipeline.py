@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-import logging
 import os
 
 import numpy as np
@@ -12,10 +11,12 @@ import torch
 from PIL import Image
 from torch import nn
 
+from core import model_registry
+from core.model_registry import CheckpointMismatchError
 from core.pipeline import image_processor, video_processor
 from core.pipeline.image_processor import InvalidImageError
 
-from .conftest import HAS_WEIGHTS, WEIGHTS_DIR
+from .conftest import HAS_IMAGE_WEIGHTS, HAS_VIDEO_WEIGHTS, WEIGHTS_DIR
 
 
 def _png(width: int, height: int, mode: str = "RGB") -> bytes:
@@ -57,14 +58,19 @@ class _TinyClassifier(nn.Module):
         self.extra = nn.Linear(2, 2)
 
 
+def _save_tiny(path, drop_prefix: str = "") -> str:
+    """Save a _TinyClassifier checkpoint in the upstream format (DataParallel 'module.' keys)."""
+    state = {k: v for k, v in _TinyClassifier().state_dict().items()
+             if not (drop_prefix and k.startswith(drop_prefix))}
+    torch.save({"epoch": 1, "state_dict": {f"module.{k}": v for k, v in state.items()}}, path)
+    return str(path)
+
+
 @pytest.fixture
 def tiny_video_model(monkeypatch, tmp_path):
     monkeypatch.setattr(video_processor, "DeepFakeClassifier", _TinyClassifier)
     video_processor.invalidate_caches()
-    path = tmp_path / "tiny.pth"
-    state = {k: v for k, v in _TinyClassifier().state_dict().items() if not k.startswith("extra.")}
-    torch.save({"state_dict": {f"module.{k}": v for k, v in state.items()}}, path)
-    yield str(path)
+    yield _save_tiny(tmp_path / "tiny.pth")
     video_processor.invalidate_caches()
 
 
@@ -77,10 +83,13 @@ def test_video_model_is_cached_on_requested_device(tiny_video_model):
     assert video_processor.is_model_loaded(tiny_video_model)
 
 
-def test_video_model_warns_about_missing_weights(tiny_video_model, caplog):
-    with caplog.at_level(logging.WARNING, logger="forgeguard.video"):
-        video_processor.load_model(tiny_video_model, encoder="tiny", device="cpu")
-    assert "weights missing from checkpoint" in caplog.text
+def test_video_checkpoint_with_missing_weights_raises(tiny_video_model, tmp_path):
+    # Previously this only logged a warning and served partly random weights.
+    partial = _save_tiny(tmp_path / "partial.pth", drop_prefix="extra.")
+    with pytest.raises(CheckpointMismatchError, match="extra.weight"):
+        video_processor.load_model(partial, encoder="tiny", device="cpu")
+    assert model_registry.load_state(partial)["state"] == "failed"
+    assert not video_processor.is_model_loaded(partial)
 
 
 def test_video_model_missing_file_raises(tmp_path):
@@ -95,11 +104,12 @@ def test_confident_strategy_bounds():
 
 # ── Real weights (skipped in CI / when weights are absent) ───────────────────
 
-needs_weights = pytest.mark.skipif(not HAS_WEIGHTS, reason="model weights not present in weights/")
+needs_image_weights = pytest.mark.skipif(not HAS_IMAGE_WEIGHTS, reason="model_c1.pth not present in weights/")
+needs_video_weights = pytest.mark.skipif(not HAS_VIDEO_WEIGHTS, reason="deepfake_detector_b7.pth not present in weights/")
 
 
 @pytest.mark.models
-@needs_weights
+@needs_image_weights
 def test_image_model_end_to_end():
     buf = io.BytesIO()
     Image.fromarray(np.random.default_rng(0).integers(0, 255, (256, 256, 3), dtype=np.uint8)).save(
@@ -111,7 +121,7 @@ def test_image_model_end_to_end():
 
 
 @pytest.mark.models
-@needs_weights
+@needs_video_weights
 def test_video_without_faces_is_unsure(tmp_path):
     import cv2
 

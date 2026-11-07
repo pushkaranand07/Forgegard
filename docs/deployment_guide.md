@@ -18,9 +18,22 @@ Give the container **3 GB of RAM** for the defaults. A GPU cuts video time to a
 few seconds but needs a CUDA build of PyTorch (swap the index URL in the
 Dockerfile) and a CUDA base image.
 
-Model weights (~320 MB) are not in git. Put `model_c1.pth` and
-`deepfake_detector_b7.pth` in `weights/` (or wherever `FORGEGUARD_WEIGHTS_DIR`
-points).
+Model weights (~320 MB) are not in git. Fetch and verify them with
+`python scripts/download_weights.py` (it honours `FORGEGUARD_WEIGHTS_DIR`). The
+video checkpoint is downloaded from its upstream release; `model_c1.pth` has no
+public URL yet, so supply one with `FORGEGUARD_WEIGHTS_URL_MODEL_C1_PTH`.
+
+**Integrity checks.** Each weight file is checked against the SHA-256 in
+`core/model_manifest.json` before it is deserialised, and every load uses
+`torch.load(weights_only=True)` with strict key matching. A missing, swapped or
+incompatible file makes `/api/health/` return 503 (`"verified": false` or
+`"load_state": "failed"`), and detection requests return 503 `MODEL_UNAVAILABLE`.
+
+- **Old copy of `model_c1.pth`** (the pickled module, SHA-256 `5839a0d9…`):
+  convert it once with `python scripts/convert_imd_to_state_dict.py`. The
+  script keeps the original as `model_c1.legacy-pickle.pth`.
+- **Trying a different checkpoint:** set `FORGEGUARD_VERIFY_WEIGHTS=false`
+  temporarily, or add its hash to the manifest.
 
 ## Docker (recommended)
 
@@ -79,6 +92,7 @@ defaults. The important ones:
 | `FORGEGUARD_RATE_LIMIT_PER_MINUTE` | `30` | Detection requests per client IP; `0` disables |
 | `FORGEGUARD_KEEP_UPLOADS` | `false` | Keep analysed images in `uploaded_images/` |
 | `FORGEGUARD_WARMUP_MODELS` | `not DEBUG` | Load models when the worker starts |
+| `FORGEGUARD_VERIFY_WEIGHTS` | `true` | Check weight files against `core/model_manifest.json` before loading |
 | `GUNICORN_WORKERS` / `GUNICORN_THREADS` | `1` / `4` | Each worker loads its own models — scale threads first |
 | `GUNICORN_TIMEOUT` | `300` | Long enough for CPU video analysis |
 
@@ -89,14 +103,12 @@ replicas, either accept a per-worker limit or configure a shared Django cache
 ## Without Docker (Linux VM)
 
 ```bash
-python3.12 -m venv .venv && . .venv/bin/activate
-pip install "torch==2.11.0" "torchvision==0.26.0" --index-url https://download.pytorch.org/whl/cpu
-pip install -r requirements.txt
-pip install --no-deps "facenet-pytorch==2.6.0"
+uv sync --frozen --no-dev
+uv run python scripts/download_weights.py
 (cd web && npm ci && npm run build)
-python manage.py collectstatic --noinput
-python manage.py migrate --noinput
-gunicorn config.wsgi:application -c gunicorn.conf.py
+uv run python manage.py collectstatic --noinput
+uv run python manage.py migrate --noinput
+uv run gunicorn config.wsgi:application -c gunicorn.conf.py
 ```
 
 Run it under systemd (or similar) with the environment variables above.

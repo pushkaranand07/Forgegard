@@ -111,7 +111,10 @@ export function fromVideoResponse(r: VideoApiResponse, meta: FileMeta): Analysis
     confidencePct: r.confidence_pct,
     device: r.device,
     processingMs: r.processing_time_ms,
-    probs: decided ? { authentic: r.real_prob, manipulated: r.fake_prob } : null,
+    probs:
+      decided && r.real_prob !== null && r.fake_prob !== null
+        ? { authentic: r.real_prob, manipulated: r.fake_prob }
+        : null,
     video: {
       framesSampled: r.num_frames_processed,
       framePredictions: r.frame_predictions,
@@ -152,7 +155,7 @@ export function fromUnifiedResult(r: UnifiedApiResult, meta: FileMeta): Analysis
   const preds = r.frame_predictions ?? [];
   // The unified endpoint omits class probabilities for video; recover them from
   // the confidence and label, which is exactly how the backend derives them.
-  const c = r.confidence_pct / 100;
+  const c = (r.confidence_pct ?? 0) / 100;
   const probs =
     verdict === "authentic"
       ? { authentic: c, manipulated: 1 - c }

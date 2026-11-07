@@ -1,9 +1,13 @@
 """
 core/pipeline/video_processor.py
 ================================
-Video Deepfake Detection pipeline based on DFDC challenge solution.
+Video deepfake detection: inference path ported from the DFDC 1st-place
+solution by Selim Seferbekov (https://github.com/selimsef/dfdc_deepfake_challenge,
+MIT). The weights are upstream's pretrained checkpoint; see CREDITS.md.
 
-Frame-by-frame classification approach using EfficientNet B7 encoder.
+Differences from upstream kernel_utils.py: only the highest-confidence face per
+frame is classified (upstream classifies all faces), and a single checkpoint is
+used (upstream averages an ensemble).
 
 Public entry-points
 -------------------
@@ -29,6 +33,9 @@ from torch.nn.modules.dropout import Dropout
 from torch.nn.modules.linear import Linear
 from torch.nn.modules.pooling import AdaptiveAvgPool2d
 from torchvision.transforms import Normalize
+
+from core import model_registry
+from core.model_registry import CheckpointMismatchError, ModelUnavailableError
 
 logger = logging.getLogger("forgeguard.video")
 
@@ -103,8 +110,10 @@ class DeepFakeClassifier(nn.Module):
     """
     EfficientNet-based binary classifier for deepfake detection.
     
+    Architecture from the upstream DFDC solution.
+
     Input: RGB image tensor normalized to ImageNet statistics
-    Output: Logit for binary classification (Real=1, Fake=0)
+    Output: one logit per face; sigmoid(logit) = P(fake)
     """
     
     def __init__(self, encoder: str = "tf_efficientnet_b7_ns", dropout_rate: float = 0.0) -> None:
@@ -196,8 +205,8 @@ class VideoReader:
         frame_idxs = np.linspace(0, frame_count - 1, num_frames, endpoint=True, dtype=int)
         
         if jitter > 0:
-            np.random.seed(seed)
-            jitter_offsets = np.random.randint(-jitter, jitter, len(frame_idxs))
+            rng = np.random.default_rng(seed)
+            jitter_offsets = rng.integers(-jitter, jitter, len(frame_idxs))
             frame_idxs = np.clip(frame_idxs + jitter_offsets, 0, frame_count - 1)
         
         frames = []
@@ -219,11 +228,11 @@ class FaceDetectionEngine:
     """
     Detects and extracts faces from video frames using MTCNN.
 
-    IMPORTANT: This implementation exactly replicates the training pipeline from
-    dfdc_model_source/kernel_utils.py. Any deviation causes a train/inference
-    distribution mismatch that causes real videos to be misclassified as FAKE.
+    Crop settings match upstream kernel_utils.py (FaceExtractor); deviating
+    from them causes a train/inference mismatch that pushes real videos
+    towards FAKE. Unlike upstream, extract_face keeps only one face per frame.
 
-    Training pipeline (kernel_utils.py line 202):
+    Upstream settings:
         detector = MTCNN(margin=0, thresholds=[0.7, 0.8, 0.8])
         img = img.resize(size=[s // 2 for s in img.size])       # half-size detection
         boxes *= 2                                                # scale boxes back
@@ -247,8 +256,8 @@ class FaceDetectionEngine:
     
     def extract_face(self, frame: np.ndarray) -> Optional[np.ndarray]:
         """
-        Extracts the largest/most-confident face from a frame.
-        EXACTLY replicates dfdc_model_source/kernel_utils.py FaceDetectionEngine.process_videos
+        Extracts the most-confident face from a frame.
+        Crop matches upstream kernel_utils.py; upstream keeps every face.
 
         Args:
             frame: RGB numpy array (H, W, 3), uint8
@@ -309,11 +318,12 @@ class FaceDetectionEngine:
 class VideoDetectionResult:
     """Results from video deepfake detection."""
     
-    label: str  # "REAL" or "FAKE"
-    predicted_class: int  # 0 = FAKE, 1 = REAL
-    fake_prob: float
-    real_prob: float
-    confidence_pct: float
+    label: str  # "REAL", "FAKE", "UNSURE", "UNKNOWN" or "ERROR"
+    predicted_class: int  # 0 = FAKE, 1 = REAL, -1 = no decision
+    # None when the model produced no score (no faces, unreadable input)
+    fake_prob: Optional[float]
+    real_prob: Optional[float]
+    confidence_pct: Optional[float]
     device: str
     num_frames_processed: int
     frame_predictions: List[float] = field(default_factory=list)
@@ -322,7 +332,7 @@ class VideoDetectionResult:
 
 def confident_strategy(predictions: List[float], threshold: float = 0.8) -> float:
     """
-    Heuristic for aggregating per-frame predictions.
+    Aggregate per-face P(fake) scores (upstream kernel_utils.py, unchanged).
     
     Returns average of high-confidence predictions if most frames agree,
     otherwise returns overall average.
@@ -356,7 +366,7 @@ def confident_strategy(predictions: List[float], threshold: float = 0.8) -> floa
 def _isotropically_resize(img: np.ndarray, size: int) -> np.ndarray:
     """
     Resize image so the largest side equals `size`, keeping aspect ratio.
-    EXACTLY matches dfdc_model_source/kernel_utils.py:isotropically_resize_image
+    Matches upstream kernel_utils.py:isotropically_resize_image
     """
     h, w = img.shape[:2]
     if max(w, h) == size:
@@ -375,8 +385,8 @@ def _isotropically_resize(img: np.ndarray, size: int) -> np.ndarray:
 
 def _put_to_center(img: np.ndarray, input_size: int) -> np.ndarray:
     """
-    Crop to input_size then zero-pad into a centered square, EXACTLY as
-    dfdc_model_source/kernel_utils.py:put_to_center
+    Crop to input_size then zero-pad into a centered square, as in
+    upstream kernel_utils.py:put_to_center
     """
     img = img[:input_size, :input_size]
     canvas = np.zeros((input_size, input_size, 3), dtype=np.uint8)
@@ -394,8 +404,7 @@ def preprocess_frame(
     """
     Preprocess a face crop for model inference.
 
-    IMPORTANT: Exactly replicates the training preprocessing from
-    dfdc_model_source/kernel_utils.py:predict_on_video  (lines 315-329):
+    Matches the preprocessing in upstream kernel_utils.py:predict_on_video:
         resized_face = isotropically_resize_image(face, input_size)
         resized_face = put_to_center(resized_face, input_size)
         x[n] = resized_face
@@ -450,6 +459,7 @@ def invalidate_caches():
     """Clear all model and face extractor caches. Call this if settings change."""
     with _cache_lock:
         _model_cache.clear()
+    model_registry.reset_state()
     with _face_extractor_lock:
         _face_extractor_cache.clear()
     logger.info("[cache] All model and face extractor caches cleared.")
@@ -461,15 +471,15 @@ def load_model(
     device: Optional[str] = None
 ) -> nn.Module:
     """
-    Load a deepfake classifier model.
-    
-    Args:
-        model_path: Path to model checkpoint
-        encoder: Encoder architecture name
-        device: Device to load model on ("cuda" or "cpu")
-    
-    Returns:
-        Loaded model in eval mode
+    Load a deepfake classifier model (cached per weights/encoder/device).
+
+    The file is hash-checked against core/model_manifest.json, loaded with
+    ``weights_only=True`` (no unsafe-unpickling fallback) and must match the
+    architecture exactly after stripping the DataParallel ``module.`` prefix.
+
+    Raises:
+        FileNotFoundError: the file does not exist.
+        ModelUnavailableError: hash mismatch, unreadable or incompatible checkpoint.
     """
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -485,42 +495,47 @@ def load_model(
         if not os.path.isfile(model_path):
             raise FileNotFoundError(f"Video model weights not found: {model_path}")
 
-        model = DeepFakeClassifier(encoder=encoder)
-
-        # The checkpoint pickles a few NumPy scalars (e.g. 'bce_best') under their
-        # NumPy 1.x names; NumPy 2 moved them to numpy._core, so allow-list them
-        # by their old name to keep the safe weights_only loader working.
-        np_core = getattr(np, "_core", None) or np.core
-        safe_globals = [
-            (np_core.multiarray.scalar, "numpy.core.multiarray.scalar"),
-            np.dtype,
-            type(np.dtype("float64")),
-        ]
-
         try:
-            with torch.serialization.safe_globals(safe_globals):
-                checkpoint = torch.load(model_path, map_location=device, weights_only=True)
-        except Exception as e:
-            logger.warning(f"[load_model] Safe load failed ({e}); retrying with weights_only=False.")
-            checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+            model_registry.verify_weights(model_path)
+            model = DeepFakeClassifier(encoder=encoder)
 
-        # Handle different checkpoint formats
-        if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
-            # Remove 'module.' prefix if present (from DataParallel)
-            state_dict = {k.replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
-        else:
-            state_dict = checkpoint
+            # The upstream checkpoint pickles a NumPy scalar ('bce_best') under its
+            # NumPy 1.x name; NumPy 2 moved it to numpy._core, so allow-list it by
+            # the old name. These are plain data types, not code.
+            np_core = getattr(np, "_core", None) or np.core
+            safe_globals = [
+                (np_core.multiarray.scalar, "numpy.core.multiarray.scalar"),
+                np.dtype,
+                type(np.dtype("float64")),
+            ]
+            try:
+                with torch.serialization.safe_globals(safe_globals):
+                    checkpoint = torch.load(model_path, map_location=device, weights_only=True)
+            except Exception as exc:
+                raise ModelUnavailableError(
+                    f"{os.path.basename(model_path)} could not be loaded safely ({type(exc).__name__})."
+                ) from exc
 
-        missing, unexpected = model.load_state_dict(state_dict, strict=False)
-        if missing:
-            logger.warning(f"[load_model] {len(missing)} weights missing from checkpoint "
-                           f"(left at random init), e.g. {missing[:3]}")
-        if unexpected:
-            logger.warning(f"[load_model] {len(unexpected)} unexpected checkpoint keys ignored, "
-                           f"e.g. {unexpected[:3]}")
+            if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+                checkpoint = checkpoint["state_dict"]
+            if not isinstance(checkpoint, dict):
+                raise ModelUnavailableError(f"Unsupported checkpoint payload: {type(checkpoint).__name__}")
+            # DataParallel prefix; strip it only at the start of each key
+            state_dict = {k.removeprefix("module."): v for k, v in checkpoint.items()}
+
+            try:
+                model.load_state_dict(state_dict, strict=True)
+            except RuntimeError as exc:
+                raise CheckpointMismatchError(
+                    f"{os.path.basename(model_path)} does not match {encoder}: {exc}"
+                ) from exc
+        except ModelUnavailableError as exc:
+            model_registry.record_failed(model_path, exc)
+            raise
 
         model = model.to(device).eval()
         _model_cache[cache_key] = model
+        model_registry.record_loaded(model_path)
         logger.info(f"[load_model] Loaded {os.path.basename(model_path)} ({encoder}) on {device}")
         return model
 
@@ -566,8 +581,8 @@ def detect_video_frames(
     
     if not frames:
         return VideoDetectionResult(
-            label="UNKNOWN", predicted_class=-1, fake_prob=0, real_prob=0,
-            confidence_pct=0, device=device, num_frames_processed=0,
+            label="UNKNOWN", predicted_class=-1, fake_prob=None, real_prob=None,
+            confidence_pct=None, device=device, num_frames_processed=0,
             notes=["No frames provided"]
         )
     
@@ -587,8 +602,8 @@ def detect_video_frames(
         if not extracted_frames:
             logger.warning(f"[detect_video] No faces found in any of {len(frames)} frames → returning UNSURE")
             return VideoDetectionResult(
-                label="UNSURE", predicted_class=-1, fake_prob=0.5, real_prob=0.5,
-                confidence_pct=50.0, device=device, num_frames_processed=len(frames),
+                label="UNSURE", predicted_class=-1, fake_prob=None, real_prob=None,
+                confidence_pct=None, device=device, num_frames_processed=len(frames),
                 notes=["NO_FACE_DETECTED"]
             )
             
@@ -610,8 +625,8 @@ def detect_video_frames(
     
     if not preprocessed:
         return VideoDetectionResult(
-            label="UNKNOWN", predicted_class=-1, fake_prob=0, real_prob=0,
-            confidence_pct=0, device=device, num_frames_processed=0,
+            label="UNKNOWN", predicted_class=-1, fake_prob=None, real_prob=None,
+            confidence_pct=None, device=device, num_frames_processed=0,
             notes=["Failed to preprocess frames"]
         )
     
@@ -675,8 +690,8 @@ def detect_video_file(
     """
     if not os.path.exists(video_path):
         return VideoDetectionResult(
-            label="ERROR", predicted_class=-1, fake_prob=0, real_prob=0,
-            confidence_pct=0, device=device or "cpu", num_frames_processed=0,
+            label="ERROR", predicted_class=-1, fake_prob=None, real_prob=None,
+            confidence_pct=None, device=device or "cpu", num_frames_processed=0,
             notes=[f"Video file not found: {video_path}"]
         )
     
@@ -686,8 +701,8 @@ def detect_video_file(
     
     if frames is None:
         return VideoDetectionResult(
-            label="ERROR", predicted_class=-1, fake_prob=0, real_prob=0,
-            confidence_pct=0, device=device or "cpu", num_frames_processed=0,
+            label="ERROR", predicted_class=-1, fake_prob=None, real_prob=None,
+            confidence_pct=None, device=device or "cpu", num_frames_processed=0,
             notes=["Failed to read video frames"]
         )
     

@@ -6,6 +6,13 @@ export interface Level1Metadata {
   notes: string[];
 }
 
+/** Version block on every detection response */
+export interface ModelInfo {
+  model_name: string;
+  weights_sha256: string | null;
+  pipeline_version: string;
+}
+
 /** POST /api/detect-image/ */
 export interface ImageApiResponse {
   label: "AUTHENTIC" | "TAMPERED";
@@ -18,28 +25,31 @@ export interface ImageApiResponse {
   /** Saved filename, or null unless the server keeps uploads (FORGEGUARD_KEEP_UPLOADS) */
   original_image: string | null;
   processing_time_ms: number;
+  model: ModelInfo;
 }
 
 /** POST /api/detect-video/ */
 export interface VideoApiResponse {
   label: "REAL" | "FAKE" | "UNSURE" | "UNKNOWN" | "ERROR";
   predicted_class: number;
-  fake_prob: number;
-  real_prob: number;
-  confidence_pct: number;
+  /** null when the model produced no score (no face, unreadable input) */
+  fake_prob: number | null;
+  real_prob: number | null;
+  confidence_pct: number | null;
   device: string;
   num_frames_processed: number;
   frame_predictions: number[];
   processing_time_ms: number;
   notes: string[];
   status: string;
+  model: ModelInfo;
 }
 
 /** One entry of POST /api/detect/batch (also the shape of POST /api/detect/) */
 export interface UnifiedApiResult {
   media_type: "image" | "video" | "unknown";
   label: string;
-  confidence_pct: number;
+  confidence_pct: number | null;
   device: string;
   processing_time_ms: number;
   level1?: Level1Metadata;
@@ -50,6 +60,7 @@ export interface UnifiedApiResult {
   error?: string;
   file_index?: number;
   file_name?: string;
+  model?: ModelInfo;
 }
 
 export interface BatchApiResponse {
@@ -66,7 +77,23 @@ export interface HealthResponse {
   status: "ok" | "degraded";
   device: "cpu" | "cuda";
   gpu_name: string | null;
-  models: Record<"image" | "video", { name: string; file: string; present: boolean; loaded: boolean; size_mb: number }>;
+  pipeline_version: string;
+  models: Record<
+    "image" | "video",
+    {
+      name: string;
+      file: string;
+      present: boolean;
+      loaded: boolean;
+      size_mb: number;
+      weights_sha256: string | null;
+      /** null when the file is not in the manifest or verification is off */
+      verified: boolean | null;
+      load_state: "loaded" | "failed" | "not_loaded";
+      load_error: string | null;
+      healthy: boolean;
+    }
+  >;
   limits: {
     max_upload_mb: number;
     max_batch_files: number;
@@ -93,7 +120,8 @@ export interface Analysis {
   verdict: Verdict;
   /** Raw backend label, e.g. TAMPERED / FAKE / UNSURE */
   label: string;
-  confidencePct: number;
+  /** null when the model produced no score */
+  confidencePct: number | null;
   device: string;
   processingMs: number;
   /** Probability (0–1) of each class; null when the model did not decide */

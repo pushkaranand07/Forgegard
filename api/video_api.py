@@ -20,9 +20,9 @@ Response (200 OK)
 {
     "label":              "REAL" | "FAKE" | "UNSURE",
     "predicted_class":    1 | 0 | -1,
-    "fake_prob":          float,
-    "real_prob":          float,
-    "confidence_pct":     float,
+    "fake_prob":          float | null,   (null when no score, e.g. no face)
+    "real_prob":          float | null,
+    "confidence_pct":     float | null,
     "device":             "cpu" | "cuda",
     "num_frames_processed": int,
     "frame_predictions":  [float, ...],
@@ -50,10 +50,12 @@ from core.pipeline.video_processor import (
     detect_video_file,
     InvalidFileException, EmptyVideoException, NoVisualFramesException
 )
+from core.model_registry import ModelUnavailableError
 
 from .common import (
     VIDEO_EXTENSIONS, ServerBusy, busy_response, error_response, inference_slot,
-    rate_limited, upload_to_temp_file, validate_upload, video_model_path,
+    model_info, model_unavailable_response, rate_limited, upload_to_temp_file,
+    validate_upload, video_model_path,
 )
 
 logger = logging.getLogger("forgeguard.video")
@@ -90,6 +92,10 @@ def validate_video_file(file_obj: Any) -> tuple[bool, str]:
 # ─────────────────────────────────────────────────────────────────────────────
 # API Endpoint
 # ─────────────────────────────────────────────────────────────────────────────
+
+def _num(value):
+    return None if value is None else float(value)
+
 
 @csrf_exempt
 @require_POST
@@ -144,6 +150,9 @@ def api_detect_video(request) -> JsonResponse:
         return error_response(str(e), 400, 'EMPTY_VIDEO')
     except NoVisualFramesException as e:
         return error_response(str(e), 400, 'NO_VISUAL_FRAMES')
+    except ModelUnavailableError:
+        logger.exception("Video model unavailable")
+        return model_unavailable_response("video")
     except Exception:
         logger.exception("Video analysis failed for %s", video_file.name)
         return error_response('Video analysis failed due to a server error.', 500)
@@ -155,15 +164,16 @@ def api_detect_video(request) -> JsonResponse:
     return JsonResponse({
         'label': result.label,
         'predicted_class': result.predicted_class,
-        'fake_prob': float(result.fake_prob),
-        'real_prob': float(result.real_prob),
-        'confidence_pct': float(result.confidence_pct),
+        'fake_prob': _num(result.fake_prob),
+        'real_prob': _num(result.real_prob),
+        'confidence_pct': _num(result.confidence_pct),
         'device': result.device,
         'num_frames_processed': result.num_frames_processed,
         'frame_predictions': [float(p) for p in result.frame_predictions],
         'processing_time_ms': (time.time() - start_time) * 1000,
         'notes': list(result.notes),
-        'status': status_val
+        'status': status_val,
+        'model': model_info(model_path),
     }, status=200)
 
 

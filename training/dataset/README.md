@@ -1,25 +1,33 @@
-# Dataset Architecture & Preprocessing
+# Datasets
 
-## Directory Structure
-Training relies heavily on absolute dataset integrity. Ensure the raw metadata files are synced into this module.
+No dataset is stored in this repo. All of them are research-only and non-commercial; see [CREDITS.md](../../CREDITS.md). Earlier versions of this file described a `dataset_map.csv` manifest and a directory layout that no code in the project uses. They've been removed.
 
-```text
-dataset/
-├── df_raw/                # (Deepfake Raw MP4 extracts)
-├── real_raw/              # (Authentic Raw MP4 extracts)
-├── face_crops/
-│   ├── df/                # Extracted 380x380 synthetics
-│   └── real/              # Extracted 380x380 authentic
-├── metadata/
-│   └── dataset_map.csv    # Binary tag linkage
-└── cache/                 # Temporary Pytorch tensor sets
-```
+## Video
 
-## Dataset Manifests
-The `dataset_map.csv` is internally used to bridge multi-folder structures into the `__getitem__` index loop. Do not manually mutate this document. The CSV contains exactly two rows: `filename`, `label`. For multi-class tracking, `original_id` is maintained locally but inherently discarded prior to Binary Classification.
+**The deployed video model was not trained here.** It's a pretrained DFDC checkpoint from Selim Seferbekov's solution, trained by its author on the DFDC training set.
 
-## Preprocessing Considerations
-Because the CNN Backbone utilizes `tf_efficientnet_b7_ns` pre-trained on ImageNet, we must mimic ImageNet channel formatting. Do not configure your training loaders using `BGR` formatting native to OpenCV. Use `core.pipeline.video_processor` bounds scaling to handle padding thresholds.
+The local notebooks used DFDC and Celeb-DF v2 for the earlier ResNeXt50+LSTM experiment only:
 
-## Synthetic Expansion
-Data augmentation applied via PyTorch `Transforms` heavily skews toward geometric noise (rotations, cropping, flips) rather than color manipulation. Applying extreme color manipulation mathematically damages the ELA properties required to ascertain real images from generative manipulations. Color threshold jittering is restricted to `< 1.2%`.
+| Notebook | Data | What it does |
+|---|---|---|
+| `Create_csv_from_glob.ipynb` | Celeb-DF v2 `YouTube-real/` | Lists video files into a CSV |
+| `Remove_audio_altered_files.ipynb`, `copy real and fake .ipynb` | DFDC `dfdc_train_part_8/` | Drops audio-only fakes and splits videos by `metadata.json` label |
+| `for_Balancing_data.ipynb` | DFDC `metadata.json` | Balances real and fake counts |
+| `preprocessing.ipynb` | DFDC, Celeb-DF | Writes face-only clips |
+
+**Planned evaluation (out of distribution):** Celeb-DF v2 official test list (`List_of_testing_videos.txt`, 518 videos).
+
+**Preprocessing the video model expects** (fixed by the upstream weights, see `core/pipeline/video_processor.py`):
+- RGB frames (convert from OpenCV's BGR exactly once);
+- MTCNN face crop with one-third padding;
+- isotropic resize to 380 px with centre zero-padding;
+- ImageNet mean/std normalisation.
+
+## Image
+
+**CASIA** tampering images were used to train `IMDModel` (`train.ipynb`):
+- folders `auth_model/` (authentic) and `sp_model/` (spliced), 1,721 images in total;
+- labels come from the filename: an `Au_` prefix means authentic;
+- the inputs are **ELA images computed beforehand**. The script that produced them isn't in the project, so whether its parameters match inference (JPEG quality 90, ×10 amplification) is unverified.
+
+ELA is specific to the image model. It plays no part in the video pipeline.

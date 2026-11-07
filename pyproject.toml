@@ -2,7 +2,65 @@
 name = "forgeguard"
 version = "1.0.0"
 description = "AI-powered image manipulation and video deepfake detection"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
+
+# Runtime dependencies. Exact versions live in uv.lock; install with `uv sync --frozen`.
+dependencies = [
+    # Web
+    "Django>=5.2,<6.1",
+    "whitenoise>=6.7,<7",
+    "gunicorn>=23,<24",
+    "python-dotenv>=1.0,<2",
+    # Numerics, images & video
+    "numpy>=2.0,<3",
+    "Pillow>=11.0,<13",
+    "opencv-python-headless>=4.10,<5",
+    # Models (torch/torchvision come from the PyTorch CPU index, see [tool.uv.sources])
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "timm>=1.0,<2",
+    "facenet-pytorch==2.6.0",
+    # Used by facenet-pytorch at import time
+    "requests>=2.32,<3",
+    "tqdm>=4.66,<5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<10",
+    "pytest-django>=4.9,<5",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "django-stubs>=5.1",
+]
+# Training notebooks only; not needed to run or test the service
+train = [
+    "jupyter>=1.0",
+    "notebook>=7.0.0",
+    "ipython>=8.12",
+    "scikit-learn>=1.5",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+# facenet-pytorch 2.6.0 declares torch<2.3, numpy<2 and Pillow<10.3, which would
+# downgrade the whole stack. Its code works with the versions above, so its
+# outdated pins are overridden here instead of installing it with --no-deps.
+override-dependencies = [
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "numpy>=2.0,<3",
+    "Pillow>=11.0,<13",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform != 'darwin'" }]
+torchvision = [{ index = "pytorch-cpu", marker = "sys_platform != 'darwin'" }]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"

@@ -24,7 +24,7 @@ const toneBg: Record<string, string> = {
   accent: "bg-accent-soft text-accent",
 };
 
-function ConfidenceRing({ pct, tone }: { pct: number; tone: string }) {
+function ConfidenceRing({ pct, tone }: { pct: number | null; tone: string }) {
   const r = 34;
   const c = 2 * Math.PI * r;
   return (
@@ -39,7 +39,7 @@ function ConfidenceRing({ pct, tone }: { pct: number; tone: string }) {
           stroke={toneRing[tone]}
           strokeWidth="6"
           strokeLinecap="round"
-          strokeDasharray={`${(pct / 100) * c} ${c}`}
+          strokeDasharray={`${((pct ?? 0) / 100) * c} ${c}`}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">
@@ -221,7 +221,7 @@ export default function ReportView({ analysis: a, previewUrl, actions }: Props) 
               />
               <p className="mt-4 text-sm text-ink-2">
                 {isVideo
-                  ? "Aggregated over all detected faces: if more than 11 faces (and over 40% of them) score above 80% fake, only those are averaged; if over 90% score below 20%, only those are averaged; otherwise all faces are averaged."
+                  ? "Aggregated over the face scores (one face per sampled frame): if more than 11 faces (and over 40% of them) score above 80% fake, only those are averaged; if over 90% score below 20%, only those are averaged; otherwise all faces are averaged."
                   : "The image is re-compressed and the per-pixel error is fed to a CNN. Edited regions typically recompress differently from the rest of the image."}
               </p>
               {metaWarning && a.verdict === "authentic" && (

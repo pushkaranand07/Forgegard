@@ -1,26 +1,34 @@
-# Pipeline Architecture
+# Architecture
 
-## Design Philosophy
-I designed the ForgeGuard architecture emphasizing concurrency, absolute data integrity, and pipeline decouple-ability. A classic machine learning flaw is entangling data-munging and inference code, which leads to rigid systems incapable of scaling behind web interfaces (like Django). To solve this, I split the video analysis process logically, introducing a multi-tiered component pipeline ensuring clear separations of concern while maximizing VRAM utilization across parallel HTTP requests.
+ForgeGuard is a single Django process (gunicorn, `gthread` workers) serving a JSON API and a pre-built React UI. Both models are loaded once per worker process and shared across that worker's request threads.
 
-## Component Breakdown
+```
+client ──► Django view ──► validate upload ──► scratch file ──► inference slot (semaphore)
+                                                                     │
+                     ┌───────────────────────────────────────────────┴──────────────┐
+                     ▼                                                              ▼
+        Video: read 32 frames → MTCNN (top face/frame)              Image: EXIF Software tag
+               → resize/pad 380 → B7 logit → sigmoid                        → ELA (JPEG q90, ×10)
+               → confident_strategy                                         → 128×128 → IMDModel
+                     └───────────────────────────────┬──────────────────────────────┘
+                                                     ▼
+                                       JSON result (scratch file deleted)
+```
 
-1. **Video Ingestion Layer (VideoReader)**
-   Handling video files safely is computationally tricky. Instead of brute-force dumping thousands of frames to RAM, the VideoReader samples exactly `N` equidistant frames mathematically. This normalizes long videos against short videos, ensuring computational latency stays consistent for the end-user.
+## Components
 
-2. **Face Detection Layer (MTCNN/FaceDetectionEngine)**
-   A CNN can't effectively predict manipulation if the subject is pushed to the margins of a frame. I integrated the PyTorch MTCNN implementation, extracting precisely bound facial anchor boxes. To combat noise, MTCNN returns a secondary padding layer (h//3, w//3) to supply the final classifier with essential morphological boundary context connecting the chin/forehead to the synthetic backdrop.
+| Component | Location | Notes |
+|---|---|---|
+| Upload rules, error shape, rate limit, concurrency guard | `api/common.py` | Extension and size checks. A `BoundedSemaphore` caps concurrent inferences (default 1); requests wait up to `FORGEGUARD_INFERENCE_QUEUE_TIMEOUT` and then get `503 BUSY`. |
+| Endpoints | `api/image_api.py`, `api/video_api.py`, `api/unified_api.py`, `api/health_api.py` | The batch endpoint processes files one after another inside a single request. |
+| Request IDs, JSON 404/500 | `api/middleware.py` | |
+| Video pipeline | `core/pipeline/video_processor.py` | Port of the DFDC 1st-place inference path (see [CREDITS.md](../CREDITS.md)). Typed exceptions (`InvalidFileException`, `EmptyVideoException`, `NoVisualFramesException`) map to 4xx responses. No face in any frame → `UNSURE`. |
+| Image pipeline | `core/pipeline/image_processor.py` | Pixel-count cap before decoding; ELA and CNN. |
+| Model caches | both pipeline modules | One instance per (weights, device), created under a lock so concurrent first requests share one load. |
+| Warm-up | `api/warmup.py` | Loads both models at startup. |
 
-3. **Classification Layer (EfficientNet B7 Wrapper)**
-   The core intelligence node relies on EfficientNet B7. Pre-processed RGB face tensors (normalized, permuted to `[C,H,W]`, and isotropically padded) are batched over CUDA arrays and routed directly to this 64+ million parameter backbone to output float predictions across the binary logistic layer.
+## Known constraints
 
-4. **Exception Handling Layer**
-   Real world deployments face invalid formats, empty zero-byte streams, and audio-only MP4 files. I architected a proprietary Exception tree (`InvalidFileException`, `EmptyVideoException`, `NoVisualFramesException`) mapping gracefully back to Django REST Response endpoints (HTTP 400). If humans are not detected in a frame stack (`NoFaceDetected`), the engine safely short-circuits rather than randomly hallucinating probabilities.
-
-5. **API Response Layer**
-   Built securely using Django REST, endpoints `/api/detect-video/` and `/api/detect-image/` abstract the entire machine learning cycle. 
-
-## Key Engineering Decisions
-- **Thread-safe Singleton Caching**: Loading multi-gigabyte models for every request would crash servers immediately. I employed a thread-locking Singleton caching map storing PyTorch objects purely in VRAM for all subsequent inference triggers.
-- **Early Exit For Faceless Media**: Processing empty background landscapes is mathematically useless. Returning an `UNSURE` baseline when MTCNN drops `0` detected faces saves critical GPU time and prevents statistical polling failures on the front end.
-- **Strict RGB Pipeline Enforcement**: Enforcing consistent color space conversions from OpenCV (`BGR`) directly to PIL (`RGB`) inside the bounding logic eliminated tensor channel inversions discovered during testing.
+- **Throughput:** one inference slot and ~20–25 s per video on CPU (manual measurement) means roughly 2–3 videos per minute per process.
+- **Synchronous requests:** video and batch requests run inside the HTTP request. A large batch can exceed the gunicorn timeout (300 s), which kills the worker. Moving video work to background jobs is planned.
+- **Rate limiter:** uses `LocMemCache`, which is per process. It's correct only with a single worker.

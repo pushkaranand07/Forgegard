@@ -10,7 +10,8 @@
 # the image (handy for PaaS hosts without volumes; adds ~320 MB).
 
 # ── Stage 1: build the React UI ─────────────────────────────────────────────
-FROM node:22-alpine AS web
+# Base images are pinned by digest; Dependabot bumps them (.github/dependabot.yml).
+FROM node:22-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202 AS web
 WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -20,12 +21,16 @@ RUN npm run build
 
 
 # ── Stage 2: Python runtime ─────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM astral/uv:0.8.17@sha256:e4644cb5bd56fdc2c5ea3ee0525d9d21eed1603bccd6a21f887a938be7e85be1 AS uv
+
+FROM python:3.12-slim@sha256:4840d514c583a4d3d8cad3940e68dee6f0f6f3635c12fcd0a3d74c21a5b93a54 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    PATH=/app/.venv/bin:$PATH \
     DJANGO_DEBUG=false \
     DJANGO_SQLITE_PATH=/tmp/forgeguard.sqlite3 \
     FORGEGUARD_TMP_DIR=/tmp/forgeguard \
@@ -39,12 +44,11 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# Dependencies first so code changes do not invalidate this layer
-# Versions the test suite runs against; bump together
-RUN pip install "torch==2.11.0" "torchvision==0.26.0" --index-url https://download.pytorch.org/whl/cpu
-COPY requirements.txt ./
-RUN pip install -r requirements.txt \
-    && pip install --no-deps "facenet-pytorch==2.6.0"
+# Dependencies first so code changes do not invalidate this layer. Exact
+# versions and hashes come from uv.lock; --frozen fails if the lock is stale.
+COPY --from=uv /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --no-dev --no-install-project --no-cache
 
 COPY . .
 COPY --from=web /src/frontend/static/app ./frontend/static/app
