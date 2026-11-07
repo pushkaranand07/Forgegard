@@ -16,7 +16,7 @@ dependencies = [
     "Pillow>=13.0,<14",
     "opencv-python-headless>=4.10,<5",
     # Models (torch/torchvision come from the PyTorch CPU index, see [tool.uv.sources])
-    "torch==2.11.0",
+    "torch==2.15.0",
     "torchvision==0.26.0",
     "timm>=1.0,<2",
     "facenet-pytorch==2.6.0",
@@ -48,7 +48,7 @@ default-groups = ["dev"]
 # downgrade the whole stack. Its code works with the versions above, so its
 # outdated pins are overridden here instead of installing it with --no-deps.
 override-dependencies = [
-    "torch==2.11.0",
+    "torch==2.15.0",
     "torchvision==0.26.0",
     "numpy>=2.0,<3",
     "Pillow>=13.0,<14",
