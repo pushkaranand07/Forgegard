@@ -175,10 +175,3 @@ def api_detect_video(request) -> JsonResponse:
         'status': status_val,
         'model': model_info(model_path),
     }, status=200)
-
-
-@csrf_exempt
-@require_POST
-def predict_video(request):
-    """Legacy endpoint (old template UI): same behaviour as /api/detect-video/."""
-    return api_detect_video(request)

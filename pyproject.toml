@@ -13,7 +13,7 @@ dependencies = [
     "python-dotenv>=1.0,<2",
     # Numerics, images & video
     "numpy>=2.0,<3",
-    "Pillow>=11.0,<13",
+    "Pillow>=13.0,<14",
     "opencv-python-headless>=4.10,<5",
     # Models (torch/torchvision come from the PyTorch CPU index, see [tool.uv.sources])
     "torch==2.11.0",
@@ -32,6 +32,7 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
     "django-stubs>=5.1",
+    "psutil>=6.0",
 ]
 # Training notebooks only; not needed to run or test the service
 train = [
@@ -50,7 +51,7 @@ override-dependencies = [
     "torch==2.11.0",
     "torchvision==0.26.0",
     "numpy>=2.0,<3",
-    "Pillow>=11.0,<13",
+    "Pillow>=13.0,<14",
 ]
 
 [[tool.uv.index]]
@@ -69,6 +70,7 @@ python_files = ["test_*.py", "tests.py"]
 addopts = "-ra --strict-markers"
 markers = [
     "models: needs the real weights in weights/ (skipped when they are absent)",
+    "memory: peak-RSS bounds measured in a subprocess (slower)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -82,4 +84,8 @@ extend-exclude = ["web", "frontend", "training", "staticfiles"]
 
 [tool.ruff.lint]
 # Real bugs only: pyflakes, syntax/IO errors, bare excepts, pytest/bugbear essentials
-select = ["F", "E9", "E722", "B006", "B008", "B904"]
+select = ["F", "E9", "E722", "B006", "B008", "B904", "TID251"]
+
+# Untrusted images must go through core.pipeline.safe_image.open_untrusted (I4)
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"PIL.Image.open".msg = "Use core.pipeline.safe_image.open_untrusted(): it restricts Pillow to JPEG/PNG/WebP decoders."

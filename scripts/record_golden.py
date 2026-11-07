@@ -85,7 +85,7 @@ def make_synthetic() -> None:
     buf = io.BytesIO()
     Image.fromarray(patch).save(buf, format="JPEG", quality=55)
     spliced = noisy(0, 1).copy()
-    spliced[80:176, 120:216] = np.asarray(Image.open(buf).convert("RGB"))
+    spliced[80:176, 120:216] = np.asarray(Image.open(buf, formats=("JPEG",)).convert("RGB"))  # noqa: TID251 — own buffer
     save(spliced, "synthetic_spliced_q90.jpg", quality=90)
     print(f"Wrote synthetic images to {MEDIA}")
 

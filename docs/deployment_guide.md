@@ -83,6 +83,7 @@ defaults. The important ones:
 |---|---|---|
 | `DJANGO_DEBUG` | `true` | Must be `false` in production; the app refuses to start without a real `DJANGO_SECRET_KEY` then |
 | `DJANGO_HTTPS` | `false` | HTTPS redirect, secure cookies, HSTS |
+| `DJANGO_HSTS_INCLUDE_SUBDOMAINS`, `DJANGO_HSTS_PRELOAD` | `false` | Opt-in HSTS extensions; enable only when every subdomain is HTTPS |
 | `DJANGO_BEHIND_PROXY` | `false` | Trust `X-Forwarded-Proto` / `X-Forwarded-For` |
 | `FORGEGUARD_MAX_UPLOAD_MB` | `100` | Per-file limit (UI reads it from `/api/health/`) |
 | `FORGEGUARD_MAX_BATCH_FILES` | `20` | Files per batch request |
@@ -90,7 +91,7 @@ defaults. The important ones:
 | `FORGEGUARD_MAX_CONCURRENT_INFERENCES` | `1` | Model runs at once per worker; extra requests queue |
 | `FORGEGUARD_INFERENCE_QUEUE_TIMEOUT` | `120` | Seconds a queued request waits before a 503 `BUSY` |
 | `FORGEGUARD_RATE_LIMIT_PER_MINUTE` | `30` | Detection requests per client IP; `0` disables |
-| `FORGEGUARD_KEEP_UPLOADS` | `false` | Keep analysed images in `uploaded_images/` |
+| `FORGEGUARD_KEEP_UPLOADS` | `false` | Keep images analysed by `/api/detect-image/` in `uploaded_images/` (on disk only, never served over HTTP) |
 | `FORGEGUARD_WARMUP_MODELS` | `not DEBUG` | Load models when the worker starts |
 | `FORGEGUARD_VERIFY_WEIGHTS` | `true` | Check weight files against `core/model_manifest.json` before loading |
 | `GUNICORN_WORKERS` / `GUNICORN_THREADS` | `1` / `4` | Each worker loads its own models — scale threads first |

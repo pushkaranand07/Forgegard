@@ -86,6 +86,7 @@ if HTTPS:
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = env_int('DJANGO_HSTS_SECONDS', 60 * 60 * 24 * 30)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('DJANGO_HSTS_INCLUDE_SUBDOMAINS', False)
+    SECURE_HSTS_PRELOAD = env_bool('DJANGO_HSTS_PRELOAD', False)
     # Health checks from the platform usually arrive over plain HTTP
     SECURE_REDIRECT_EXEMPT = [r'^api/health/']
 
@@ -125,7 +126,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(PROJECT_DIR, 'frontend', 'templates')],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -145,7 +146,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # ─────────────────────────────────────────────
 # ForgeGuard stores no records; the database only backs Django's session and
-# messages frameworks used by the legacy template UI.
+# messages frameworks (no app code uses them since the legacy UI was removed).
 
 DATABASES = {
     "default": {
@@ -195,7 +196,7 @@ STATICFILES_DIRS = [
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     # Compression only, no manifest: the React build already fingerprints its
-    # files, and the legacy CSS references images that a manifest would reject.
+    # files and is served by api.views.spa, which reads index.html directly.
     'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
 }
 
@@ -232,8 +233,8 @@ FORGEGUARD_INFERENCE_QUEUE_TIMEOUT = env_int('FORGEGUARD_INFERENCE_QUEUE_TIMEOUT
 # Detection requests allowed per client IP per minute (0 disables the limit)
 FORGEGUARD_RATE_LIMIT_PER_MINUTE = env_int('FORGEGUARD_RATE_LIMIT_PER_MINUTE', 30)
 
-# Keep a copy of every uploaded image in MEDIA_ROOT (needed by the legacy UI's
-# result page). Off by default: uploads are analysed and discarded.
+# Keep a copy of every image analysed by /api/detect-image/ in MEDIA_ROOT (on
+# disk only; never served over HTTP). Off by default: uploads are analysed and discarded.
 FORGEGUARD_KEEP_UPLOADS = env_bool('FORGEGUARD_KEEP_UPLOADS', False)
 
 # Scratch space for uploads while they are analysed

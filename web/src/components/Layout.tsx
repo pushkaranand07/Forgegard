@@ -130,7 +130,6 @@ export default function Layout() {
           <div className="flex gap-4">
             <Link to="/docs" className="hover:text-ink">API</Link>
             <Link to="/status" className="hover:text-ink">Status</Link>
-            <a href="/legacy/" className="hover:text-ink">Classic UI</a>
           </div>
         </div>
       </footer>

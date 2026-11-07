@@ -22,7 +22,7 @@ import os
 import threading
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Iterator, List, Optional
 
 import cv2
 import numpy as np
@@ -156,72 +156,79 @@ class InvalidFileException(Exception): pass
 class EmptyVideoException(Exception): pass
 class NoVisualFramesException(Exception): pass
 
+# Videos larger than this are rejected before any frame is decoded: decoding one
+# 8K frame alone takes ~100 MB, and 32 of them used to be held at once.
+MAX_VIDEO_WIDTH = 4096
+MAX_VIDEO_HEIGHT = 4096
+# Sampled frames are downscaled so their long side is at most this. 1080p and
+# smaller videos are untouched, so model outputs on them do not change.
+MAX_FRAME_SIDE = 1920
+
+
+def _fit_long_side(frame: np.ndarray, max_side: int) -> np.ndarray:
+    h, w = frame.shape[:2]
+    if max(h, w) <= max_side:
+        return frame
+    scale = max_side / max(h, w)
+    return cv2.resize(frame, (round(w * scale), round(h * scale)), interpolation=cv2.INTER_AREA)
+
+
 class VideoReader:
-    """Helper class for reading frames from a video file."""
-    
-    def __init__(self, verbose: bool = True, insets: Tuple[int, int] = (0, 0)):
-        """
-        Args:
-            verbose: Whether to print warnings and error messages
-            insets: Amount to inset the image by as (width_pct, height_pct)
-        """
+    """Reads evenly spaced frames from a video file, one at a time."""
+
+    def __init__(self, verbose: bool = True):
         self.verbose = verbose
-        self.insets = insets
-    
-    def read_frames(
-        self,
-        path: str,
-        num_frames: int,
-        jitter: int = 0,
-        seed: Optional[int] = None
-    ) -> Optional[np.ndarray]:
+
+    def iter_frames(self, path: str, num_frames: int, max_side: int = MAX_FRAME_SIDE) -> Iterator[np.ndarray]:
         """
-        Reads evenly spaced frames from a video file.
-        
-        Args:
-            path: Video file path
-            num_frames: Number of frames to extract
-            jitter: Random offset range for frame indices
-            seed: Random seed for jitter reproducibility
-        
-        Returns:
-            Array of shape (num_frames, H, W, 3) or None if error
+        Validate the video, then return an iterator of up to ``num_frames`` evenly
+        spaced RGB frames (converted from OpenCV's BGR exactly once), each with its
+        long side at most ``max_side``. Only one decoded frame is held at a time.
+
+        Validation runs immediately, so a bad file raises here rather than on the
+        first ``next()``.
+
+        Raises:
+            EmptyVideoException, InvalidFileException, NoVisualFramesException
         """
-        assert num_frames > 0
-        
-        if not os.path.getsize(path) > 0:
+        if num_frames <= 0:
+            raise ValueError("num_frames must be positive")
+        if os.path.getsize(path) == 0:
             raise EmptyVideoException("Video file is 0 bytes")
-            
+
         capture = cv2.VideoCapture(path)
         if not capture.isOpened():
             raise InvalidFileException("Cannot open video file")
-            
+
+        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if width > MAX_VIDEO_WIDTH or height > MAX_VIDEO_HEIGHT:
+            capture.release()
+            raise InvalidFileException(
+                f"Video resolution {width}×{height} exceeds the {MAX_VIDEO_WIDTH}×{MAX_VIDEO_HEIGHT} limit"
+            )
+
         frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-        
         if frame_count <= 0:
+            capture.release()
             raise NoVisualFramesException("Video has no frames (audio only or corrupt)")
-            
-        # Calculate evenly spaced frame indices
+
         frame_idxs = np.linspace(0, frame_count - 1, num_frames, endpoint=True, dtype=int)
-        
-        if jitter > 0:
-            rng = np.random.default_rng(seed)
-            jitter_offsets = rng.integers(-jitter, jitter, len(frame_idxs))
-            frame_idxs = np.clip(frame_idxs + jitter_offsets, 0, frame_count - 1)
-        
-        frames = []
-        for idx in frame_idxs:
-            capture.set(cv2.CAP_PROP_POS_FRAMES, idx)
-            ret, frame = capture.read()
-            if ret:
-                frames.append(frame)
-        
-        capture.release()
-        
-        if len(frames) == 0:
-            raise NoVisualFramesException("Could not extract any visual frames")
-        
-        return np.array(frames)
+
+        def frames() -> Iterator[np.ndarray]:
+            try:
+                for idx in frame_idxs:
+                    capture.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
+                    ok, bgr = capture.read()
+                    if not ok:
+                        continue
+                    small = _fit_long_side(bgr, max_side)
+                    del bgr
+                    yield cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
+            finally:
+                capture.release()
+
+        return frames()
 
 
 class FaceDetectionEngine:
@@ -675,41 +682,67 @@ def detect_video_file(
 ) -> VideoDetectionResult:
     """
     Detect deepfakes in a video file.
-    
+
+    Frames are streamed: each sampled frame is decoded, downscaled if needed,
+    and reduced to its face crop before the next one is read, so memory does
+    not grow with the video's resolution or the number of sampled frames.
+
     Args:
         video_path: Path to video file
         model_path: Path to model checkpoint
         encoder: Encoder architecture name
         device: Computation device
-        num_frames: Number of frames to extract
+        num_frames: Number of frames to sample
         extract_faces: Whether to extract faces
         target_size: Target frame size
-    
+
     Returns:
         VideoDetectionResult with predictions
     """
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
     if not os.path.exists(video_path):
         return VideoDetectionResult(
             label="ERROR", predicted_class=-1, fake_prob=None, real_prob=None,
-            confidence_pct=None, device=device or "cpu", num_frames_processed=0,
+            confidence_pct=None, device=device, num_frames_processed=0,
             notes=[f"Video file not found: {video_path}"]
         )
-    
-    # Extract frames
-    reader = VideoReader(verbose=False)
-    frames = reader.read_frames(video_path, num_frames)
-    
-    if frames is None:
+
+    frames = VideoReader(verbose=False).iter_frames(video_path, num_frames)
+
+    if not extract_faces:
+        sampled = list(frames)
+        if not sampled:
+            raise NoVisualFramesException("Could not extract any visual frames")
+        return detect_video_frames(sampled, model_path, encoder, device, extract_faces=False, target_size=target_size)
+
+    # Load (or fetch the cached) classifier first, so an unavailable model fails
+    # before any decoding work.
+    load_model(model_path, encoder, device)
+    face_extractor = get_face_extractor(device)
+
+    crops: List[np.ndarray] = []
+    sampled_count = 0
+    for frame in frames:
+        sampled_count += 1
+        face = face_extractor.extract_face(frame)
+        if face is not None:
+            crops.append(face.copy())  # the crop is a view; copy so the full frame can be freed
+        del frame
+
+    if sampled_count == 0:
+        raise NoVisualFramesException("Could not extract any visual frames")
+
+    logger.info(f"[detect_video] Frames sampled: {sampled_count}, Faces extracted: {len(crops)}")
+    if not crops:
+        logger.warning(f"[detect_video] No faces found in any of {sampled_count} frames → returning UNSURE")
         return VideoDetectionResult(
-            label="ERROR", predicted_class=-1, fake_prob=None, real_prob=None,
-            confidence_pct=None, device=device or "cpu", num_frames_processed=0,
-            notes=["Failed to read video frames"]
+            label="UNSURE", predicted_class=-1, fake_prob=None, real_prob=None,
+            confidence_pct=None, device=device, num_frames_processed=sampled_count,
+            notes=["NO_FACE_DETECTED"]
         )
-    
-    # Convert BGR to RGB
-    frames = [cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in frames]
-    
-    return detect_video_frames(
-        frames, model_path, encoder, device,
-        extract_faces=extract_faces, target_size=target_size
-    )
+    if len(crops) == 1:
+        logger.warning(f"[detect_video] Face detected in only 1 of {sampled_count} frames.")
+
+    return detect_video_frames(crops, model_path, encoder, device, extract_faces=False, target_size=target_size)

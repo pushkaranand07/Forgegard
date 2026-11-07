@@ -12,7 +12,7 @@ import type {
 export const DEFAULT_LIMITS: HealthResponse["limits"] = {
   max_upload_mb: 100,
   max_batch_files: 20,
-  image_extensions: ["bmp", "jpeg", "jpg", "png", "tif", "tiff", "webp"],
+  image_extensions: ["jpeg", "jpg", "png", "webp"],
   video_extensions: ["3gp", "avi", "flv", "gif", "mkv", "mov", "mp4", "webm", "wmv"],
   video_frames_sampled: 32,
 };

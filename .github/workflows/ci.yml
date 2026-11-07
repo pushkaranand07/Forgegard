@@ -67,10 +67,18 @@ jobs:
       # `make setup` is exactly what the README tells a new developer to run
       - name: make setup
         run: make setup
-      - name: Django checks
+      - name: Django checks (deploy warnings fail the build)
+        env:
+          DJANGO_DEBUG: "false"
+          DJANGO_HTTPS: "true"
+          DJANGO_HSTS_INCLUDE_SUBDOMAINS: "true"
+          DJANGO_HSTS_PRELOAD: "true"
         run: |
+          # Production settings refuse to start without a real key, so generate one
+          DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
+          export DJANGO_SECRET_KEY
           uv run python manage.py check
-          DJANGO_DEBUG=false DJANGO_SECRET_KEY=ci-only-not-secret DJANGO_HTTPS=true uv run python manage.py check --deploy
+          uv run python manage.py check --deploy --fail-level WARNING
       - name: make test
         run: make test
 
@@ -87,15 +95,30 @@ jobs:
         with:
           node-version: "22"
       - run: uv sync --frozen --no-dev
-      - name: pip-audit (not yet blocking)
-        # Pillow <13 carries known CVEs until remediation I3 (phase 1) lands
-        continue-on-error: true
-        run: uv run --with pip-audit pip-audit
+      - name: pip-audit
+        # Accepted, build-time only: setuptools <82 is capped by torch 2.11.
+        # Justification and review date in SECURITY.md.
+        run: >-
+          uv run --with pip-audit pip-audit
+          --ignore-vuln PYSEC-2026-3447
+          --ignore-vuln GHSA-xmj3-9gf7-h52w
       - name: npm audit
         working-directory: web
         run: |
           npm ci --no-audit --no-fund
           npm audit --audit-level=high
+
+  secrets:
+    name: Secret scan (gitleaks, full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks git --redact --no-banner --config .gitleaks.toml .
 
   web:
     name: Web UI (typecheck + build)
