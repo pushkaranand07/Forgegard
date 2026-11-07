@@ -54,7 +54,11 @@ pip install -r requirements.txt
 pip install --no-deps "facenet-pytorch==2.6.0"
 pip install -r requirements-dev.txt         # tests and lint
 ```
-2. Place the model weights `model_c1.pth` and `deepfake_detector_b7.pth` in `weights/`.
+2. Download and verify the model weights into `weights/`. Every file is checked against the SHA-256 in `core/model_manifest.json`.
+```bash
+python scripts/download_weights.py
+```
+   The video model comes from its upstream release. The image model (`model_c1.pth`) has no public download yet: the script reports it as missing, and you can point it at a copy with `FORGEGUARD_WEIGHTS_URL_MODEL_C1_PTH=<url>`. Without it the image endpoint returns `503` and the image-model tests are skipped.
 3. Copy the configuration template (it is loaded automatically and works as-is for local development).
 ```bash
 cp .env.example .env

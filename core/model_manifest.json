@@ -7,14 +7,16 @@
       "sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "format": "state_dict",
       "source": "Trained by the project author (train.ipynb, checkpoint model_c1_e100_v2); converted from a pickled module by scripts/convert_imd_to_state_dict.py",
-      "legacy_pickle_sha256": "5839a0d90084a00a5e00680eb801b9b44009e8f3a48b4ba1191388d9bee34fed"
+      "legacy_pickle_sha256": "5839a0d90084a00a5e00680eb801b9b44009e8f3a48b4ba1191388d9bee34fed",
+      "url": null
     },
     "deepfake_detector_b7.pth": {
       "kind": "video",
       "name": "EfficientNet-B7 (DFDC 1st place, Seferbekov) + MTCNN",
       "sha256": "9fe4311d551a9cbaa1475dbcd6b15fccb31a1e17a8d63069e90a8899aef03b5c",
       "format": "upstream checkpoint {epoch, state_dict, bce_best}",
-      "source": "https://github.com/selimsef/dfdc_deepfake_challenge/releases/tag/0.0.1"
+      "source": "https://github.com/selimsef/dfdc_deepfake_challenge/releases/tag/0.0.1 (asset final_777_DeepFakeClassifier_tf_efficientnet_b7_ns_0_29, byte-identical, verified by SHA-256 on 2026-11-07)",
+      "url": "https://github.com/selimsef/dfdc_deepfake_challenge/releases/download/0.0.1/final_777_DeepFakeClassifier_tf_efficientnet_b7_ns_0_29"
     }
   }
 }

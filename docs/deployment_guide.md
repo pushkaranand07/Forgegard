@@ -18,9 +18,10 @@ Give the container **3 GB of RAM** for the defaults. A GPU cuts video time to a
 few seconds but needs a CUDA build of PyTorch (swap the index URL in the
 Dockerfile) and a CUDA base image.
 
-Model weights (~320 MB) are not in git. Put `model_c1.pth` and
-`deepfake_detector_b7.pth` in `weights/` (or wherever `FORGEGUARD_WEIGHTS_DIR`
-points).
+Model weights (~320 MB) are not in git. Fetch and verify them with
+`python scripts/download_weights.py` (it honours `FORGEGUARD_WEIGHTS_DIR`). The
+video checkpoint is downloaded from its upstream release; `model_c1.pth` has no
+public URL yet, so supply one with `FORGEGUARD_WEIGHTS_URL_MODEL_C1_PTH`.
 
 **Integrity checks.** Each weight file is checked against the SHA-256 in
 `core/model_manifest.json` before it is deserialised, and every load uses
