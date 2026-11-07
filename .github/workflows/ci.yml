@@ -60,7 +60,7 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Cache model weights (keyed on the manifest hashes)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: weights
           key: weights-${{ hashFiles('core/model_manifest.json') }}
@@ -131,7 +131,7 @@ jobs:
         run: |
           docker image inspect forgeguard:ci --format '{{.Size}}' | awk '{printf "image size: %.0f MB\n", $1/1048576}'
       - name: Restore model weights
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: weights
           key: weights-${{ hashFiles('core/model_manifest.json') }}
