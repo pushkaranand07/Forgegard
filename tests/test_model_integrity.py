@@ -16,7 +16,7 @@ from core.model_registry import CheckpointMismatchError, ModelUnavailableError, 
 from core.pipeline import image_processor, video_processor
 from core.pipeline.image_processor import IMDModel
 
-from .conftest import HAS_WEIGHTS, WEIGHTS_DIR, make_image
+from .conftest import HAS_IMAGE_WEIGHTS, HAS_VIDEO_WEIGHTS, HAS_WEIGHTS, WEIGHTS_DIR, make_image
 
 pytestmark = pytest.mark.django_db
 needs_weights = pytest.mark.skipif(not HAS_WEIGHTS, reason="model weights not present in weights/")
@@ -242,7 +242,11 @@ def test_health_ok_with_real_verified_weights(client, settings):
     assert body["models"]["video"]["verified"] is True
 
 
-@needs_weights
-def test_real_weights_load_strictly_and_safely():
+@pytest.mark.skipif(not HAS_IMAGE_WEIGHTS, reason="model_c1.pth not present in weights/")
+def test_real_image_weights_load_strictly_and_safely():
     image_processor.load_model(os.path.join(WEIGHTS_DIR, "model_c1.pth"), torch.device("cpu"))
+
+
+@pytest.mark.skipif(not HAS_VIDEO_WEIGHTS, reason="deepfake_detector_b7.pth not present in weights/")
+def test_real_video_weights_load_strictly_and_safely():
     video_processor.load_model(os.path.join(WEIGHTS_DIR, "deepfake_detector_b7.pth"), device="cpu")

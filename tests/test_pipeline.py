@@ -16,7 +16,7 @@ from core.model_registry import CheckpointMismatchError
 from core.pipeline import image_processor, video_processor
 from core.pipeline.image_processor import InvalidImageError
 
-from .conftest import HAS_WEIGHTS, WEIGHTS_DIR
+from .conftest import HAS_IMAGE_WEIGHTS, HAS_VIDEO_WEIGHTS, WEIGHTS_DIR
 
 
 def _png(width: int, height: int, mode: str = "RGB") -> bytes:
@@ -104,11 +104,12 @@ def test_confident_strategy_bounds():
 
 # ── Real weights (skipped in CI / when weights are absent) ───────────────────
 
-needs_weights = pytest.mark.skipif(not HAS_WEIGHTS, reason="model weights not present in weights/")
+needs_image_weights = pytest.mark.skipif(not HAS_IMAGE_WEIGHTS, reason="model_c1.pth not present in weights/")
+needs_video_weights = pytest.mark.skipif(not HAS_VIDEO_WEIGHTS, reason="deepfake_detector_b7.pth not present in weights/")
 
 
 @pytest.mark.models
-@needs_weights
+@needs_image_weights
 def test_image_model_end_to_end():
     buf = io.BytesIO()
     Image.fromarray(np.random.default_rng(0).integers(0, 255, (256, 256, 3), dtype=np.uint8)).save(
@@ -120,7 +121,7 @@ def test_image_model_end_to_end():
 
 
 @pytest.mark.models
-@needs_weights
+@needs_video_weights
 def test_video_without_faces_is_unsure(tmp_path):
     import cv2
 

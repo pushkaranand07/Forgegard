@@ -20,7 +20,7 @@ import torch
 
 from core.pipeline import image_processor, video_processor
 
-from .conftest import HAS_WEIGHTS, WEIGHTS_DIR
+from .conftest import WEIGHTS_DIR
 
 GOLDEN = os.path.join(os.path.dirname(__file__), "golden")
 EXPECTED_PATH = os.path.join(GOLDEN, "expected.json")
@@ -28,10 +28,7 @@ EXPECTED_PATH = os.path.join(GOLDEN, "expected.json")
 with open(EXPECTED_PATH, encoding="utf-8") as _f:
     EXPECTED = json.load(_f)
 
-pytestmark = [
-    pytest.mark.models,
-    pytest.mark.skipif(not HAS_WEIGHTS, reason="model weights not present in weights/"),
-]
+pytestmark = pytest.mark.models
 
 
 def _sha256(path: str) -> str:
@@ -55,6 +52,8 @@ def test_golden_sample(name):
     assert _sha256(media) == expected["media_sha256"], "fixture file changed; re-record deliberately"
 
     weights = _weights(expected["kind"])
+    if not os.path.isfile(weights):
+        pytest.skip(f"{os.path.basename(weights)} not present in weights/")
     if _sha256(weights) != expected["weights_sha256"]:
         pytest.skip("weights differ from the ones the golden values were recorded with")
 

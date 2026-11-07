@@ -14,9 +14,11 @@ from api import common
 from core import model_registry
 
 WEIGHTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "weights")
-HAS_WEIGHTS = all(
-    os.path.isfile(os.path.join(WEIGHTS_DIR, name)) for name in ("model_c1.pth", "deepfake_detector_b7.pth")
-)
+# Gated per model: CI can download the video checkpoint from upstream, but the
+# image checkpoint has no public URL yet (see scripts/download_weights.py).
+HAS_IMAGE_WEIGHTS = os.path.isfile(os.path.join(WEIGHTS_DIR, "model_c1.pth"))
+HAS_VIDEO_WEIGHTS = os.path.isfile(os.path.join(WEIGHTS_DIR, "deepfake_detector_b7.pth"))
+HAS_WEIGHTS = HAS_IMAGE_WEIGHTS and HAS_VIDEO_WEIGHTS
 
 
 @pytest.fixture(autouse=True)
