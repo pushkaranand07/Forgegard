@@ -96,12 +96,7 @@ jobs:
           node-version: "22"
       - run: uv sync --frozen --no-dev
       - name: pip-audit
-        # Accepted, build-time only: setuptools <82 is capped by torch 2.11.
-        # Justification and review date in SECURITY.md.
-        run: >-
-          uv run --with pip-audit pip-audit
-          --ignore-vuln PYSEC-2026-3447
-          --ignore-vuln GHSA-xmj3-9gf7-h52w
+        run: uv run --with pip-audit pip-audit
       - name: npm audit
         working-directory: web
         run: |
