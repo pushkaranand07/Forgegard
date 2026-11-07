@@ -55,7 +55,6 @@ from .common import (
     image_model_path, inference_slot, model_info, model_unavailable_response,
     rate_limited, validate_upload,
 )
-from .forms import ImageUploadForm
 
 logger = logging.getLogger("forgeguard.image")
 
@@ -142,55 +141,3 @@ def api_detect_image(request):
     )
     payload["processing_time_ms"] = (time.time() - start_time) * 1000
     return JsonResponse(payload)
-
-
-def predict_image(request):
-    """
-    GET /predict-image/ (Render UI with form)
-    POST /predict-image/ (Process form upload)
-    """
-    from django.shortcuts import render
-
-    context = {"form": ImageUploadForm()}
-
-    if request.method == "POST":
-        form = ImageUploadForm(request.POST, request.FILES)
-        context["form"] = form
-
-        image_file = request.FILES.get("upload_image_file") or request.FILES.get("image")
-        if not image_file:
-            context["error"] = "No image file provided."
-            return render(request, "image_predict.html", context)
-
-        invalid = validate_upload(image_file, ALLOWED_IMAGE_EXTENSIONS)
-        if invalid:
-            context["error"] = invalid
-            return render(request, "image_predict.html", context)
-
-        start_time = time.time()
-        raw_bytes = image_file.read()
-
-        try:
-            with inference_slot():
-                result = detect_image_bytes(raw_bytes=raw_bytes, model_path=image_model_path())
-            context.update({
-                "output": result.label,
-                "confidence": round(max(result.tampered_prob, result.authentic_prob) * 100, 2),
-                # The legacy result page displays the uploaded image, so it is always kept
-                "original_image": _save_upload(image_file.name, raw_bytes),
-                "face_found": False,
-                "model_used": f"IMDModel Level-2 ({result.device})",
-                "elapsed": round(time.time() - start_time, 2),
-                "default_sequence_length": 100,
-            })
-            if result.software_found:
-                context["level1_warning"] = f"Metadata analysis detected editing software: {result.software_signature}"
-        except ServerBusy:
-            context["error"] = "The server is busy. Please try again shortly."
-        except InvalidImageError as exc:
-            context["error"] = str(exc)
-        except Exception:
-            logger.exception("Legacy image analysis failed for %s", image_file.name)
-            context["error"] = "Image analysis failed due to a server error."
-
-    return render(request, "image_predict.html", context)

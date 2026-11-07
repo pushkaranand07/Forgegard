@@ -1,8 +1,8 @@
 """
 tests.py – Basic smoke tests for the ForgeGuard deepfake detection application.
 
-These tests verify that all primary routes return the correct HTTP status
-codes and that basic form validation works as expected.  They run without
+These tests verify that the API routes return the correct HTTP status codes.
+(The legacy template pages they used to cover were removed; see tests/test_legacy_removed.py.)  They run without
 a GPU or a trained model file, making them suitable for CI environments.
 """
 
@@ -18,21 +18,6 @@ class SmokeTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-
-    def test_home_page_returns_200(self):
-        """The video upload home page should load successfully."""
-        response = self.client.get(reverse('api:home'))
-        self.assertEqual(response.status_code, 200)
-
-    def test_image_upload_page_returns_200(self):
-        """The photo upload page should load successfully."""
-        response = self.client.get(reverse('api:predict_image'))
-        self.assertEqual(response.status_code, 200)
-
-    def test_about_page_returns_200(self):
-        """The About page should load and return HTTP 200."""
-        response = self.client.get(reverse('api:about'))
-        self.assertEqual(response.status_code, 200)
 
     def test_api_detect_rejects_get_request(self):
         """The unified detect API endpoint must reject GET requests (POST only)."""

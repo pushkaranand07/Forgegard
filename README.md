@@ -80,7 +80,7 @@ uv run python manage.py runserver   # terminal 1
 cd web && npm run dev               # terminal 2 → http://localhost:5173
 ```
 
-Pages: Home, Analyze (single image/video with upload progress), Batch (up to 20 files, CSV/JSON export), History (stored in the browser), Report (printable A4 / Save as PDF), System status, API reference and How it works. The previous Django-template UI is still available at `/legacy/`.
+Pages: Home, Analyze (single image/video with upload progress), Batch (up to 20 files, CSV/JSON export), History (stored in the browser), Report (printable A4 / Save as PDF), System status, API reference and How it works.
 
 ## Production Deployment
 ForgeGuard ships as one Docker image: gunicorn serves the API and the pre-built UI, with WhiteNoise for static files.
