@@ -9,32 +9,95 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.8.17"
+
 jobs:
-  backend:
-    name: Backend (lint + tests)
+  lint:
+    name: Lint (ruff, actionlint)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-          cache: pip
-      - name: Install dependencies (CPU torch, same order as the Dockerfile)
+          version: ${{ env.UV_VERSION }}
+      - name: Ruff
+        run: uvx ruff@0.17.3 check .
+      - name: actionlint
         run: |
-          pip install "torch==2.11.0" "torchvision==0.26.0" --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
-          pip install --no-deps "facenet-pytorch==2.6.0"
-          pip install "pytest>=8,<10" "pytest-django>=4.9,<5" "ruff>=0.6"
-      - name: Lint
-        run: ruff check .
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -color
+
+  typecheck:
+    name: Typecheck (mypy, not yet blocking)
+    runs-on: ubuntu-latest
+    # 13 known errors; made blocking in remediation phase 4 (docs/remediation.md)
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run mypy api core --ignore-missing-imports --explicit-package-bases
+
+  test:
+    name: Setup from scratch + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Cache model weights (keyed on the manifest hashes)
+        uses: actions/cache@v4
+        with:
+          path: weights
+          key: weights-${{ hashFiles('core/model_manifest.json') }}
+      # `make setup` is exactly what the README tells a new developer to run
+      - name: make setup
+        run: make setup
       - name: Django checks
         run: |
-          python manage.py check
-          DJANGO_DEBUG=false DJANGO_SECRET_KEY=ci-only-not-secret DJANGO_HTTPS=true python manage.py check --deploy
-      - name: "Tests (model tests skip: weights are not in the repo)"
-        run: pytest
+          uv run python manage.py check
+          DJANGO_DEBUG=false DJANGO_SECRET_KEY=ci-only-not-secret DJANGO_HTTPS=true uv run python manage.py check --deploy
+      - name: make test
+        run: make test
 
-  frontend:
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: uv sync --frozen --no-dev
+      - name: pip-audit (not yet blocking)
+        # Pillow <13 carries known CVEs until remediation I3 (phase 1) lands
+        continue-on-error: true
+        run: uv run --with pip-audit pip-audit
+      - name: npm audit
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm audit --audit-level=high
+
+  web:
     name: Web UI (typecheck + build)
     runs-on: ubuntu-latest
     defaults:
@@ -51,16 +114,46 @@ jobs:
       - run: npm run build
 
   docker:
-    name: Docker image builds
+    name: Docker image builds, runs and passes its health check
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [lint, test, web]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
+          load: true
           tags: forgeguard:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Image size
+        run: |
+          docker image inspect forgeguard:ci --format '{{.Size}}' | awk '{printf "image size: %.0f MB\n", $1/1048576}'
+      - name: Restore model weights
+        uses: actions/cache/restore@v4
+        with:
+          path: weights
+          key: weights-${{ hashFiles('core/model_manifest.json') }}
+      - name: Fetch any weights the cache did not have
+        run: python3 scripts/download_weights.py --allow-missing
+      - name: Run the container
+        run: |
+          docker run -d --name fg -p 8000:8000 \
+            -e DJANGO_SECRET_KEY=ci-only-not-secret \
+            -v "$PWD/weights:/app/weights:ro" forgeguard:ci
+      - name: Liveness and readiness
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:8000/api/health/live && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/api/health/live
+          # 503 is expected while model_c1.pth has no public download (I7)
+          curl -sS http://127.0.0.1:8000/api/health/ | tee health.json
+          python3 -c "import json; h = json.load(open('health.json')); assert h['models']['video']['healthy'], h"
+      - name: Runs as non-root
+        run: test "$(docker exec fg id -u)" != "0"
+      - name: Container logs
+        if: always()
+        run: docker logs fg
