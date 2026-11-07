@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  UV_VERSION: "0.8.17"
+  UV_VERSION: "0.13.7"
 
 jobs:
   lint:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}
       - name: Ruff
@@ -38,7 +38,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
@@ -50,11 +50,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -87,21 +87,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: uv sync --frozen --no-dev
       - name: pip-audit
-        # Accepted, build-time only: setuptools <82 is capped by torch 2.11.
-        # Justification and review date in SECURITY.md.
-        run: >-
-          uv run --with pip-audit pip-audit
-          --ignore-vuln PYSEC-2026-3447
-          --ignore-vuln GHSA-xmj3-9gf7-h52w
+        run: uv run --with pip-audit pip-audit
       - name: npm audit
         working-directory: web
         run: |
@@ -128,7 +123,7 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm

@@ -15,14 +15,11 @@ It has no user accounts, stores no records, and by default keeps no uploads.
 
 ## Accepted findings
 
-Known vulnerabilities that `pip-audit` reports but that are not reachable in ForgeGuard.
-CI ignores exactly these IDs (`.github/workflows/ci.yml`, `Makefile`). Review each one
-whenever the dependency that pins it is upgraded.
+None. `pip-audit` runs in CI with no ignored IDs.
 
-| ID | Package | Why it is accepted | Pinned by | Review when |
-|---|---|---|---|---|
-| PYSEC-2026-3447 | setuptools 81 | Affects building source distributions from `MANIFEST.in`. ForgeGuard never builds sdists at runtime or in its image. | `torch 2.11` requires `setuptools<82` | torch is upgraded |
-| GHSA-xmj3-9gf7-h52w | setuptools 81 | Affects setuptools' legacy wheel installation on Windows. The service never installs packages at runtime; images are built on Linux with uv. | `torch 2.11` requires `setuptools<82` | torch is upgraded |
+Previously accepted (2026-11-08) and since resolved: PYSEC-2026-3447 and
+GHSA-xmj3-9gf7-h52w in setuptools 81, which torch 2.11 capped below 82. Upgrading to
+torch 2.15 lifted the cap; setuptools 84.2.1 includes both fixes.
 
 ## Secrets in git history
 
