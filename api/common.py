@@ -2,8 +2,8 @@
 common.py — Shared plumbing for the detection endpoints
 =======================================================
 One place for the upload rules (extensions, size limits), the JSON error
-shape, per-IP rate limiting, the inference concurrency guard, and streaming
-uploads to a scratch file. Kept free of torch imports so middleware and
+shape and per-IP rate limiting. (Concurrency is bounded by the job queue,
+see api/jobs.py.) Kept free of torch imports so middleware and
 settings can load it cheaply.
 """
 
@@ -11,11 +11,8 @@ from __future__ import annotations
 
 import functools
 import os
-import tempfile
-import threading
 import time
-from contextlib import contextmanager
-from typing import Iterator, Optional
+from typing import Optional
 
 from django.conf import settings
 from django.core.cache import cache
@@ -56,9 +53,13 @@ def video_model_path() -> str:
     return os.path.abspath(os.path.join(settings.FORGEGUARD_WEIGHTS_DIR, "deepfake_detector_b7.pth"))
 
 
-def error_response(message: str, status: int, code: str = "error", **extra) -> JsonResponse:
+def error_response_body(message: str, code: str = "error", **extra) -> dict:
     """The error shape every API endpoint returns: {"error": ..., "status": ...}."""
-    return JsonResponse({"error": message, "status": code, **extra}, status=status)
+    return {"error": message, "status": code, **extra}
+
+
+def error_response(message: str, status: int, code: str = "error", **extra) -> JsonResponse:
+    return JsonResponse(error_response_body(message, code, **extra), status=status)
 
 
 def validate_upload(file_obj, allowed: frozenset) -> Optional[str]:
@@ -70,56 +71,6 @@ def validate_upload(file_obj, allowed: frozenset) -> Optional[str]:
     if file_obj.size > max_upload_bytes():
         return f"File size exceeds the {settings.FORGEGUARD_MAX_UPLOAD_MB} MB limit."
     return None
-
-
-@contextmanager
-def upload_to_temp_file(file_obj) -> Iterator[str]:
-    """Stream an upload to a uniquely named scratch file, deleted afterwards."""
-    os.makedirs(settings.FORGEGUARD_TMP_DIR, exist_ok=True)
-    suffix = "." + extension_of(file_obj.name) if extension_of(file_obj.name) else ""
-    fd, path = tempfile.mkstemp(prefix="forgeguard_", suffix=suffix, dir=settings.FORGEGUARD_TMP_DIR)
-    try:
-        with os.fdopen(fd, "wb") as dest:
-            for chunk in file_obj.chunks():
-                dest.write(chunk)
-        yield path
-    finally:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Inference concurrency guard
-# ─────────────────────────────────────────────────────────────────────────────
-
-class ServerBusy(Exception):
-    """No inference slot became free within FORGEGUARD_INFERENCE_QUEUE_TIMEOUT."""
-
-
-_slots: Optional[threading.BoundedSemaphore] = None
-_slots_lock = threading.Lock()
-
-
-def _semaphore() -> threading.BoundedSemaphore:
-    global _slots
-    with _slots_lock:
-        if _slots is None:
-            _slots = threading.BoundedSemaphore(max(1, settings.FORGEGUARD_MAX_CONCURRENT_INFERENCES))
-        return _slots
-
-
-@contextmanager
-def inference_slot() -> Iterator[None]:
-    """Bound concurrent model runs so parallel uploads cannot exhaust RAM/VRAM."""
-    sem = _semaphore()
-    if not sem.acquire(timeout=settings.FORGEGUARD_INFERENCE_QUEUE_TIMEOUT):
-        raise ServerBusy()
-    try:
-        yield
-    finally:
-        sem.release()
 
 
 def model_unavailable_response(kind: str) -> JsonResponse:

@@ -155,14 +155,25 @@ DATABASES = {
     }
 }
 
-# Rate-limit counters. The in-process cache is per worker process; switch to a
-# shared backend (e.g. Redis) if the limit must hold across workers/replicas.
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'forgeguard',
-    }
-}
+# ─────────────────────────────────────────────
+# Background jobs (api/jobs.py)
+# ─────────────────────────────────────────────
+# Web requests only enqueue; `python manage.py run_worker` runs the models.
+# 'sqlite' keeps the queue in a file under FORGEGUARD_SPOOL_DIR (web and worker
+# on one host, works on Windows); 'redis' uses FORGEGUARD_REDIS_URL.
+FORGEGUARD_QUEUE_BACKEND = env_str('FORGEGUARD_QUEUE_BACKEND', 'sqlite').lower()
+if FORGEGUARD_QUEUE_BACKEND not in ('sqlite', 'redis'):
+    raise ImproperlyConfigured("FORGEGUARD_QUEUE_BACKEND must be 'sqlite' or 'redis'")
+FORGEGUARD_REDIS_URL = env_str('FORGEGUARD_REDIS_URL', 'redis://localhost:6379/0')
+
+# Rate-limit counters: shared through Redis when it is configured, so the limit
+# holds across processes and containers; otherwise per process.
+if FORGEGUARD_QUEUE_BACKEND == 'redis':
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+                          'LOCATION': FORGEGUARD_REDIS_URL, 'KEY_PREFIX': 'fg'}}
+else:
+    CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                          'LOCATION': 'forgeguard'}}
 
 
 # ─────────────────────────────────────────────
@@ -222,13 +233,22 @@ FORGEGUARD_MAX_BATCH_FILES = env_int('FORGEGUARD_MAX_BATCH_FILES', 20)
 # Whole-request cap, checked against Content-Length before the body is read
 FORGEGUARD_MAX_REQUEST_MB = env_int('FORGEGUARD_MAX_REQUEST_MB', 500)
 
-# Inference jobs allowed to run at once per process. A video job adds ~0.8 GB
-# of B7 activations on top of the ~0.9 GB of loaded models, and on CPU parallel
-# jobs only compete for the same cores, so 1 is right unless you have a GPU.
+# Jobs a worker process runs at once. A video job adds ~0.8 GB of B7
+# activations on top of the ~0.9 GB of loaded models, and on CPU parallel jobs
+# only compete for the same cores, so 1 is right unless you have a GPU.
 FORGEGUARD_MAX_CONCURRENT_INFERENCES = env_int('FORGEGUARD_MAX_CONCURRENT_INFERENCES', 1)
 
-# Seconds a request waits for a free inference slot before getting a 503
-FORGEGUARD_INFERENCE_QUEUE_TIMEOUT = env_int('FORGEGUARD_INFERENCE_QUEUE_TIMEOUT', 120)
+# Jobs allowed to wait in the queue; beyond this, submissions get 503 BUSY at once
+FORGEGUARD_MAX_QUEUE = env_int('FORGEGUARD_MAX_QUEUE', 32)
+
+# Seconds a finished job's result (and an unclaimed upload) is kept
+FORGEGUARD_JOB_TTL = env_int('FORGEGUARD_JOB_TTL', 3600)
+
+# The synchronous compatibility endpoints wait this long for their job, then
+# return 202 with a job id to poll. At most FORGEGUARD_MAX_SYNC_WAITERS requests
+# wait at once so web threads stay free (keep it below the gunicorn thread count).
+FORGEGUARD_SYNC_WAIT_SECONDS = env_int('FORGEGUARD_SYNC_WAIT_SECONDS', 20)
+FORGEGUARD_MAX_SYNC_WAITERS = env_int('FORGEGUARD_MAX_SYNC_WAITERS', 8)
 
 # Detection requests allowed per client IP per minute (0 disables the limit)
 FORGEGUARD_RATE_LIMIT_PER_MINUTE = env_int('FORGEGUARD_RATE_LIMIT_PER_MINUTE', 30)
@@ -240,11 +260,12 @@ FORGEGUARD_KEEP_UPLOADS = env_bool('FORGEGUARD_KEEP_UPLOADS', False)
 # Scratch space for uploads while they are analysed
 FORGEGUARD_TMP_DIR = env_str('FORGEGUARD_TMP_DIR', tempfile.gettempdir())
 
+# Uploads waiting for the worker, plus the SQLite queue file. Web and worker
+# must see the same directory (a shared volume in docker-compose).
+FORGEGUARD_SPOOL_DIR = env_str('FORGEGUARD_SPOOL_DIR', os.path.join(FORGEGUARD_TMP_DIR, 'forgeguard-spool'))
+
 # Directory holding model_c1.pth and deepfake_detector_b7.pth
 FORGEGUARD_WEIGHTS_DIR = env_str('FORGEGUARD_WEIGHTS_DIR', os.path.join(BASE_DIR, 'weights'))
-
-# Load both models when the WSGI app starts instead of on the first request
-FORGEGUARD_WARMUP_MODELS = env_bool('FORGEGUARD_WARMUP_MODELS', not DEBUG)
 
 # Django buffers uploads above this size to disk instead of memory
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024

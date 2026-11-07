@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import threading
+import time
 from unittest import mock
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from api import common
+from api import jobs
 from core.pipeline.image_processor import ImageDetectionResult
 
 from .conftest import make_image
@@ -106,7 +106,7 @@ def test_missing_weights_is_503_without_leaking_paths(client, empty_weights, url
 
 
 def test_unexpected_failure_is_generic_500(client, fake_weights):
-    with mock.patch("api.image_api.detect_image_bytes", side_effect=RuntimeError("secret internals")):
+    with mock.patch("core.pipeline.image_processor.detect_image_bytes", side_effect=RuntimeError("secret internals")):
         response = client.post("/api/detect-image/", {"image": make_image()})
     assert response.status_code == 500
     assert "secret internals" not in response.content.decode()
@@ -125,7 +125,7 @@ def test_unhandled_exception_returns_json_with_request_id(client):
 
 def test_image_success_shape_and_uploads_not_kept(client, fake_weights, settings):
     settings.FORGEGUARD_KEEP_UPLOADS = False
-    with mock.patch("api.image_api.detect_image_bytes", return_value=_fake_image_result()):
+    with mock.patch("core.pipeline.image_processor.detect_image_bytes", return_value=_fake_image_result()):
         response = client.post("/api/detect-image/", {"image": make_image()})
     assert response.status_code == 200
     body = response.json()
@@ -137,7 +137,7 @@ def test_image_success_shape_and_uploads_not_kept(client, fake_weights, settings
 
 def test_image_upload_kept_when_enabled(client, fake_weights, settings, tmp_path):
     settings.FORGEGUARD_KEEP_UPLOADS = True
-    with mock.patch("api.image_api.detect_image_bytes", return_value=_fake_image_result()):
+    with mock.patch("core.pipeline.image_processor.detect_image_bytes", return_value=_fake_image_result()):
         body = client.post("/api/detect-image/", {"image": make_image()}).json()
     assert (tmp_path / "media" / body["original_image"]).is_file()
 
@@ -146,7 +146,10 @@ def test_scratch_files_are_cleaned_up(client, fake_weights, settings, tmp_path):
     with mock.patch("api.unified_detection.detect_image_bytes", return_value=_fake_image_result()):
         response = client.post("/api/detect/", {"file": make_image()})
     assert response.status_code == 200
-    assert list((tmp_path / "tmp").iterdir()) == []
+    # Uploads are spooled for the worker, then deleted once the job ran
+    uploads = tmp_path / "spool" / "uploads"
+    assert uploads.is_dir(), "the upload never went through the spool"
+    assert list(uploads.iterdir()) == []
 
 
 # ── Rate limiting & concurrency ──────────────────────────────────────────────
@@ -168,27 +171,28 @@ def test_rate_limit_ignores_spoofed_forwarded_for_without_proxy(client, settings
     assert response.status_code == 429
 
 
-def test_busy_server_returns_503(client, fake_weights, settings):
-    settings.FORGEGUARD_MAX_CONCURRENT_INFERENCES = 1
-    settings.FORGEGUARD_INFERENCE_QUEUE_TIMEOUT = 0
-    holder_started, release = threading.Event(), threading.Event()
-
-    def hold_slot():
-        with common.inference_slot():
-            holder_started.set()
-            release.wait(5)
-
-    thread = threading.Thread(target=hold_slot)
-    thread.start()
-    try:
-        holder_started.wait(5)
-        response = client.post("/api/detect-image/", {"image": make_image()})
-    finally:
-        release.set()
-        thread.join()
+@pytest.mark.parametrize("url,field", [
+    ("/api/detect-image/", "image"), ("/api/detect/", "file"), ("/api/jobs/", "file"),
+])
+def test_full_queue_returns_503_busy_immediately(client, fake_weights, settings, monkeypatch, url, field):
+    """Audit I6: a busy server must refuse at once, not hold the request for minutes."""
+    settings.FORGEGUARD_MAX_QUEUE = 3
+    monkeypatch.setattr(jobs, "queue_depth", lambda: 3)
+    started = time.monotonic()
+    response = client.post(url, {field: make_image()})
+    elapsed = time.monotonic() - started
     assert response.status_code == 503
     assert response.json()["status"] == "BUSY"
     assert response["Retry-After"]
+    assert elapsed < 1.0, f"took {elapsed:.2f}s to refuse"
+
+
+def test_full_queue_rejects_a_batch_that_would_overflow_it(client, settings, monkeypatch):
+    settings.FORGEGUARD_MAX_QUEUE = 3
+    monkeypatch.setattr(jobs, "queue_depth", lambda: 2)
+    response = client.post("/api/detect/batch", {"file": [make_image("a.jpg"), make_image("b.jpg")]})
+    assert response.status_code == 503
+    assert response.json()["status"] == "BUSY"
 
 
 # ── Health, routing, headers ─────────────────────────────────────────────────

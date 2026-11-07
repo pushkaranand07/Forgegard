@@ -180,7 +180,7 @@ def test_no_face_result_has_null_scores(tmp_path, monkeypatch):
 # ── API mapping ──────────────────────────────────────────────────────────────
 
 def test_image_endpoint_maps_unavailable_model_to_503(client, fake_weights):
-    with mock.patch("api.image_api.detect_image_bytes", side_effect=WeightsIntegrityError("secret detail")):
+    with mock.patch("core.pipeline.image_processor.detect_image_bytes", side_effect=WeightsIntegrityError("secret detail")):
         response = client.post("/api/detect-image/", {"image": make_image()})
     assert response.status_code == 503
     assert response.json()["status"] == "MODEL_UNAVAILABLE"
@@ -188,7 +188,7 @@ def test_image_endpoint_maps_unavailable_model_to_503(client, fake_weights):
 
 
 def test_video_endpoint_maps_unavailable_model_to_503(client, fake_weights):
-    with mock.patch("api.video_api.detect_video_file", side_effect=CheckpointMismatchError("x")):
+    with mock.patch("core.pipeline.video_processor.detect_video_file", side_effect=CheckpointMismatchError("x")):
         response = client.post("/api/detect-video/", {"video": SimpleUploadedFile("a.mp4", b"data")})
     assert response.status_code == 503
     assert response.json()["status"] == "MODEL_UNAVAILABLE"
@@ -204,7 +204,7 @@ def test_unified_endpoint_maps_unavailable_model_to_503(client, fake_weights):
 def test_image_response_carries_model_version_block(client, fake_weights):
     from .test_api import _fake_image_result
 
-    with mock.patch("api.image_api.detect_image_bytes", return_value=_fake_image_result()):
+    with mock.patch("core.pipeline.image_processor.detect_image_bytes", return_value=_fake_image_result()):
         body = client.post("/api/detect-image/", {"image": make_image()}).json()
     assert set(body["model"]) == {"model_name", "weights_sha256", "pipeline_version"}
     assert body["model"]["pipeline_version"] == model_registry.pipeline_version()

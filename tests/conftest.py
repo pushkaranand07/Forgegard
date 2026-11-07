@@ -10,8 +10,11 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
-from api import common
+from api import jobs
 from core import model_registry
+
+# Jobs run synchronously, in memory, at enqueue time (no worker process needed)
+jobs.huey.immediate = True
 
 WEIGHTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "weights")
 # Gated per model: CI can download the video checkpoint from upstream, but the
@@ -23,15 +26,18 @@ HAS_WEIGHTS = HAS_IMAGE_WEIGHTS and HAS_VIDEO_WEIGHTS
 
 @pytest.fixture(autouse=True)
 def _isolated(settings, tmp_path):
-    """Fresh rate-limit counters, scratch dirs and inference slots per test."""
+    """Fresh rate-limit counters, scratch dirs and job store per test."""
     settings.FORGEGUARD_TMP_DIR = str(tmp_path / "tmp")
+    settings.FORGEGUARD_SPOOL_DIR = str(tmp_path / "spool")
     settings.MEDIA_ROOT = str(tmp_path / "media")
     settings.FORGEGUARD_RATE_LIMIT_PER_MINUTE = 0
     cache.clear()
-    common._slots = None
+    jobs.huey.storage.flush_results()
+    jobs.huey.flush()
+    jobs._waiters = None
     model_registry.reset_state()
     yield
-    common._slots = None
+    jobs._waiters = None
     model_registry.reset_state()
 
 

@@ -11,6 +11,9 @@ dependencies = [
     "whitenoise>=6.7,<7",
     "gunicorn>=26.2,<27",
     "python-dotenv>=1.0,<2",
+    # Background jobs (api/jobs.py): SQLite queue by default, Redis optional
+    "huey>=2.5,<3",
+    "redis>=5,<7",
     # Numerics, images & video
     "numpy>=2.0,<3",
     "Pillow>=13.0,<14",
@@ -71,6 +74,7 @@ addopts = "-ra --strict-markers"
 markers = [
     "models: needs the real weights in weights/ (skipped when they are absent)",
     "memory: peak-RSS bounds measured in a subprocess (slower)",
+    "integration: starts real worker and web processes",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
