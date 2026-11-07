@@ -74,8 +74,11 @@ jobs:
           DJANGO_HSTS_INCLUDE_SUBDOMAINS: "true"
           DJANGO_HSTS_PRELOAD: "true"
         run: |
+          # Production settings refuse to start without a real key, so generate one
+          DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
+          export DJANGO_SECRET_KEY
           uv run python manage.py check
-          DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"             uv run python manage.py check --deploy --fail-level WARNING
+          uv run python manage.py check --deploy --fail-level WARNING
       - name: make test
         run: make test
 
