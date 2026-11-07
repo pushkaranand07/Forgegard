@@ -83,6 +83,7 @@ defaults. The important ones:
 |---|---|---|
 | `DJANGO_DEBUG` | `true` | Must be `false` in production; the app refuses to start without a real `DJANGO_SECRET_KEY` then |
 | `DJANGO_HTTPS` | `false` | HTTPS redirect, secure cookies, HSTS |
+| `DJANGO_HSTS_INCLUDE_SUBDOMAINS`, `DJANGO_HSTS_PRELOAD` | `false` | Opt-in HSTS extensions; enable only when every subdomain is HTTPS |
 | `DJANGO_BEHIND_PROXY` | `false` | Trust `X-Forwarded-Proto` / `X-Forwarded-For` |
 | `FORGEGUARD_MAX_UPLOAD_MB` | `100` | Per-file limit (UI reads it from `/api/health/`) |
 | `FORGEGUARD_MAX_BATCH_FILES` | `20` | Files per batch request |

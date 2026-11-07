@@ -86,6 +86,7 @@ if HTTPS:
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = env_int('DJANGO_HSTS_SECONDS', 60 * 60 * 24 * 30)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('DJANGO_HSTS_INCLUDE_SUBDOMAINS', False)
+    SECURE_HSTS_PRELOAD = env_bool('DJANGO_HSTS_PRELOAD', False)
     # Health checks from the platform usually arrive over plain HTTP
     SECURE_REDIRECT_EXEMPT = [r'^api/health/']
 

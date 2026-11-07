@@ -67,10 +67,15 @@ jobs:
       # `make setup` is exactly what the README tells a new developer to run
       - name: make setup
         run: make setup
-      - name: Django checks
+      - name: Django checks (deploy warnings fail the build)
+        env:
+          DJANGO_DEBUG: "false"
+          DJANGO_HTTPS: "true"
+          DJANGO_HSTS_INCLUDE_SUBDOMAINS: "true"
+          DJANGO_HSTS_PRELOAD: "true"
         run: |
           uv run python manage.py check
-          DJANGO_DEBUG=false DJANGO_SECRET_KEY=ci-only-not-secret DJANGO_HTTPS=true uv run python manage.py check --deploy
+          DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"             uv run python manage.py check --deploy --fail-level WARNING
       - name: make test
         run: make test
 
