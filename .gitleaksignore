@@ -1,0 +1,3 @@
+# Reviewed historical findings (see SECURITY.md, "Secrets in git history").
+# Old hard-coded Django SECRET_KEY, removed 2026-04-17; no recorded deployment ever contained it.
+6983d82fd54aa3fd46027c269caff2c26f3f9a2d:Django Application/project_settings/settings.py:django-secret-key:18

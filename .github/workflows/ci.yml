@@ -105,6 +105,18 @@ jobs:
           npm ci --no-audit --no-fund
           npm audit --audit-level=high
 
+  secrets:
+    name: Secret scan (gitleaks, full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz | tar -xz gitleaks
+          ./gitleaks git --redact --no-banner --config .gitleaks.toml .
+
   web:
     name: Web UI (typecheck + build)
     runs-on: ubuntu-latest

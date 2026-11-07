@@ -1,0 +1,20 @@
+# gitleaks configuration: the default ruleset plus rules for this codebase.
+# Known, reviewed historical findings are listed by fingerprint in .gitleaksignore
+# (see SECURITY.md).
+
+[extend]
+useDefault = true
+
+# The default rules do not recognise a literal Django SECRET_KEY, which is the
+# one real secret this repository has ever contained.
+[[rules]]
+id = "django-secret-key"
+description = "Hard-coded Django SECRET_KEY"
+regex = '''SECRET_KEY\s*=\s*['"]([^'"\s]{20,})['"]'''
+secretGroup = 1
+keywords = ["secret_key"]
+
+  [[rules.allowlists]]
+  description = "Obvious placeholders and CI-only values"
+  regexTarget = "secret"
+  regexes = ['''(?i)(change[-_]?me|insecure|placeholder|example|ci[-_]only|collectstatic|not[-_]secret)''']
