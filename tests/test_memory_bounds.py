@@ -143,7 +143,7 @@ _HARNESS = textwrap.dedent(
 )
 
 
-def _peak_growth_mb(tmp_path: Path, kind: str, media: Path, weights: Path) -> dict:
+def _peak_growth_mb(tmp_path: Path, kind: str, media: Path, weights: Path, capsys) -> dict:
     script = tmp_path / "harness.py"
     script.write_text(_HARNESS, encoding="utf-8")
     env = {**os.environ, "FG_ROOT": str(ROOT), "FORGEGUARD_VERIFY_WEIGHTS": "false"}
@@ -151,9 +151,11 @@ def _peak_growth_mb(tmp_path: Path, kind: str, media: Path, weights: Path) -> di
                          capture_output=True, text=True, env=env, timeout=600)
     assert out.returncode == 0, out.stderr[-2000:]
     result = json.loads(out.stdout.strip().splitlines()[-1])
-    print(f"{kind} {media.name}: peak RSS growth {result['growth_mb']:.0f} MB (budget {BUDGET_MB} MB; "
-          f"peak counter reset: {result['peak_was_reset']}; "
-          f"without reset it would read {result['stale_peak_growth_mb']:.0f} MB)")
+    with capsys.disabled():  # always show the measurement, also for passing runs in CI
+        print()
+        print(f"{kind} {media.name}: peak RSS growth {result['growth_mb']:.0f} MB (budget {BUDGET_MB} MB; "
+              f"peak counter reset: {result['peak_was_reset']}; "
+              f"without reset it would read {result['stale_peak_growth_mb']:.0f} MB)")
     return result
 
 
@@ -166,27 +168,27 @@ def tiny_imd_weights(tmp_path_factory) -> Path:
     return path
 
 
-def test_49_megapixel_jpeg_stays_within_budget(tmp_path, tiny_imd_weights):
+def test_49_megapixel_jpeg_stays_within_budget(tmp_path, tiny_imd_weights, capsys):
     rng = np.random.default_rng(0)
     pixels = cv2.resize(rng.integers(0, 255, (700, 700, 3), dtype=np.uint8), (7000, 7000))
     media = tmp_path / "49mp.jpg"
     Image.fromarray(pixels).save(media, format="JPEG", quality=85)
     del pixels
 
-    result = _peak_growth_mb(tmp_path, "image", media, tiny_imd_weights)
+    result = _peak_growth_mb(tmp_path, "image", media, tiny_imd_weights, capsys)
 
     assert result["label"] in {"AUTHENTIC", "TAMPERED"}
     assert result["growth_mb"] < BUDGET_MB, f"peak RSS growth {result['growth_mb']:.0f} MB"
 
 
-def test_4096_square_video_stays_within_budget(tmp_path):
+def test_4096_square_video_stays_within_budget(tmp_path, capsys):
     media = tmp_path / "huge.avi"
     writer = cv2.VideoWriter(str(media), cv2.VideoWriter_fourcc(*"MJPG"), 10, (4096, 4096))
     for i in range(40):
         writer.write(np.full((4096, 4096, 3), i, np.uint8))
     writer.release()
 
-    result = _peak_growth_mb(tmp_path, "video", media, Path("unused.pth"))
+    result = _peak_growth_mb(tmp_path, "video", media, Path("unused.pth"), capsys)
 
     assert result["label"] == "UNSURE"  # flat frames: no face
     assert result["growth_mb"] < BUDGET_MB, f"peak RSS growth {result['growth_mb']:.0f} MB"
