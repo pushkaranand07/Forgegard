@@ -80,10 +80,28 @@ _HARNESS = textwrap.dedent(
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     proc = psutil.Process()
 
+    CLEAR_REFS = "/proc/self/clear_refs"
+
+    def reset_peak():
+        # Linux: reset the kernel's peak-RSS counter (VmHWM) so it covers only the call
+        try:
+            with open(CLEAR_REFS, "w") as f:
+                f.write("5")
+            return True
+        except OSError:
+            return False
+
     def lifetime_peak():
         info = proc.memory_info()
-        if hasattr(info, "peak_wset"):
+        if hasattr(info, "peak_wset"):  # Windows
             return info.peak_wset
+        try:
+            with open("/proc/self/status") as f:  # Linux: VmHWM, reset by reset_peak()
+                for line in f:
+                    if line.startswith("VmHWM:"):
+                        return int(line.split()[1]) * 1024
+        except OSError:
+            pass
         import resource
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
 
@@ -108,12 +126,19 @@ _HARNESS = textwrap.dedent(
         video_processor.get_face_extractor("cpu")                # load MTCNN before measuring
         run = lambda: video_processor.detect_video_file(path, "unused.pth", device="cpu")
 
+    stale_peak = lifetime_peak()  # includes imports / model load, for the log only
+    peak_was_reset = reset_peak()
     before = proc.memory_info().rss
     t = threading.Thread(target=sample, daemon=True); t.start()
     result = run()
     stop.set(); t.join()
     growth = max(peak[0], lifetime_peak()) - before
-    print(json.dumps({"growth_mb": growth / 1048576, "label": getattr(result, "label", None)}))
+    print(json.dumps({
+        "growth_mb": growth / 1048576,
+        "label": getattr(result, "label", None),
+        "peak_was_reset": peak_was_reset,
+        "stale_peak_growth_mb": (max(stale_peak, peak[0]) - before) / 1048576,
+    }))
     """
 )
 
@@ -126,7 +151,9 @@ def _peak_growth_mb(tmp_path: Path, kind: str, media: Path, weights: Path) -> di
                          capture_output=True, text=True, env=env, timeout=600)
     assert out.returncode == 0, out.stderr[-2000:]
     result = json.loads(out.stdout.strip().splitlines()[-1])
-    print(f"{kind} {media.name}: peak RSS growth {result['growth_mb']:.0f} MB (budget {BUDGET_MB} MB)")
+    print(f"{kind} {media.name}: peak RSS growth {result['growth_mb']:.0f} MB (budget {BUDGET_MB} MB; "
+          f"peak counter reset: {result['peak_was_reset']}; "
+          f"without reset it would read {result['stale_peak_growth_mb']:.0f} MB)")
     return result
 
 
