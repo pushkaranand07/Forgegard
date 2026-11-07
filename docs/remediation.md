@@ -15,12 +15,12 @@ green in CI.
 | I7 | High | 0 | Manifest download URLs + verified download script; B7 identified upstream; notebook committed | `tests/test_download_weights.py`; fresh clone fetched and verified B7 from upstream | `460feb462`, `6f87cc6c0`, `9ffc94363` | Partial: `model_c1.pth` still has no public URL (owner decision) |
 | I8 | Medium | 1.4 | Delete the legacy upload surface | Legacy routes 404; upload dir empty | | Not started |
 | I9 | Medium | 4.1 | Narrow face-detection exception, log, raise | Detector error → 500 + log line, not UNSURE | | Not started |
-| I10 | Medium | 1.4 | Resolved by deleting the legacy surface | Docker CI job | | Not started |
+| I10 | Medium | 1.4 | Resolved by deleting the legacy surface | Docker CI job (now builds and runs the image) | | Not started |
 | I11 | Medium | 2 | Per-file jobs with timeouts | 20-video batch completes | | Not started |
-| I12 | Medium | 0 | Fix the YAML parse error; actionlint in CI; from-scratch setup + Docker run jobs | actionlint clean locally; jobs execute on GitHub | `76b0b1cfb`, `235f332ae` | Fixed locally; awaiting first GitHub run |
+| I12 | Medium | 0 | Fix the YAML parse error; actionlint in CI; from-scratch setup + Docker run jobs | actionlint clean locally; jobs execute on GitHub | `76b0b1cfb`, `235f332ae`, `b701a9fc5` | Verified: PR #1, all blocking jobs green |
 | I13 | Medium | 5 | Tests for classify/aggregate, preprocess goldens, batch | Coverage gate with those lines covered | | Not started |
 | I14 | Medium | 6.3 | Vercel rewrite for `/api` | Deployed frontend reaches backend | | Not started |
-| I15 | Medium | 0 | Python 3.12 pin, uv lockfile, frozen installs, digest-pinned base images | Fresh clone installed exactly the locked versions | `c4913369d` | Done (CI to confirm on Linux) |
+| I15 | Medium | 0 | Python 3.12 pin, uv lockfile, frozen installs, digest-pinned base images | Fresh clone installed exactly the locked versions | `c4913369d` | Verified: `uv sync --frozen` green on Linux CI and in the Docker build |
 | I16 | Low | 3.1, 3.5 | Remove "confident" wording; calibrate | Vitest on `verdict.ts`; ECE reported | | Not started |
 | I17 | Low | 4.2 | `ErrorCode` / `Verdict` enums, one response shape | Cross-endpoint contract test | | Not started |
 | I18 | Low | 4.3 | `num_faces_analyzed` + `num_frames_sampled` | Unit test on result fields | | Not started |
@@ -38,3 +38,5 @@ green in CI.
 | 2026-11-07 | Fresh clone of `phase0-unblock`, `uv sync --frozen` | 103 s; Python 3.12.11, Django 6.0.10, numpy 2.5.4, Pillow 12.3.0, torch 2.11.0+cpu (exactly `uv.lock`) |
 | 2026-11-07 | Fresh clone: sync + weights + web build + checks + tests | 195 s total; 77 passed, 10 skipped (all need `model_c1.pth`) |
 | 2026-11-07 | `train.ipynb` review (Phase 3 input) | `random_split` has no seed (split not reproducible); the ELA generation step is not in the notebook |
+| 2026-11-08 | First GitHub Actions run with jobs (PR #1) | lint, setup + tests, audit, web, docker: pass. mypy: 13 errors (non-blocking). pip-audit: non-blocking |
+| 2026-11-08 | Docker image in CI | Builds from `uv.lock`; 384 MB as reported by `docker image inspect`; runs as non-root; `/api/health/live` ok; video model loaded and healthy; readiness `degraded` only because `model_c1.pth` is absent |
