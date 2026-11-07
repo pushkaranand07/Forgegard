@@ -126,7 +126,6 @@ _HARNESS = textwrap.dedent(
         video_processor.get_face_extractor("cpu")                # load MTCNN before measuring
         run = lambda: video_processor.detect_video_file(path, "unused.pth", device="cpu")
 
-    stale_peak = lifetime_peak()  # includes imports / model load, for the log only
     peak_was_reset = reset_peak()
     before = proc.memory_info().rss
     t = threading.Thread(target=sample, daemon=True); t.start()
@@ -137,7 +136,6 @@ _HARNESS = textwrap.dedent(
         "growth_mb": growth / 1048576,
         "label": getattr(result, "label", None),
         "peak_was_reset": peak_was_reset,
-        "stale_peak_growth_mb": (max(stale_peak, peak[0]) - before) / 1048576,
     }))
     """
 )
@@ -154,8 +152,7 @@ def _peak_growth_mb(tmp_path: Path, kind: str, media: Path, weights: Path, capsy
     with capsys.disabled():  # always show the measurement, also for passing runs in CI
         print()
         print(f"{kind} {media.name}: peak RSS growth {result['growth_mb']:.0f} MB (budget {BUDGET_MB} MB; "
-              f"peak counter reset: {result['peak_was_reset']}; "
-              f"without reset it would read {result['stale_peak_growth_mb']:.0f} MB)")
+              f"Linux peak counter reset before the call: {result['peak_was_reset']})")
     return result
 
 

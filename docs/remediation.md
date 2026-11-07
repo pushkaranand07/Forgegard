@@ -47,3 +47,4 @@ green in CI.
 | 2026-11-08 | gitleaks, default rules | 0 findings: misses the known historical Django key (false negative) |
 | 2026-11-08 | gitleaks, + custom Django-key rule | 1 finding (`6983d82fd`, 2020), reviewed and fingerprinted; 4 / 4 recorded deployments checked: none contained it |
 | 2026-11-08 | CSP in Chrome against the built UI | 0 violations across all pages, image analysis, data:/blob: images |
+| 2026-11-08 | Peak RSS growth on Linux CI (VmHWM reset before the call) | 49 MP JPEG 477 MB, 4096² AVI 204 MB (budget 600 MB). The first CI run read 649 MB for the JPEG because it used `ru_maxrss`, the process lifetime peak, which includes imports and model loading; the harness now resets the counter first. Correction: commit `2141f73ed` said the harness logs what the unreset counter would read; that logged value was computed differently and was removed in the next commit |
