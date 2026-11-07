@@ -43,20 +43,18 @@ Both sit behind a hardened Django API and a React UI. The serving layer, the UI,
 - **Licences:** the training datasets (DFDC, CASIA) allow non-commercial research only. See [CREDITS.md](CREDITS.md).
 
 ## Installation & Setup
-Requires Python 3.11–3.13 and Node 22+.
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) and Node 22+. uv installs Python 3.12 (pinned in `.python-version`) if you don't have it.
 
-1. Create a virtual environment and install the dependencies. PyTorch comes first (CPU wheels shown; see https://pytorch.org for a CUDA build), and `facenet-pytorch` is installed without its dependencies because its metadata pins outdated torch/numpy/Pillow versions.
+On Linux/macOS, `make setup` runs steps 1, 2 and 4 below; then `make test`. On Windows, run the commands directly.
+
+1. Install the locked dependencies (exact versions and hashes from `uv.lock`, CPU PyTorch wheels) into `.venv/`.
 ```bash
-python -m venv .venv
-.venv\Scripts\activate                    # Linux/macOS: source .venv/bin/activate
-pip install "torch==2.11.0" "torchvision==0.26.0" --index-url https://download.pytorch.org/whl/cpu
-pip install -r requirements.txt
-pip install --no-deps "facenet-pytorch==2.6.0"
-pip install -r requirements-dev.txt         # tests and lint
+uv sync --frozen
 ```
+   For a CUDA build, change the `pytorch-cpu` index in `pyproject.toml` and run `uv lock`. Training-notebook tools are a separate group: `uv sync --frozen --group train`.
 2. Download and verify the model weights into `weights/`. Every file is checked against the SHA-256 in `core/model_manifest.json`.
 ```bash
-python scripts/download_weights.py
+uv run python scripts/download_weights.py
 ```
    The video model comes from its upstream release. The image model (`model_c1.pth`) has no public download yet: the script reports it as missing, and you can point it at a copy with `FORGEGUARD_WEIGHTS_URL_MODEL_C1_PTH=<url>`. Without it the image endpoint returns `503` and the image-model tests are skipped.
 3. Copy the configuration template (it is loaded automatically and works as-is for local development).
@@ -71,15 +69,15 @@ npm run build
 ```
 5. Apply migrations, run the server and open http://127.0.0.1:8000/.
 ```bash
-python manage.py migrate
-python manage.py runserver
+uv run python manage.py migrate
+uv run python manage.py runserver
 ```
 
 ### Web UI development
 Run Django on :8000 and the Vite dev server on :5173 (it proxies `/api` to Django):
 ```bash
-python manage.py runserver      # terminal 1
-cd web && npm run dev           # terminal 2 → http://localhost:5173
+uv run python manage.py runserver   # terminal 1
+cd web && npm run dev               # terminal 2 → http://localhost:5173
 ```
 
 Pages: Home, Analyze (single image/video with upload progress), Batch (up to 20 files, CSV/JSON export), History (stored in the browser), Report (printable A4 / Save as PDF), System status, API reference and How it works. The previous Django-template UI is still available at `/legacy/`.
@@ -100,11 +98,11 @@ Manual measurement on CPU (not yet scripted): ~0.9 GB RAM with both models loade
 
 ## Testing
 ```bash
-pytest          # real-model and golden-sample tests skip automatically when weights/ is empty
-ruff check .
+uv run pytest              # real-model and golden-sample tests skip automatically when weights are missing
+uv run ruff check .
 cd web && npm run build    # includes the TypeScript type check
 ```
-CI (`.github/workflows/ci.yml`) runs lint, Django deploy checks, the test suite, the UI build and a Docker image build on every push and pull request.
+CI (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request: ruff and actionlint; a from-scratch `make setup` followed by Django deploy checks and `make test`; a dependency audit; the UI build; and a Docker job that builds the image, runs it, checks liveness and readiness and asserts it runs as non-root. mypy and pip-audit run but don't block yet (see [docs/remediation.md](docs/remediation.md)).
 
 ## API Reference
 Full reference with response examples and error codes: [docs/api_reference.md](docs/api_reference.md).

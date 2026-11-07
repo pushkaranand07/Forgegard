@@ -103,14 +103,12 @@ replicas, either accept a per-worker limit or configure a shared Django cache
 ## Without Docker (Linux VM)
 
 ```bash
-python3.12 -m venv .venv && . .venv/bin/activate
-pip install "torch==2.11.0" "torchvision==0.26.0" --index-url https://download.pytorch.org/whl/cpu
-pip install -r requirements.txt
-pip install --no-deps "facenet-pytorch==2.6.0"
+uv sync --frozen --no-dev
+uv run python scripts/download_weights.py
 (cd web && npm ci && npm run build)
-python manage.py collectstatic --noinput
-python manage.py migrate --noinput
-gunicorn config.wsgi:application -c gunicorn.conf.py
+uv run python manage.py collectstatic --noinput
+uv run python manage.py migrate --noinput
+uv run gunicorn config.wsgi:application -c gunicorn.conf.py
 ```
 
 Run it under systemd (or similar) with the environment variables above.
