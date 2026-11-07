@@ -29,7 +29,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from django.conf import settings
-from huey import RedisHuey, SqliteHuey, crontab
+from huey import PriorityRedisHuey, SqliteHuey, crontab
 
 from . import common
 
@@ -41,6 +41,10 @@ TERMINAL = (DONE, FAILED)
 HEARTBEAT_KEY = "worker:heartbeat"
 HEARTBEAT_INTERVAL = 10  # seconds
 
+# Images take ~0.1 s, videos ~25 s on CPU: queue images first so one image never
+# waits behind minutes of video (a running job is never interrupted).
+IMAGE_PRIORITY, VIDEO_PRIORITY = 10, 0
+
 
 class QueueFull(Exception):
     """The queue already holds FORGEGUARD_MAX_QUEUE jobs; the caller should get 503 BUSY."""
@@ -49,7 +53,8 @@ class QueueFull(Exception):
 def _build_huey():
     backend = settings.FORGEGUARD_QUEUE_BACKEND
     if backend == "redis":
-        return RedisHuey("forgeguard", url=settings.FORGEGUARD_REDIS_URL, results=True)
+        # Priority-aware Redis storage (needs Redis >= 5); SQLite storage is priority-aware already
+        return PriorityRedisHuey("forgeguard", url=settings.FORGEGUARD_REDIS_URL, results=True)
     os.makedirs(settings.FORGEGUARD_SPOOL_DIR, exist_ok=True)
     return SqliteHuey("forgeguard", filename=os.path.join(settings.FORGEGUARD_SPOOL_DIR, "queue.sqlite3"))
 
@@ -147,10 +152,14 @@ def _new_job_record(job_id: str, kind: str, upload, path: str, batch_id: Optiona
     }
 
 
+def priority_for(record: Dict[str, Any]) -> int:
+    return IMAGE_PRIORITY if common.media_type_for(record["file_name"]) == "image" else VIDEO_PRIORITY
+
+
 def _enqueue(record: Dict[str, Any]) -> None:
     _save(_key("job", record["job_id"]), record)
     try:
-        run_job(record["job_id"])
+        run_job(record["job_id"], priority=priority_for(record))
     except Exception:
         # Could not reach the queue: undo so the upload is not orphaned
         _discard(record["path"])

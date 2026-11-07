@@ -96,6 +96,30 @@ def test_purge_removes_expired_records_and_orphaned_uploads(settings, tmp_path):
     assert not orphan.exists() and fresh.exists()
 
 
+@pytest.mark.parametrize("name,expected", [("a.jpg", jobs.IMAGE_PRIORITY), ("a.webp", jobs.IMAGE_PRIORITY),
+                                           ("a.mp4", jobs.VIDEO_PRIORITY), ("a.gif", jobs.VIDEO_PRIORITY)])
+def test_images_are_queued_ahead_of_videos(name, expected):
+    assert jobs.priority_for({"file_name": name}) == expected
+    assert jobs.IMAGE_PRIORITY > jobs.VIDEO_PRIORITY
+
+
+def test_sqlite_queue_hands_out_image_jobs_before_waiting_videos(tmp_path):
+    """The real SQLite storage (not immediate mode) must dequeue by priority."""
+    from huey import SqliteHuey
+
+    queue = SqliteHuey("prio-test", filename=str(tmp_path / "q.sqlite3"))
+
+    @queue.task()
+    def work(name):
+        return name
+
+    for name, prio in [("video-1", jobs.VIDEO_PRIORITY), ("video-2", jobs.VIDEO_PRIORITY),
+                       ("image", jobs.IMAGE_PRIORITY)]:
+        work(name, priority=prio)
+    order = [queue.dequeue().args[0] for _ in range(3)]
+    assert order == ["image", "video-1", "video-2"]
+
+
 # ── Synchronous wrappers ─────────────────────────────────────────────────────
 
 def test_wrapper_returns_202_with_job_when_the_job_outlasts_the_wait(client, fake_weights):
