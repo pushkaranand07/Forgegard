@@ -157,8 +157,8 @@ jobs:
         run: python3 scripts/download_weights.py --allow-missing
       - name: Start the stack
         run: |
-          DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
-          export DJANGO_SECRET_KEY
+          # As a user would: compose reads .env for every command (up, exec, cp, logs)
+          echo "DJANGO_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')" > .env
           docker compose up -d --no-build
       - name: Web liveness, then readiness once the worker has loaded the video model
         run: |
