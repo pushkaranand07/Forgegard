@@ -9,7 +9,7 @@ dependencies = [
     # Web
     "Django>=5.2,<6.1",
     "whitenoise>=6.7,<7",
-    "gunicorn>=23,<24",
+    "gunicorn>=26.2,<27",
     "python-dotenv>=1.0,<2",
     # Numerics, images & video
     "numpy>=2.0,<3",
