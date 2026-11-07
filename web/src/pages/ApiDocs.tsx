@@ -22,7 +22,7 @@ const ENDPOINTS: Endpoint[] = [
     path: "/api/detect-image/",
     title: "Image tamper detection",
     description: "Level-1 metadata forensics plus Level-2 error-level analysis with a CNN.",
-    fields: [["image", "Image file — jpg, jpeg, png, bmp, tif, tiff or webp, up to 100 MB"]],
+    fields: [["image", "Image file — jpg, jpeg, png or webp, up to 100 MB. The content must match the extension (415 otherwise)"]],
     curl: `curl -F "image=@photo.jpg" ${ORIGIN}/api/detect-image/`,
     response: `{
   "label": "TAMPERED",            // or "AUTHENTIC"

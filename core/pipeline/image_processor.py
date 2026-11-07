@@ -38,16 +38,19 @@ from torch import nn
 
 from core import model_registry
 from core.model_registry import CheckpointMismatchError, ModelUnavailableError
+from core.pipeline.safe_image import (  # re-exported: callers import these from here
+    MAX_IMAGE_PIXELS,
+    InvalidImageError,
+    UnsupportedMediaError,
+    open_untrusted,
+)
 
 logger = logging.getLogger("forgeguard.image")
 
-# Larger images are rejected before decoding: ELA holds several full-size
-# copies in memory, so a crafted 100+ MP file could exhaust RAM.
-MAX_IMAGE_PIXELS = 50_000_000
-
-
-class InvalidImageError(ValueError):
-    """The upload is not a decodable image, or is too large to analyse safely."""
+__all__ = [
+    "MAX_IMAGE_PIXELS", "InvalidImageError", "UnsupportedMediaError", "IMDModel",
+    "ImageDetectionResult", "load_model", "detect_image_file", "detect_image_bytes", "is_model_loaded",
+]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -235,7 +238,7 @@ def _ela_image(original: Image.Image, jpeg_quality: int = 90, scale: int = 10) -
     buf = io.BytesIO()
     original.save(buf, format="JPEG", quality=int(jpeg_quality))
     buf.seek(0)
-    recompressed = Image.open(buf).convert("RGB")
+    recompressed = Image.open(buf, formats=("JPEG",)).convert("RGB")  # noqa: TID251 — our own re-encode
 
     diff = ImageChops.difference(original, recompressed)
 
@@ -363,22 +366,9 @@ def _run_inference(pil_img: Image.Image, model_path: str,
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _open_image(source) -> Image.Image:
-    """Open and fully decode an image, rejecting non-images and oversized files."""
-    try:
-        img = Image.open(source)
-    except (Image.UnidentifiedImageError, Image.DecompressionBombError) as exc:
-        raise InvalidImageError("The file is not a readable image.") from exc
-    if img.width * img.height > MAX_IMAGE_PIXELS:
-        raise InvalidImageError(
-            f"Image is {img.width}×{img.height}; the maximum is "
-            f"{MAX_IMAGE_PIXELS // 1_000_000} megapixels."
-        )
-    try:
-        img.load()  # surface truncated / corrupt files here rather than mid-pipeline
-    except (OSError, SyntaxError) as exc:
-        raise InvalidImageError("The image file is corrupt or truncated.") from exc
-    return img
+def _open_image(source, extension: Optional[str] = None) -> Image.Image:
+    """Open and fully decode an untrusted image (see core/pipeline/safe_image.py)."""
+    return open_untrusted(source, extension)
 
 
 def is_model_loaded(model_path: str) -> bool:
@@ -404,7 +394,7 @@ def detect_image_file(
     Returns:
         ImageDetectionResult with Level-1 and Level-2 findings.
     """
-    pil_img = _open_image(image_path)
+    pil_img = _open_image(image_path, os.path.splitext(str(image_path))[1])
     return _run_inference(pil_img, model_path=model_path, device=device)
 
 
@@ -412,6 +402,7 @@ def detect_image_bytes(
     raw_bytes: bytes,
     model_path: str,
     device: Optional[torch.device] = None,
+    extension: Optional[str] = None,
 ) -> ImageDetectionResult:
     """
     Analyse an image provided as raw bytes (e.g. from Django request.FILES).
@@ -420,9 +411,10 @@ def detect_image_bytes(
         raw_bytes  : Image data as a bytes object.
         model_path : Path to the IMDModel weights (.pth)
         device     : Optional target device; auto-selected if None.
+        extension  : The upload's extension; the decoded format must match it.
 
     Returns:
         ImageDetectionResult with Level-1 and Level-2 findings.
     """
-    pil_img = _open_image(io.BytesIO(raw_bytes))
+    pil_img = _open_image(io.BytesIO(raw_bytes), extension)
     return _run_inference(pil_img, model_path=model_path, device=device)

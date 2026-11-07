@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any
 
 import torch
 
-from core.pipeline.image_processor import detect_image_bytes, InvalidImageError
+from core.pipeline.image_processor import InvalidImageError, UnsupportedMediaError, detect_image_bytes
 from core.pipeline.video_processor import (
     detect_video_file,
     InvalidFileException, EmptyVideoException, NoVisualFramesException,
@@ -57,6 +57,8 @@ class UnifiedDetectionResult:
     internal_error: bool = False
     # True when the model exists but cannot be served (hash mismatch, bad checkpoint)
     model_unavailable: bool = False
+    # True when the file is an image format ForgeGuard does not decode (HTTP 415)
+    unsupported_media: bool = False
     # Version block: model name, weights hash, pipeline version
     model: Optional[Dict[str, Any]] = None
     
@@ -171,7 +173,7 @@ def _detect_image(
             image_bytes = f.read()
         
         # Run image detection
-        imd_result = detect_image_bytes(image_bytes, model_path)
+        imd_result = detect_image_bytes(image_bytes, model_path, extension=common.extension_of(file_path))
         
         # Map to unified result
         label = "AUTHENTIC" if imd_result.predicted_class == 1 else "TAMPERED"
@@ -198,6 +200,16 @@ def _detect_image(
             model=common.model_info(model_path),
         )
     
+    except UnsupportedMediaError as e:
+        return UnifiedDetectionResult(
+            media_type="image",
+            label="ERROR",
+            confidence_pct=None,
+            device=device,
+            processing_time_ms=(time.time() - start_time) * 1000,
+            error=str(e),
+            unsupported_media=True,
+        )
     except InvalidImageError as e:
         error = str(e)
     except ModelUnavailableError:

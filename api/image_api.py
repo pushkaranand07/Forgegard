@@ -49,7 +49,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from core.model_registry import ModelUnavailableError
-from core.pipeline.image_processor import detect_image_bytes, InvalidImageError
+from core.pipeline.image_processor import InvalidImageError, UnsupportedMediaError, detect_image_bytes
 from .common import (
     IMAGE_EXTENSIONS, ServerBusy, busy_response, error_response, extension_of,
     image_model_path, inference_slot, model_info, model_unavailable_response,
@@ -119,9 +119,13 @@ def api_detect_image(request):
 
     try:
         with inference_slot():
-            result = detect_image_bytes(raw_bytes=raw_bytes, model_path=model_path)
+            result = detect_image_bytes(
+                raw_bytes=raw_bytes, model_path=model_path, extension=extension_of(image_file.name)
+            )
     except ServerBusy:
         return busy_response()
+    except UnsupportedMediaError as exc:
+        return error_response(str(exc), 415, "UNSUPPORTED_MEDIA")
     except InvalidImageError as exc:
         return error_response(str(exc), 400, "INVALID_IMAGE")
     except ModelUnavailableError:

@@ -22,7 +22,8 @@ from django.core.cache import cache
 from django.http import JsonResponse
 
 
-IMAGE_EXTENSIONS: frozenset = frozenset({"jpg", "jpeg", "png", "bmp", "tiff", "tif", "webp"})
+# Must match core.pipeline.safe_image.FORMAT_FOR_EXTENSION: only these decoders are ever run.
+IMAGE_EXTENSIONS: frozenset = frozenset({"jpg", "jpeg", "png", "webp"})
 # GIFs are treated as (animated) video: the frame model handles them, ELA does not.
 VIDEO_EXTENSIONS: frozenset = frozenset({"mp4", "avi", "webm", "mov", "mkv", "flv", "3gp", "wmv", "gif"})
 

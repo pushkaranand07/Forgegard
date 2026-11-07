@@ -8,7 +8,7 @@ the live values from `GET /api/health/` rather than hard-coding them.
 
 | Media | Extensions |
 |---|---|
-| Image | jpg, jpeg, png, bmp, tif, tiff, webp (max 50 megapixels) |
+| Image | jpg, jpeg, png, webp (max 50 megapixels). The real format is read from the file and must match the extension; anything else gets `415 UNSUPPORTED_MEDIA` |
 | Video | mp4, avi, webm, mov, mkv, flv, 3gp, wmv, gif |
 
 ## `POST /api/detect-image/`
@@ -124,6 +124,7 @@ and every response carries an `X-Request-ID` header to quote in bug reports.
 |---|---|---|
 | 400 | `error` | No file, unsupported extension, empty or oversized file, too many batch files |
 | 400 | `INVALID_IMAGE` | Not a decodable image, truncated, or over 50 megapixels |
+| 415 | `UNSUPPORTED_MEDIA` | A recognised image format other than JPEG, PNG or WebP, or a format that does not match the extension (e.g. PNG bytes named `.jpg`) |
 | 400 | `INVALID_FILE`, `EMPTY_VIDEO`, `NO_VISUAL_FRAMES` | Video cannot be opened or has no frames |
 | 404 | `NOT_FOUND` | Unknown `/api/` path |
 | 405 | — | Wrong HTTP method |
