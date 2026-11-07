@@ -32,6 +32,7 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.11",
     "django-stubs>=5.1",
+    "psutil>=6.0",
 ]
 # Training notebooks only; not needed to run or test the service
 train = [
@@ -69,6 +70,7 @@ python_files = ["test_*.py", "tests.py"]
 addopts = "-ra --strict-markers"
 markers = [
     "models: needs the real weights in weights/ (skipped when they are absent)",
+    "memory: peak-RSS bounds measured in a subprocess (slower)",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

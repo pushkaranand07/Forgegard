@@ -224,28 +224,44 @@ def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
 # Level 2 — ELA preprocessing (vectorized, no pixel loop)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ELA is computed in horizontal strips so peak memory is one output buffer plus
+# one strip, not several full-size copies. Strips start on the 16-row JPEG MCU
+# grid and are re-encoded with a 16-row margin on each side, so chroma
+# upsampling at strip edges sees the same neighbours as a whole-image encode:
+# the result is bit-identical to whole-image ELA (tests/test_memory_bounds.py).
+_ELA_STRIP_ROWS = 512
+_ELA_MARGIN_ROWS = 16
+
+
 def _ela_image(original: Image.Image, jpeg_quality: int = 90, scale: int = 10) -> Image.Image:
     """
-    In-memory Error Level Analysis (ELA).
+    In-memory Error Level Analysis (ELA) at native resolution.
 
-    Re-saves the image at `jpeg_quality` and computes the pixel difference
-    between the original and the re-saved version, scaled by `scale`.
-
-    This is a vectorized replacement for the upstream pixel-by-pixel loop —
-    typically 50–100× faster on realistic image sizes.
+    Re-saves the image at `jpeg_quality` and returns the per-pixel difference
+    between the original and the re-saved version, multiplied by `scale` and
+    clipped to 255. Everything stays uint8.
     """
-    original = original.convert("RGB")
-    buf = io.BytesIO()
-    original.save(buf, format="JPEG", quality=int(jpeg_quality))
-    buf.seek(0)
-    recompressed = Image.open(buf, formats=("JPEG",)).convert("RGB")  # noqa: TID251 — our own re-encode
+    if original.mode != "RGB":
+        original = original.convert("RGB")
+    width, height = original.size
+    out = Image.new("RGB", (width, height))
+    amplify = [min(255, value * scale) for value in range(256)] * 3  # per-band lookup table
 
-    diff = ImageChops.difference(original, recompressed)
+    for top in range(0, height, _ELA_STRIP_ROWS):
+        bottom = min(top + _ELA_STRIP_ROWS, height)
+        lo = max(0, top - _ELA_MARGIN_ROWS)
+        hi = min(height, bottom + _ELA_MARGIN_ROWS)
+        tile = original.crop((0, lo, width, hi))
 
-    # Vectorized scale: clip to [0, 255] after multiplication
-    diff_arr = np.asarray(diff, dtype=np.int32)
-    diff_arr = np.clip(diff_arr * scale, 0, 255).astype(np.uint8)
-    return Image.fromarray(diff_arr, mode="RGB")
+        buf = io.BytesIO()
+        tile.save(buf, format="JPEG", quality=int(jpeg_quality))
+        buf.seek(0)
+        recompressed = Image.open(buf, formats=("JPEG",)).convert("RGB")  # noqa: TID251 — our own re-encode
+
+        diff = ImageChops.difference(tile, recompressed).point(amplify)
+        out.paste(diff.crop((0, top - lo, width, bottom - lo)), (0, top))
+
+    return out
 
 
 def _preprocess(img: Image.Image) -> torch.Tensor:
@@ -331,7 +347,8 @@ def _run_inference(pil_img: Image.Image, model_path: str,
 
     # Level 1 — metadata (on the image as opened, before RGB conversion)
     software_found, software_sig, notes = _analyse_metadata(pil_img)
-    pil_img = pil_img.convert("RGB")
+    if pil_img.mode != "RGB":  # avoid a full-size copy when it already is
+        pil_img = pil_img.convert("RGB")
 
     # Level 2 — ELA + CNN
     model = load_model(model_path=model_path, device=device)

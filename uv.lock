@@ -558,6 +558,7 @@ dependencies = [
 dev = [
     { name = "django-stubs" },
     { name = "mypy" },
+    { name = "psutil" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "ruff" },
@@ -592,6 +593,7 @@ requires-dist = [
 dev = [
     { name = "django-stubs", specifier = ">=5.1" },
     { name = "mypy", specifier = ">=1.11" },
+    { name = "psutil", specifier = ">=6.0" },
     { name = "pytest", specifier = ">=8,<10" },
     { name = "pytest-django", specifier = ">=4.9,<5" },
     { name = "ruff", specifier = ">=0.6" },
