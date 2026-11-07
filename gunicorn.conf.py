@@ -1,11 +1,13 @@
 """
-Gunicorn settings for ForgeGuard. Every value can be overridden with the
-matching GUNICORN_* environment variable.
+Gunicorn settings for the ForgeGuard web process. Every value can be
+overridden with the matching GUNICORN_* environment variable.
 
-Each worker process holds its own copy of both models (~0.9 GB RAM on CPU,
-peaking ~1.7 GB during a video analysis), so scale with threads, not workers:
-requests share one model instance and FORGEGUARD_MAX_CONCURRENT_INFERENCES
-bounds how many run at once.
+The web process never runs a model: it validates uploads, queues jobs and
+serves results; the worker (`manage.py run_worker`) runs the models. Threads
+are therefore cheap, and plenty of them keep health checks answering while
+some requests wait for their job. Keep FORGEGUARD_MAX_SYNC_WAITERS below the
+thread count. With the SQLite queue, run one web process per host; with Redis,
+any number.
 """
 
 import os
@@ -13,10 +15,10 @@ import os
 bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"
 workers = int(os.getenv("GUNICORN_WORKERS", "1"))
 worker_class = "gthread"
-threads = int(os.getenv("GUNICORN_THREADS", "4"))
+threads = int(os.getenv("GUNICORN_THREADS", "16"))
 
-# CPU inference on a long video can take minutes
-timeout = int(os.getenv("GUNICORN_TIMEOUT", "300"))
+# Requests wait at most FORGEGUARD_SYNC_WAIT_SECONDS for a job; this covers slow uploads
+timeout = int(os.getenv("GUNICORN_TIMEOUT", "120"))
 graceful_timeout = 30
 keepalive = 5
 

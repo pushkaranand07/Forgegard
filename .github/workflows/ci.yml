@@ -132,7 +132,7 @@ jobs:
       - run: npm run build
 
   docker:
-    name: Docker image builds, runs and passes its health check
+    name: Docker stack (web + worker + redis) runs a real job
     runs-on: ubuntu-latest
     needs: [lint, test, web]
     steps:
@@ -142,12 +142,12 @@ jobs:
         with:
           context: .
           load: true
-          tags: forgeguard:ci
+          tags: forgeguard:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Image size
         run: |
-          docker image inspect forgeguard:ci --format '{{.Size}}' | awk '{printf "image size: %.0f MB\n", $1/1048576}'
+          docker image inspect forgeguard:latest --format '{{.Size}}' | awk '{printf "image size: %.0f MB\n", $1/1048576}'
       - name: Restore model weights
         uses: actions/cache/restore@v6
         with:
@@ -155,23 +155,46 @@ jobs:
           key: weights-${{ hashFiles('core/model_manifest.json') }}
       - name: Fetch any weights the cache did not have
         run: python3 scripts/download_weights.py --allow-missing
-      - name: Run the container
+      - name: Start the stack
         run: |
-          docker run -d --name fg -p 8000:8000 \
-            -e DJANGO_SECRET_KEY=ci-only-not-secret \
-            -v "$PWD/weights:/app/weights:ro" forgeguard:ci
-      - name: Liveness and readiness
+          DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')"
+          export DJANGO_SECRET_KEY
+          docker compose up -d --no-build
+      - name: Web liveness, then readiness once the worker has loaded the video model
         run: |
-          for _ in $(seq 1 60); do
-            curl -fsS http://127.0.0.1:8000/api/health/live && break
+          for _ in $(seq 1 60); do curl -fsS http://127.0.0.1:8000/api/health/live && break; sleep 2; done
+          for _ in $(seq 1 90); do
+            curl -sS http://127.0.0.1:8000/api/health/ > health.json || true
+            python3 - <<'EOF' && break
+          import json, sys
+          h = json.load(open("health.json"))
+          sys.exit(0 if h["worker"]["alive"] and h["models"]["video"]["loaded"] else 1)
+          EOF
             sleep 2
           done
-          curl -fsS http://127.0.0.1:8000/api/health/live
-          # 503 is expected while model_c1.pth has no public download (I7)
-          curl -sS http://127.0.0.1:8000/api/health/ | tee health.json
-          python3 -c "import json; h = json.load(open('health.json')); assert h['models']['video']['healthy'], h"
-      - name: Runs as non-root
-        run: test "$(docker exec fg id -u)" != "0"
-      - name: Container logs
+          cat health.json
+          # Overall 503 is expected while model_c1.pth has no public download (I7)
+          python3 -c "import json; h = json.load(open('health.json')); assert h['worker']['alive'] and h['models']['video']['healthy'], h"
+      - name: A real video job runs end to end in the worker
+        run: |
+          docker compose exec -T worker python -c "import cv2, numpy as np; w = cv2.VideoWriter('/tmp/noface.avi', cv2.VideoWriter_fourcc(*'MJPG'), 10, (160, 120)); [w.write(np.full((120, 160, 3), i * 8, np.uint8)) for i in range(20)]; w.release()"
+          docker compose cp worker:/tmp/noface.avi noface.avi
+          curl -sS -F "file=@noface.avi" http://127.0.0.1:8000/api/jobs/ | tee job.json
+          POLL=$(python3 -c "import json; print(json.load(open('job.json'))['poll'])")
+          for _ in $(seq 1 60); do
+            curl -sS "http://127.0.0.1:8000$POLL" > result.json
+            python3 -c "import json, sys; sys.exit(0 if json.load(open('result.json'))['status'] in ('done', 'failed') else 1)" && break
+            sleep 2
+          done
+          cat result.json
+          python3 -c "import json; r = json.load(open('result.json')); assert r['status'] == 'done' and r['result']['label'] == 'UNSURE', r"
+      - name: Uploads are removed after the job; containers run as non-root
+        run: |
+          test "$(docker compose exec -T worker sh -c 'ls -A /var/forgeguard/uploads | wc -l')" = "0"
+          test "$(docker compose exec -T web id -u)" != "0"
+          test "$(docker compose exec -T worker id -u)" != "0"
+      - name: Container memory
+        run: docker stats --no-stream --format '{{.Name}} {{.MemUsage}}'
+      - name: Stack logs
         if: always()
-        run: docker logs fg
+        run: docker compose logs --no-color

@@ -1,22 +1,24 @@
 # ForgeGuard Deployment Guide
 
-ForgeGuard ships as a single container: gunicorn serves the Django API and the
-pre-built React UI (static files via WhiteNoise). No database, queue or
-external service is required.
+ForgeGuard runs as two processes from one image: **web** (gunicorn serving the
+Django API and the pre-built React UI, static files via WhiteNoise) and
+**worker** (`python manage.py run_worker`, which loads the models and runs
+analysis jobs). They share a queue (SQLite file or Redis) and a spool
+directory for uploads. See [architecture.md](architecture.md).
 
 ## Sizing
 
-Measured on CPU (PyTorch 2.11, 32 sampled frames):
+Measured on CPU (8-core Ryzen 7 4800H, PyTorch 2.15); see [perf.md](perf.md):
 
-| | RAM | Time |
+| Process | RAM | Notes |
 |---|---|---|
-| Process with both models loaded | ~0.9 GB | ~5–10 s load (done at startup by warm-up) |
-| Peak during one video analysis | ~1.7 GB | ~20–25 s for 32 faces |
-| Image analysis | negligible extra | well under 1 s |
+| Web | ~75 MB | Never loads a model; `docker-compose.yml` limits it to 512 MB |
+| Worker, both models loaded | ~0.9 GB | ~5–10 s load at startup |
+| Worker during a video job | +~0.8 GB | ~20–25 s for 32 faces; compose limits the worker to 2.5 GB |
+| Image job | negligible extra | well under 1 s; images are queued ahead of videos |
 
-Give the container **3 GB of RAM** for the defaults. A GPU cuts video time to a
-few seconds but needs a CUDA build of PyTorch (swap the index URL in the
-Dockerfile) and a CUDA base image.
+A GPU cuts video time to a few seconds but needs a CUDA build of PyTorch
+(change the `pytorch-cpu` index in `pyproject.toml`) and a CUDA base image.
 
 Model weights (~320 MB) are not in git. Fetch and verify them with
 `python scripts/download_weights.py` (it honours `FORGEGUARD_WEIGHTS_DIR`). The
@@ -44,12 +46,17 @@ docker compose up --build -d
 curl http://localhost:8000/api/health/
 ```
 
-`docker-compose.yml` mounts `./weights` read-only. For hosts without volumes,
-delete the `weights` line in `.dockerignore` and rebuild so the weights ship
-inside the image.
+This starts three services: `web` (port 8000), `worker` and `redis`. Uploads
+pass from web to worker through the shared `spool` volume; both mount
+`./weights` read-only. Compose refuses to start without `DJANGO_SECRET_KEY`.
+For hosts without volumes, delete the `weights` line in `.dockerignore` and
+rebuild so the weights ship inside the image.
 
-The image runs as a non-root user, listens on `$PORT` (default 8000), and has a
-Docker `HEALTHCHECK` against `/api/health/live`.
+Scale analysis with `docker compose up -d --scale worker=2` (each worker holds
+its own ~0.9 GB of models). The image runs as a non-root user; `web` has a
+`HEALTHCHECK` against `/api/health/live`, `worker` one that checks its
+heartbeat (`python manage.py worker_status`). CI builds this stack and runs a
+real job through it on every pull request.
 
 ## Platform hosting
 
@@ -88,14 +95,19 @@ defaults. The important ones:
 | `FORGEGUARD_MAX_UPLOAD_MB` | `100` | Per-file limit (UI reads it from `/api/health/`) |
 | `FORGEGUARD_MAX_BATCH_FILES` | `20` | Files per batch request |
 | `FORGEGUARD_MAX_REQUEST_MB` | `500` | Whole request body, rejected with 413 before reading |
-| `FORGEGUARD_MAX_CONCURRENT_INFERENCES` | `1` | Model runs at once per worker; extra requests queue |
-| `FORGEGUARD_INFERENCE_QUEUE_TIMEOUT` | `120` | Seconds a queued request waits before a 503 `BUSY` |
+| `FORGEGUARD_QUEUE_BACKEND` | `sqlite` | `sqlite` (queue file in the spool dir; one host) or `redis` |
+| `FORGEGUARD_REDIS_URL` | `redis://localhost:6379/0` | Queue, job records and rate-limit counters when the backend is `redis` |
+| `FORGEGUARD_SPOOL_DIR` | `<tmp>/forgeguard-spool` | Uploads waiting for the worker (+ the SQLite queue). Web and worker must share it |
+| `FORGEGUARD_MAX_QUEUE` | `32` | Waiting jobs before submissions get an immediate 503 `BUSY` |
+| `FORGEGUARD_JOB_TTL` | `3600` | Seconds a job result (and an unclaimed upload) is kept |
+| `FORGEGUARD_SYNC_WAIT_SECONDS` | `20` | How long the `detect` endpoints wait for their job before answering 202 |
+| `FORGEGUARD_MAX_SYNC_WAITERS` | `8` | Requests allowed to wait at once; keep below the gunicorn thread count |
+| `FORGEGUARD_MAX_CONCURRENT_INFERENCES` | `1` | Jobs each worker runs at once (1 on CPU) |
 | `FORGEGUARD_RATE_LIMIT_PER_MINUTE` | `30` | Detection requests per client IP; `0` disables |
 | `FORGEGUARD_KEEP_UPLOADS` | `false` | Keep images analysed by `/api/detect-image/` in `uploaded_images/` (on disk only, never served over HTTP) |
-| `FORGEGUARD_WARMUP_MODELS` | `not DEBUG` | Load models when the worker starts |
 | `FORGEGUARD_VERIFY_WEIGHTS` | `true` | Check weight files against `core/model_manifest.json` before loading |
-| `GUNICORN_WORKERS` / `GUNICORN_THREADS` | `1` / `4` | Each worker loads its own models — scale threads first |
-| `GUNICORN_TIMEOUT` | `300` | Long enough for CPU video analysis |
+| `GUNICORN_WORKERS` / `GUNICORN_THREADS` | `1` / `16` | Web process only (no models). With the SQLite queue keep one gunicorn worker |
+| `GUNICORN_TIMEOUT` | `120` | Requests wait at most `FORGEGUARD_SYNC_WAIT_SECONDS` for a job |
 
 The rate-limit counters live in each worker's memory. With several workers or
 replicas, either accept a per-worker limit or configure a shared Django cache
@@ -109,7 +121,8 @@ uv run python scripts/download_weights.py
 (cd web && npm ci && npm run build)
 uv run python manage.py collectstatic --noinput
 uv run python manage.py migrate --noinput
-uv run gunicorn config.wsgi:application -c gunicorn.conf.py
+uv run gunicorn config.wsgi:application -c gunicorn.conf.py   # web
+uv run python manage.py run_worker                            # worker (separate service)
 ```
 
 Run it under systemd (or similar) with the environment variables above.
@@ -140,9 +153,11 @@ server {
 ## Health checks & operations
 
 - `GET /api/health/live` — liveness: 200 whenever the process serves requests.
-- `GET /api/health/` — readiness: 200 when both weight files are present,
-  503 (`"status": "degraded"`) otherwise; `models.*.loaded` turns `true` once
-  warm-up has finished.
+- `GET /api/health/` — readiness: 200 when both weight files are present and
+  verified, the queue is reachable, and a worker reported a heartbeat in the
+  last 30 s with its models loaded; 503 (`"status": "degraded"`) otherwise.
+  The `worker` block shows `alive`, `queue_depth` and `last_seen_seconds`.
+- `python manage.py worker_status` — exit 0 if a worker heartbeat is fresh.
 - Every response carries `X-Request-ID` (an incoming one is honoured), and
   every log line includes it, so a user-reported ID finds the exact request.
 - Logs go to stdout. `ENABLE_FILE_LOGGING=true` adds a rotating file in `logs/`.

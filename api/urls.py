@@ -9,6 +9,8 @@ URL routing
   /api/detect/batch        → JSON API: batch detection
   /api/detect-image/       → JSON API: image manipulation detection
   /api/detect-video/       → JSON API: video deepfake detection
+  /api/jobs/, /api/jobs/<id>/        → submit a job / poll it
+  /api/batches/, /api/batches/<id>/  → submit a batch / poll it
   everything else (GET)    → React single-page app (web/)
 
 The legacy template UI (/legacy/, /predict-image/, /predict-video/) was removed:
@@ -21,6 +23,7 @@ from api import health_api
 from api import video_api
 from api import image_api
 from api import unified_api
+from api import jobs_api
 
 
 app_name = 'api'
@@ -33,6 +36,10 @@ urlpatterns = [
     path('api/detect/batch',        unified_api.api_detect_multi, name='api_detect_batch'),
     path('api/detect-image/',       image_api.api_detect_image, name='api_detect_image'),
     path('api/detect-video/',       video_api.api_detect_video, name='api_detect_video'),
+    path('api/jobs/',               jobs_api.api_jobs_create, name='api_jobs'),
+    path('api/jobs/<str:job_id>/',  jobs_api.api_job_status, name='api_job_status'),
+    path('api/batches/',            jobs_api.api_batches_create, name='api_batches'),
+    path('api/batches/<str:batch_id>/', jobs_api.api_batch_status, name='api_batch_status'),
 
     # React app: any other non-API path is a client-side route. Removed legacy
     # paths stay excluded so they 404 instead of returning the app.

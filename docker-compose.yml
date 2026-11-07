@@ -1,21 +1,65 @@
-# Local production-like run:
+# Production-like stack: web (API + UI), worker (models), redis (queue + rate limits).
+#
 #   cp .env.example .env    # set DJANGO_SECRET_KEY, DJANGO_DEBUG=false
 #   docker compose up --build
 #   open http://localhost:8000
+#
+# The web container never loads a model; the worker does. Uploads pass between
+# them through the shared `spool` volume. Scale analysis with
+#   docker compose up --scale worker=2
+# (each worker holds its own copy of the models).
+
+x-app: &app
+  build: .
+  image: forgeguard:latest
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or the environment}"
+    DJANGO_DEBUG: "false"
+    DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost}"
+    FORGEGUARD_QUEUE_BACKEND: redis
+    FORGEGUARD_REDIS_URL: redis://redis:6379/0
+    FORGEGUARD_SPOOL_DIR: /var/forgeguard
+  volumes:
+    - ./weights:/app/weights:ro
+    - spool:/var/forgeguard
+  restart: unless-stopped
+  depends_on:
+    redis:
+      condition: service_healthy
+
 services:
-  forgeguard:
-    build: .
-    image: forgeguard:latest
+  web:
+    <<: *app
     ports:
       - "8000:8000"
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      DJANGO_DEBUG: "false"
-      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-127.0.0.1,localhost}"
-    volumes:
-      - ./weights:/app/weights:ro
+    # Measured ~75 MB idle: no models in this process
+    mem_limit: 512m
+
+  worker:
+    <<: *app
+    command: ["python", "manage.py", "run_worker"]
+    # Measured ~0.9 GB with both models loaded; a video job adds ~0.8 GB of activations
+    mem_limit: 2560m
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "worker_status"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+
+  redis:
+    image: redis:7.4-alpine@sha256:c5d34a98396a4775e223c74e929162c35c5a2182901ba26b50ade939941ce14b
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "200mb"]
     restart: unless-stopped
-    # Measured: ~0.9 GB idle with both models loaded, ~1.7 GB peak per video job
-    mem_limit: 3g
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  spool:

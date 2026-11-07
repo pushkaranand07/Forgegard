@@ -86,7 +86,8 @@ const ENDPOINTS: Endpoint[] = [
     method: "POST",
     path: "/api/detect/batch",
     title: "Batch detection",
-    description: "Analyzes several files sequentially in one request. Repeat the file field for each file.",
+    description:
+      "Queues one background job per file and waits up to 20 s for all of them. A batch still running after that returns 202 with a batch_id and a poll URL (see Jobs).",
     fields: [["file", "Repeated — one entry per image or video, up to 20 files"]],
     curl: `curl -F "file=@a.jpg" -F "file=@b.mp4" ${ORIGIN}/api/detect/batch`,
     response: `{
@@ -96,6 +97,43 @@ const ENDPOINTS: Endpoint[] = [
   "num_success": 1,
   "num_errors": 1,
   "processing_time_ms": 18210.5
+}`,
+  },
+  {
+    id: "jobs",
+    method: "POST",
+    path: "/api/jobs/",
+    title: "Submit a job",
+    description:
+      "Queues one file for analysis and returns immediately with a job id. The detect endpoints above use the same queue and return 202 with a job id when a job outlasts their 20 s wait. A full queue answers 503 BUSY at once.",
+    fields: [
+      ["file", "Image or video file"],
+      ["kind", "Optional: image, video or unified (default: chosen from the extension)"],
+    ],
+    curl: `curl -F "file=@clip.mp4" ${ORIGIN}/api/jobs/`,
+    response: `// 202 Accepted
+{
+  "job_id": "4f1c…",
+  "status": "queued",
+  "kind": "video",
+  "poll": "/api/jobs/4f1c…/"
+}`,
+  },
+  {
+    id: "job-status",
+    method: "GET",
+    path: "/api/jobs/<id>/",
+    title: "Poll a job",
+    description:
+      "Status is queued, running, done or failed. When finished, http_status and result are exactly what the synchronous endpoint would have returned. Batches work the same way at /api/batches/<id>/.",
+    curl: `curl ${ORIGIN}/api/jobs/4f1c…/`,
+    response: `{
+  "job_id": "4f1c…",
+  "status": "done",               // queued | running | done | failed
+  "http_status": 200,
+  "result": { ...same body as /api/detect-video/... },
+  "created_at": 1794100000.1,
+  "finished_at": 1794100023.4
 }`,
   },
   {

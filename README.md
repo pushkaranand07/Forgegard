@@ -11,7 +11,7 @@ Both sit behind a hardened Django API and a React UI. The serving layer, the UI,
 
 ## What I built
 
-- **Serving layer:** Django API with per-file, per-request and per-batch size limits; a 50-megapixel decode cap; an inference concurrency guard that queues and then returns `503 BUSY`; per-IP rate limiting; request IDs; a consistent JSON error shape with no stack traces or paths; liveness and readiness probes; model warm-up at startup.
+- **Serving layer:** Django API with per-file, per-request and per-batch size limits; a 50-megapixel decode cap; analysis in a separate background worker (Huey: SQLite locally, Redis in production) so web requests never run a model, with an immediate `503 BUSY` when the queue is full and images queued ahead of videos; per-IP rate limiting; request IDs; a consistent JSON error shape with no stack traces or paths; liveness and readiness probes (readiness tracks the worker's heartbeat).
 - **Video pipeline port:** adapted the upstream DFDC preprocessing (MTCNN crop, isotropic resize, centre padding, ImageNet normalisation) and `confident_strategy` aggregation to a single-checkpoint, CPU-friendly inference path. Fixed a BGR/RGB colour-order mismatch between frame decoding and the model.
 - **Image model:** trained `IMDModel` (a small CNN on ELA maps; architecture adapted from public code, see [CREDITS.md](CREDITS.md)) on CASIA in `training/notebooks/train.ipynb`.
 - **Fail-safe model loading:** every weight file is SHA-256-checked against `core/model_manifest.json`, loaded with `weights_only=True` and strict key matching (no unsafe-unpickling fallback). A bad model makes `/api/health/` report unhealthy and requests return `503 MODEL_UNAVAILABLE`. Responses carry the model name, weights hash and pipeline version. Golden-sample tests pin the image pipeline's outputs; video fixtures are pending.
@@ -67,34 +67,38 @@ cd web
 npm ci
 npm run build
 ```
-5. Apply migrations, run the server and open http://127.0.0.1:8000/.
+5. Apply migrations, then start the analysis worker and the web server (two terminals) and open http://127.0.0.1:8000/.
 ```bash
 uv run python manage.py migrate
-uv run python manage.py runserver
+uv run python manage.py run_worker   # terminal 1: loads the models, runs analysis jobs
+uv run python manage.py runserver    # terminal 2: API + UI
 ```
+   Without a worker, uploads are accepted but stay queued, and `/api/health/` reports `degraded`.
 
 ### Web UI development
-Run Django on :8000 and the Vite dev server on :5173 (it proxies `/api` to Django):
+Run the worker, Django on :8000 and the Vite dev server on :5173 (it proxies `/api` to Django):
 ```bash
-uv run python manage.py runserver   # terminal 1
-cd web && npm run dev               # terminal 2 → http://localhost:5173
+uv run python manage.py run_worker  # terminal 1
+uv run python manage.py runserver   # terminal 2
+cd web && npm run dev               # terminal 3 → http://localhost:5173
 ```
 
 Pages: Home, Analyze (single image/video with upload progress), Batch (up to 20 files, CSV/JSON export), History (stored in the browser), Report (printable A4 / Save as PDF), System status, API reference and How it works.
 
 ## Production Deployment
-ForgeGuard ships as one Docker image: gunicorn serves the API and the pre-built UI, with WhiteNoise for static files.
+ForgeGuard ships as one Docker image run as three services by `docker-compose.yml`: **web** (gunicorn serving the API and the pre-built UI, no models), **worker** (`run_worker`, holds the models) and **redis** (queue and shared rate-limit counters). Uploads pass from web to worker through a shared volume.
 ```bash
 cp .env.example .env    # set DJANGO_DEBUG=false and a real DJANGO_SECRET_KEY
 docker compose up --build -d
 ```
 What production mode adds:
 - **Fails fast on unsafe config**: refuses to start with `DEBUG` off and a placeholder secret key; opt-in HTTPS redirect, HSTS and secure cookies (`DJANGO_HTTPS=true`).
-- **Bounded resource use**: per-file, per-request and per-batch size limits; a 50-megapixel cap on images; an inference concurrency guard that queues requests instead of running out of memory (503 `BUSY` when the queue wait expires); per-IP rate limiting (429).
+- **Bounded resource use**: per-file, per-request and per-batch size limits; a 50-megapixel cap on images and a 4096×4096 cap on video; memory per request independent of the upload's size; a bounded job queue (immediate 503 `BUSY` when full); per-IP rate limiting (429), global when Redis is used.
+- **Isolation**: analysis runs in the worker container with its own memory limit, so an out-of-memory crash kills a job, never the website, and health checks keep answering under load.
 - **Privacy by default**: uploads are analysed from a scratch file and deleted; nothing is kept unless `FORGEGUARD_KEEP_UPLOADS=true`.
-- **Operability**: liveness (`/api/health/live`) and readiness (`/api/health/`) probes, models warmed up at startup, an `X-Request-ID` on every response and log line, and no stack traces or internal paths in API responses.
+- **Operability**: liveness (`/api/health/live`, no I/O) and readiness (`/api/health/`: weights verified, queue reachable, worker heartbeat fresh, models loaded) probes; models warmed up when the worker starts; an `X-Request-ID` on every response and log line; no stack traces or internal paths in API responses.
 
-Manual measurement on CPU (not yet scripted): ~0.9 GB RAM with both models loaded, ~1.7 GB peak while analysing a video (~20–25 s for 32 faces). Allow 3 GB. Batch requests run synchronously, so a batch of many videos can exceed the 300 s worker timeout; moving video to background jobs is planned. Serverless hosts such as Vercel cannot run it (bundle size and timeouts). Full guide and every setting: [docs/deployment_guide.md](docs/deployment_guide.md).
+Measured with `scripts/loadtest.py` ([docs/perf.md](docs/perf.md)): the web process uses ~75 MB, the worker ~0.9 GB with both models; a video takes ~20–25 s on CPU. Under 6 concurrent videos, an image still returns in ~9 s and liveness answers every probe (max 54 ms). Serverless hosts such as Vercel cannot run it (bundle size and timeouts). Full guide and every setting: [docs/deployment_guide.md](docs/deployment_guide.md).
 
 ## Testing
 ```bash
@@ -113,10 +117,12 @@ Full reference with response examples and error codes: [docs/api_reference.md](d
 | `POST /api/detect-video/` | `video` file → per-face EfficientNet-B7 scores and an aggregated REAL/FAKE/UNSURE verdict |
 | `POST /api/detect/` | `file` → routed to the image or video model by extension |
 | `POST /api/detect/batch` | repeated `file` fields (up to 20) → one result or error per file |
-| `GET /api/health/` | model availability, device and live upload limits (503 if a model is missing) |
+| `POST /api/jobs/`, `GET /api/jobs/<id>/` | submit one file as a background job (202 + job id) / poll it |
+| `POST /api/batches/`, `GET /api/batches/<id>/` | submit several files (202 + batch id) / poll progress and results |
+| `GET /api/health/` | readiness: weights verified, queue reachable, worker alive with models loaded (503 otherwise) |
 | `GET /api/health/live` | liveness probe |
 
-Errors are always `{"error": "...", "status": "<CODE>"}` with a meaningful HTTP status.
+The four `detect` endpoints keep their response shapes: they wait up to 20 s for the job, which covers images; slower work (usually video) returns `202` with a job or batch id to poll. Errors are always `{"error": "...", "status": "<CODE>"}` with a meaningful HTTP status; a full queue gives `503 BUSY` with `Retry-After`.
 
 ## Results
 

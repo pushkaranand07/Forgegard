@@ -1,17 +1,14 @@
 """
-warmup.py — Load the models before the first request
-====================================================
-Started from config/wsgi.py when FORGEGUARD_WARMUP_MODELS is on. Runs in a
-daemon thread so the worker accepts requests (and answers health checks)
-while the checkpoints load; a request arriving mid-load simply waits on the
-model cache lock.
+warmup.py — load the models before the first job
+=================================================
+Called by `manage.py run_worker` at startup so the first job does not pay the
+multi-second checkpoint load. The web process never loads models.
 """
 
 from __future__ import annotations
 
 import logging
 import os
-import threading
 
 from .common import image_model_path, video_model_path
 
@@ -42,9 +39,3 @@ def warmup() -> None:
     except Exception:
         logger.exception("Warm-up of the MTCNN face detector failed")
     logger.info("Model warm-up finished on %s", device)
-
-
-def start_warmup() -> threading.Thread:
-    thread = threading.Thread(target=warmup, name="forgeguard-warmup", daemon=True)
-    thread.start()
-    return thread
