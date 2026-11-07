@@ -31,7 +31,7 @@ jobs:
         run: |
           python manage.py check
           DJANGO_DEBUG=false DJANGO_SECRET_KEY=ci-only-not-secret DJANGO_HTTPS=true python manage.py check --deploy
-      - name: Tests (model tests skip: weights are not in the repo)
+      - name: "Tests (model tests skip: weights are not in the repo)"
         run: pytest
 
   frontend:
