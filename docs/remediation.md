@@ -14,7 +14,7 @@ green in CI.
 | I6 | High | 2 | Separate worker process (Huey: SQLite / Redis); bounded queue with immediate 503; I/O-free liveness; images prioritised | `tests/test_jobs.py` (25, incl. real worker + web processes); `scripts/loadtest.py` → [perf.md](perf.md): liveness 123/123 OK (max 54 ms), image 200 in 9.1 s, BUSY in ~17 ms | `2cd99f2a6`, `812c704d3`, `a9c5c73d5`, `f1b9d34c3`, `b61dff84a` | Verified: compose stack runs a real job in CI (PR #22) |
 | I7 | High | 0 | Manifest download URLs + verified download script; B7 identified upstream; notebook committed | `tests/test_download_weights.py`; fresh clone fetched and verified B7 from upstream | `460feb462`, `6f87cc6c0`, `9ffc94363` | Partial: `model_c1.pth` still has no public URL (owner decision) |
 | I8 | Medium | 1.4 | Legacy template UI and upload endpoints deleted (37 files) | `tests/test_legacy_removed.py`: legacy paths 404; no upload kept by any endpoint | `5046f6919` | Done (CI to confirm) |
-| I9 | Medium | 4.1 | Narrow face-detection exception, log, raise | Detector error → 500 + log line, not UNSURE | | Not started |
+| I9 | Medium | 4.1 | Detector errors propagate; one helper logs each with its traceback; some frames → FACE_DETECTION_ERRORS note; all frames → FaceDetectionError (500) | `tests/test_face_detection_errors.py` (5) | `449452d2b` | Done |
 | I10 | Medium | 1.4 | Resolved by deleting the legacy surface (nothing writes to `MEDIA_ROOT` unless `KEEP_UPLOADS`) | Same tests; Docker CI job | `5046f6919` | Done (CI to confirm) |
 | I11 | Medium | 2 | Batches are one background job per file; `/api/detect/batch` returns 202 + batch id instead of running inside the request | Batch 202 → 10 polls → 3 results in Chrome against a real worker; unit tests for batch API and wrapper. A full 20-video batch was not run (~8 min on one worker). No hard per-job timeout (thread workers) | `2cd99f2a6` | Done, with the noted limits |
 | I12 | Medium | 0 | Fix the YAML parse error; actionlint in CI; from-scratch setup + Docker run jobs | actionlint clean locally; jobs execute on GitHub | `76b0b1cfb`, `235f332ae`, `b701a9fc5` | Verified: PR #1, all blocking jobs green |
@@ -22,9 +22,9 @@ green in CI.
 | I14 | Medium | 6.3 | Vercel rewrite for `/api` | Deployed frontend reaches backend | | Not started |
 | I15 | Medium | 0 | Python 3.12 pin, uv lockfile, frozen installs, digest-pinned base images | Fresh clone installed exactly the locked versions | `c4913369d` | Verified: `uv sync --frozen` green on Linux CI and in the Docker build |
 | I16 | Low | 3.1 | 'Confidence' wording replaced by 'model score (uncalibrated)'; no confidence figure without a validated verdict | Chrome check: no 'confident' wording on image, PNG or video reports; ECE reported (0.412) | `892cb9568` | Done (calibration itself: phase 3b) |
-| I17 | Low | 4.2 | `ErrorCode` / `Verdict` enums, one response shape | Cross-endpoint contract test | | Not started |
-| I18 | Low | 4.3 | `num_faces_analyzed` + `num_frames_sampled` | Unit test on result fields | | Not started |
-| I19 | Low | 1.4, 4.3 | Delete dead code and unused assets | vulture clean | | Not started |
+| I17 | Low | 4.2 | Additive `code` field from one closed ErrorCode set on every error (legacy `status` kept); JSON 405s | `tests/test_error_contract.py` (31): same problem → same code on every endpoint | `5d471bd51` | Done (OpenAPI schema still to do) |
+| I18 | Low | 4.3 | `num_frames_sampled` + `num_faces_analyzed`; old field kept, deprecated | `tests/test_video_counts.py` (4) | `6311599e0` | Done |
+| I19 | Low | 1.4, 4.3 | Legacy UI and 16 MB of assets (phase 1); remaining dead code removed; vulture in CI | vulture clean in CI | `5046f6919`, `a538f34f1` | Done |
 | I20 | Low | 6.1 | Contrast tokens, `/docs` overflow, 404 `<h1>` | Playwright + axe: 0 serious | | Not started |
 | I21 | Low | 1.5 | Verified the old key was never in a recorded deployment; gitleaks with a custom Django-key rule in CI | gitleaks full-history scan clean with 1 reviewed fingerprint | see below | Done (CI to confirm) |
 | I22 | Low | 0 | Jupyter moved to the `train` dependency group | Fresh-clone setup + tests: 195 s (was 716 s) | `c4913369d` | Done |
@@ -57,4 +57,5 @@ green in CI.
 | 2026-11-08 | Splice-set generator determinism | Two runs with the same seed: 97 files byte-identical |
 | 2026-11-08 | Video false positives investigated | 0.534 clip: per-face scores flip-flop 0.02–0.98, no consensus, average crossed 0.5. 0.987 clip: consistent scores on a beauty-filtered face (documented limitation) |
 | 2026-11-08 | Video model on the local face-swap set (17 clips), consensus rule vs old ≥ 0.5 rule | Consensus: 10 verdicts, accuracy 0.900, 7 UNSURE, 1 real called fake, 0 fakes called real. Old: 17 verdicts, accuracy 0.765, 2 real called fake, 2 fakes called real. AUC 0.889 (0.697–1.000) |
-
+| 2026-11-08 | Static analysis after phase 4 | mypy 39 → 0 errors (now blocking in CI); broad ruff ruleset (E, W, F, I, B, UP, SIM, BLE, C4, RUF) 236 → 0; vulture clean |
+| 2026-11-08 | CI secret scan on main failed twice | GitHub release downloads returned 504 (reproduced locally); gitleaks now runs from its pinned Docker Hub image |

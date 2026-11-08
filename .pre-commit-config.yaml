@@ -1,0 +1,26 @@
+# Run the same checks CI runs, before each commit:
+#   uv tool install pre-commit && pre-commit install
+# Hooks call the locked project tools through uv, so versions match CI.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy
+        entry: uv run mypy api core
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: actionlint
+        name: actionlint
+        entry: uvx --from actionlint-py actionlint
+        language: system
+        files: ^\.github/workflows/
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.28.0
+    hooks:
+      - id: gitleaks
