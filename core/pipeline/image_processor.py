@@ -30,14 +30,14 @@ import threading
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import torch
-from PIL import Image, ImageChops
+from PIL import Image
 from PIL.ExifTags import TAGS
 from torch import nn
 
 from core import model_registry
 from core.model_registry import CheckpointMismatchError, ModelUnavailableError
+from core.pipeline import ela
 from core.pipeline.safe_image import (  # re-exported: callers import these from here
     MAX_IMAGE_PIXELS,
     InvalidImageError,
@@ -238,51 +238,9 @@ def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
 # Level 2 — ELA preprocessing (vectorized, no pixel loop)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ELA is computed in horizontal strips so peak memory is one output buffer plus
-# one strip, not several full-size copies. Strips start on the 16-row JPEG MCU
-# grid and are re-encoded with a 16-row margin on each side, so chroma
-# upsampling at strip edges sees the same neighbours as a whole-image encode:
-# the result is bit-identical to whole-image ELA (tests/test_memory_bounds.py).
-_ELA_STRIP_ROWS = 512
-_ELA_MARGIN_ROWS = 16
-
-
-def _ela_image(original: Image.Image, jpeg_quality: int = 90, scale: int = 10) -> Image.Image:
-    """
-    In-memory Error Level Analysis (ELA) at native resolution.
-
-    Re-saves the image at `jpeg_quality` and returns the per-pixel difference
-    between the original and the re-saved version, multiplied by `scale` and
-    clipped to 255. Everything stays uint8.
-    """
-    if original.mode != "RGB":
-        original = original.convert("RGB")
-    width, height = original.size
-    out = Image.new("RGB", (width, height))
-    amplify = [min(255, value * scale) for value in range(256)] * 3  # per-band lookup table
-
-    for top in range(0, height, _ELA_STRIP_ROWS):
-        bottom = min(top + _ELA_STRIP_ROWS, height)
-        lo = max(0, top - _ELA_MARGIN_ROWS)
-        hi = min(height, bottom + _ELA_MARGIN_ROWS)
-        tile = original.crop((0, lo, width, hi))
-
-        buf = io.BytesIO()
-        tile.save(buf, format="JPEG", quality=int(jpeg_quality))
-        buf.seek(0)
-        recompressed = Image.open(buf, formats=("JPEG",)).convert("RGB")  # noqa: TID251 — our own re-encode
-
-        diff = ImageChops.difference(tile, recompressed).point(amplify)
-        out.paste(diff.crop((0, top - lo, width, bottom - lo)), (0, top))
-
-    return out
-
-
-def _preprocess(img: Image.Image) -> torch.Tensor:
-    """Resize to 128×128 and normalise to [0, 1], returning (1, 3, 128, 128)."""
-    img = img.resize((128, 128))
-    arr = np.asarray(img, dtype=np.float32).transpose(2, 0, 1) / 255.0
-    return torch.from_numpy(np.expand_dims(arr, axis=0))
+# ELA lives in core/pipeline/ela.py (shared with the evaluation harness).
+_ela_image = ela.ela_image
+_preprocess = ela.to_model_input
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -351,6 +309,20 @@ def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Mod
 # Core inference
 # ─────────────────────────────────────────────────────────────────────────────
 
+def tampering_score(pil_img: Image.Image, model_path: str, device: Optional[torch.device] = None) -> float:
+    """The model's raw P(tampered) for an RGB JPEG-decoded image (no verdict policy).
+
+    Used by the API path below and by scripts/eval_image.py, so the evaluation
+    measures exactly what the service computes.
+    """
+    device = device or _select_device()
+    model = load_model(model_path=model_path, device=device)
+    x = ela.to_model_input(ela.ela_image(pil_img)).to(device)
+    with torch.no_grad():
+        probs = torch.softmax(model(x), dim=1).squeeze(0).float().cpu()  # [tampered, authentic]
+    return float(probs[0].item())
+
+
 def _run_inference(pil_img: Image.Image, model_path: str,
                    device: Optional[torch.device] = None) -> ImageDetectionResult:
     """
@@ -375,19 +347,11 @@ def _run_inference(pil_img: Image.Image, model_path: str,
         pil_img = pil_img.convert("RGB")
 
     # Level 2 — ELA + CNN
-    model = load_model(model_path=model_path, device=device)
-    ela_img = _ela_image(pil_img)
-    x = _preprocess(ela_img).to(device)
-
-    with torch.no_grad():
-        logits = model(x)  # shape: (1, 2)
-        probs = torch.softmax(logits, dim=1).squeeze(0).float().cpu()
-
-    tampered_prob = float(probs[0].item())
-    authentic_prob = float(probs[1].item())
+    tampered_prob = tampering_score(pil_img, model_path, device)
+    authentic_prob = 1.0 - tampered_prob
 
     if model_registry.is_validated(model_path):
-        predicted_class = int(torch.argmax(probs).item())
+        predicted_class = 1 if authentic_prob > tampered_prob else 0
         label = "AUTHENTIC" if predicted_class == 1 else "TAMPERED"
         experimental, reason = False, None
     else:
