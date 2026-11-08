@@ -6,8 +6,8 @@ green in CI.
 
 | ID | Severity | Phase | Fix | Proof | Commit | Status |
 |---|---|---|---|---|---|---|
-| I1 | High | 3 | Fix ELA train/inference mismatch, then retrain or replace the image model; calibrate | Beats mean-ELA baseline on re-encoded CASIA v2 and the audit-recipe set | | Not started |
-| I2 | High | 3.1 | Non-JPEG images return `UNSUPPORTED`, never a verdict | Test: PNG/BMP/TIFF/GIF never get a verdict | | Not started |
+| I1 | High | 3 | Interim: no verdict from an unvalidated model (label UNVALIDATED, `validated` flag in the manifest). Next: retrain or replace, calibrate | Harness: `scripts/make_splice_set.py` + `scripts/eval_image.py` ([eval.md](eval.md)): AUC 0.619 (0.500–0.728) vs baseline 0.566; fails the validation rule | `061fa2729` | Interim done; retraining pending (phase 3b) |
+| I2 | High | 3.1 | PNG/WebP → UNSUPPORTED, no score, model not run | `tests/test_image_verdict.py`; Chrome check | `061fa2729` | Done |
 | I3 | High | 1.1 | Pillow `>=13,<14`; pip-audit blocking in CI | pip-audit clean (2 build-time setuptools IDs accepted in SECURITY.md); all goldens unchanged | `8a39349ac` | Done (CI to confirm) |
 | I4 | High | 1.2 | `open_untrusted()`: Pillow restricted to JPEG/PNG/WebP decoders, format must match extension; ruff TID251 bans `Image.open` | `tests/test_safe_image.py` (28): disguised BMP/TIFF/GIF/PNG → 415; disallowed parsers never invoked | `d588fa5a7` | Done (CI to confirm) |
 | I5 | High | 1.3 | Native-resolution strip ELA in uint8 (bit-identical); streamed video frames, crop-only, 4096² cap | `tests/test_memory_bounds.py`: 49 MP JPEG 2591 → 451 MB; 4096² AVI 2776 → 258 MB | `b4021db7c` | Done (CI to confirm) |
@@ -21,7 +21,7 @@ green in CI.
 | I13 | Medium | 5 | Tests for classify/aggregate, preprocess goldens, batch | Coverage gate with those lines covered | | Not started |
 | I14 | Medium | 6.3 | Vercel rewrite for `/api` | Deployed frontend reaches backend | | Not started |
 | I15 | Medium | 0 | Python 3.12 pin, uv lockfile, frozen installs, digest-pinned base images | Fresh clone installed exactly the locked versions | `c4913369d` | Verified: `uv sync --frozen` green on Linux CI and in the Docker build |
-| I16 | Low | 3.1, 3.5 | Remove "confident" wording; calibrate | Vitest on `verdict.ts`; ECE reported | | Not started |
+| I16 | Low | 3.1 | 'Confidence' wording replaced by 'model score (uncalibrated)'; no confidence figure without a validated verdict | Chrome check: no 'confident' wording on image, PNG or video reports; ECE reported (0.412) | `892cb9568` | Done (calibration itself: phase 3b) |
 | I17 | Low | 4.2 | `ErrorCode` / `Verdict` enums, one response shape | Cross-endpoint contract test | | Not started |
 | I18 | Low | 4.3 | `num_faces_analyzed` + `num_frames_sampled` | Unit test on result fields | | Not started |
 | I19 | Low | 1.4, 4.3 | Delete dead code and unused assets | vulture clean | | Not started |
@@ -53,3 +53,5 @@ green in CI.
 | 2026-11-08 | Process memory after Phase 2 | Web 73 MB (audit: 1095 MB, models in the web process); worker 908 MB |
 | 2026-11-08 | Real person's video (video4.mp4) through the worker | FAKE at 53.4%: another false-positive data point for phase 3 |
 | 2026-11-08 | Docker stack in CI (PR #22): web + worker + redis via docker-compose | Real video job queued → done (`UNSURE`, no face) through the worker; spool empty afterwards; both containers non-root. Memory: web 67 MB, worker 628 MB, redis 4 MB. Image 369 MB |
+| 2026-11-08 | Image model on the Kodak splice set (96 JPEGs, reproducible) | AUC 0.619 (95% CI 0.500–0.728), balanced accuracy 0.552, ECE 0.412; mean-ELA baseline AUC 0.566 (0.448–0.686). Fails the validation rule (CI lower bound must exceed max(0.5, baseline)) |
+| 2026-11-08 | Splice-set generator determinism | Two runs with the same seed: 97 files byte-identical |
