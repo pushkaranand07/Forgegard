@@ -28,6 +28,7 @@ ForgeGuard serves two models, each documented below. Metrics come only from comm
 
 | Evaluation | Result |
 |---|---|
+| Local face-swap set (17 clips, `scripts/make_faceswap_set.py`; indicative, crude swaps) | Consensus rule: 10 verdicts at 0.900 accuracy, 7 UNSURE, 1 real person called fake (beauty filter). Old ≥ 0.5 rule: 0.765, 2 real called fake, 2 fakes called real. AUC 0.889 (0.697–1.000). See docs/eval.md |
 | Celeb-DF v2 official test list (out of distribution) | not yet evaluated |
 | DFDC held-out subset (in distribution) | not yet evaluated |
 | Calibration (ECE) | not yet evaluated |

@@ -101,3 +101,22 @@ def test_generator_seed_changes_the_set(tiny_sources, tmp_path):
 def test_kodak_hashes_are_pinned_for_all_24_images():
     assert len(mk.KODAK_SHA256) == 24
     assert all(len(h) == 64 for h in mk.KODAK_SHA256.values())
+
+
+# ── Video harness ────────────────────────────────────────────────────────────
+
+def test_video_rule_report_counts_decisions_unsure_and_errors():
+    from scripts import eval_video as evv
+
+    clips = [
+        {"label": 1, "faces": 20, "face_scores": [0.95] * 20},                      # fake, caught
+        {"label": 0, "faces": 20, "face_scores": [0.05] * 20},                      # real, cleared
+        {"label": 0, "faces": 20, "face_scores": [0.1, 0.9] * 10},                  # real, faces disagree
+        {"label": 0, "faces": 0, "face_scores": []},                                # no face
+    ]
+    report = evv.score_rules(clips)
+    new, old = report["consensus_rule"], report["old_threshold_rule"]
+    assert (new["decided"], new["unsure"], new["no_face"]) == (2, 1, 1)
+    assert new["real_clips_called_fake"] == 0 and new["accuracy_when_decided"] == 1.0
+    # The old rule decides the disagreeing clip by its average (0.5 -> FAKE): a false accusation
+    assert old["decided"] == 3 and old["real_clips_called_fake"] == 1

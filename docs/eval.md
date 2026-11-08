@@ -60,9 +60,52 @@ train/test split also has no seed. ELA now lives in one module,
 [`core/pipeline/ela.py`](../core/pipeline/ela.py), so any retraining uses exactly the
 inference code.
 
-## Video model (`deepfake_detector_b7.pth`): not yet evaluated here
+## Video model (`deepfake_detector_b7.pth`): indicative results only
 
-Upstream's DFDC results are for an ensemble, not this single checkpoint. Observations so
-far: 15/16 correct on the audit's crude face swaps; real people scored FAKE at 0.987
-(audit) and 0.534 (Phase 2 test clip). A video harness and a Celeb-DF / FaceForensics++
-evaluation are pending phase 3b.
+```bash
+python scripts/make_faceswap_set.py --videos <folder of real videos> --out eval/data/faceswap
+python scripts/eval_video.py --data eval/data/faceswap
+python scripts/eval_video.py --rescore eval/results/<file>.json   # re-score saved per-face scores
+```
+
+Result file: [`eval/results/deepfake_detector_b7-faceswap-2026-11-08.json`](../eval/results/deepfake_detector_b7-faceswap-2026-11-08.json)
+(per-face scores for every clip; no imagery).
+
+**Verdict rule (since phase 3b).** A video gets REAL or FAKE only when its per-face scores
+agree, using the same consensus upstream's `confident_strategy` uses to pick its branch:
+FAKE needs more than 11 confidently fake faces (score > 0.8) and more than n / 2.5 of
+them; REAL needs more than 90% of faces confidently real (< 0.2). Otherwise the result is
+`UNSURE` (`NO_CONSENSUS`); fewer than 8 faces gives `UNSURE` (`TOO_FEW_FACES`). These
+thresholds are upstream's own, and the 8-face minimum was fixed before this evaluation;
+nothing was tuned on this set.
+
+**Set:** 17 clips from 4 real talking-head videos available locally to the developer (not shipped): 8
+real 4 s segments, the same 8 segments with the face swapped (MTCNN + seamless clone, the
+audit's recipe), and one full-length real video.
+
+| Rule | Verdicts | UNSURE | Accuracy when a verdict is given | Real called fake | Fake called real |
+|---|---|---|---|---|---|
+| Consensus (current) | 10 | 7 | 0.900 | 1 | 0 |
+| Aggregated score ≥ 0.5 (before) | 17 | 0 | 0.765 | 2 | 2 |
+
+AUC of the aggregated score: 0.889 (95% CI 0.697–1.000).
+
+**What this does and does not show.** Requiring consensus turned 3 of the 4 wrong verdicts
+into UNSURE, at the price of no verdict for 7 of 17 clips. The set is tiny and the swaps
+are crude (visible blending, unlike DFDC or Celeb-DF fakes), so these numbers are an upper
+bound and not a benchmark; Celeb-DF v2 / FaceForensics++ results are still pending (they
+require access requests).
+
+### Known failure mode: face filters
+
+The remaining false accusation is a real person whose face has strong skin smoothing (a
+beauty filter): 26 of 32 faces scored above 0.8. A face-manipulation detector reacting to
+face processing is arguably not wrong, but it is not a face swap. Treat FAKE on footage
+that may have been beautified or heavily edited with particular caution.
+
+### Investigation notes
+
+On the real clip that previously scored FAKE at 0.534, face detection was clean (detector
+confidence ≈ 1.0, one 265–325 px face per frame), but per-face scores swung between 0.02
+and 0.98 on near-identical consecutive frames, with no visible cause in the crops. The
+model sits on its decision boundary for that footage; the honest output is UNSURE.
