@@ -329,9 +329,16 @@ class VideoDetectionResult:
     real_prob: Optional[float]
     confidence_pct: Optional[float]
     device: str
+    # Deprecated: faces classified for decided videos, frames sampled when no face
+    # was found. Use num_frames_sampled / num_faces_analyzed (audit I18).
     num_frames_processed: int
     frame_predictions: List[float] = field(default_factory=list)
     notes: List[str] = field(default_factory=list)
+    num_frames_sampled: int = 0
+
+    @property
+    def num_faces_analyzed(self) -> int:
+        return len(self.frame_predictions)
 
 
 def confident_strategy(predictions: List[float], threshold: float = 0.8) -> float:
@@ -717,6 +724,7 @@ def detect_video_frames(
         confidence_pct=confidence_pct,
         device=device,
         num_frames_processed=len(frames),
+        num_frames_sampled=len(frames),
         frame_predictions=frame_predictions,
         notes=notes
     )
@@ -785,11 +793,12 @@ def detect_video_file(
         return VideoDetectionResult(
             label="UNSURE", predicted_class=-1, fake_prob=None, real_prob=None,
             confidence_pct=None, device=device, num_frames_processed=sampled_count,
-            notes=["NO_FACE_DETECTED", *error_notes]
+            num_frames_sampled=sampled_count, notes=["NO_FACE_DETECTED", *error_notes]
         )
     if len(crops) == 1:
         logger.warning(f"[detect_video] Face detected in only 1 of {sampled_count} frames.")
 
     result = detect_video_frames(crops, model_path, encoder, device, extract_faces=False, target_size=target_size)
     result.notes.extend(error_notes)
+    result.num_frames_sampled = sampled_count
     return result

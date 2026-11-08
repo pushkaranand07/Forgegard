@@ -127,7 +127,9 @@ def run_video(path: str, file_name: str) -> Result:
         "real_prob": _num(result.real_prob),
         "confidence_pct": _num(result.confidence_pct),
         "device": result.device,
-        "num_frames_processed": result.num_frames_processed,
+        "num_frames_processed": result.num_frames_processed,  # deprecated, see below
+        "num_frames_sampled": result.num_frames_sampled,
+        "num_faces_analyzed": result.num_faces_analyzed,
         "frame_predictions": [float(p) for p in result.frame_predictions],
         "processing_time_ms": (time.time() - start) * 1000,
         "notes": list(result.notes),

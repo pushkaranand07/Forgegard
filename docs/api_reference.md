@@ -73,6 +73,8 @@ MTCNN, and scores each crop with EfficientNet-B7.
   "real_prob": 0.013,
   "confidence_pct": 98.7,
   "device": "cpu",
+  "num_frames_sampled": 32,
+  "num_faces_analyzed": 32,
   "num_frames_processed": 32,
   "frame_predictions": [0.98, 0.97, 0.99],
   "processing_time_ms": 21540.2,
@@ -83,9 +85,24 @@ MTCNN, and scores each crop with EfficientNet-B7.
 
 (Values are illustrative, not measured results.)
 
-`label` is `REAL`, `FAKE`, or `UNSURE` when no face was found in any frame.
-In the `UNSURE` case `status` is `NO_FACE_DETECTED` and the three score fields are `null`.
-`frame_predictions` holds one fake score per detected face (one face per sampled frame).
+`label` is `REAL` or `FAKE` only when the per-face scores agree (see
+[eval.md](eval.md#video-model-deepfake_detector_b7pth-indicative-results-only)); otherwise
+`UNSURE`, with `predicted_class` -1 and `confidence_pct` `null`. `notes` says why:
+
+| Note | Meaning | Scores |
+|---|---|---|
+| `NO_FACE_DETECTED` | No face in any sampled frame (`status` is also `NO_FACE_DETECTED`) | all `null` |
+| `NO_CONSENSUS` | Faces found, but their scores disagree | `fake_prob` = the aggregated score, reported for information |
+| `TOO_FEW_FACES` | Fewer than 8 faces could be classified | as above |
+| `FACE_DETECTION_ERRORS` | The face detector failed on some frames (logged server-side); may accompany any label | unchanged |
+
+If the detector fails on every frame, the request fails with 500 rather than
+claiming no face was found.
+
+`frame_predictions` holds one fake score per classified face (one face per sampled frame).
+`num_frames_sampled` counts frames read from the video and `num_faces_analyzed` the faces
+classified. `num_frames_processed` is deprecated: it meant faces for decided videos but
+frames when no face was found.
 The response also carries the `model` version block described below.
 
 ## `POST /api/detect/`
@@ -93,7 +110,7 @@ The response also carries the `model` version block described below.
 Field `file`. Routes to the image or video model by extension and returns a
 unified result: `media_type`, `label`, `confidence_pct`, `device`,
 `processing_time_ms`, plus `level1`/`level2` for images or
-`num_frames_processed`/`frame_predictions`/`notes` for videos. If the file is
+`num_frames_sampled`/`num_faces_analyzed`/`frame_predictions`/`notes` for videos. If the file is
 accepted but cannot be analysed, the response is 422 (bad media) or 500
 (server fault) with `"label": "ERROR"` and the reason in `error`.
 

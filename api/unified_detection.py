@@ -47,7 +47,9 @@ class UnifiedDetectionResult:
     image_level2: Optional[Dict[str, Any]] = None
     
     # Video-specific fields
-    num_frames_processed: Optional[int] = None
+    num_frames_processed: Optional[int] = None  # deprecated
+    num_frames_sampled: Optional[int] = None
+    num_faces_analyzed: Optional[int] = None
     frame_predictions: Optional[list] = None
 
     # Pipeline notes (e.g. NO_FACE_DETECTED) and failure reason, if any
@@ -78,6 +80,8 @@ class UnifiedDetectionResult:
             result['level2'] = self.image_level2
         if self.num_frames_processed is not None:
             result['num_frames_processed'] = self.num_frames_processed
+            result['num_frames_sampled'] = self.num_frames_sampled
+            result['num_faces_analyzed'] = self.num_faces_analyzed
         if self.frame_predictions:
             result['frame_predictions'] = self.frame_predictions
         if self.notes:
@@ -288,6 +292,8 @@ def _detect_video(
             device=device,
             processing_time_ms=processing_time,
             num_frames_processed=vmd_result.num_frames_processed,
+            num_frames_sampled=vmd_result.num_frames_sampled,
+            num_faces_analyzed=vmd_result.num_faces_analyzed,
             frame_predictions=vmd_result.frame_predictions,
             notes=list(vmd_result.notes) or None,
             model=common.model_info(model_path),

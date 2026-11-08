@@ -22,7 +22,9 @@ Response (200 OK)
     "real_prob":          float | null,
     "confidence_pct":     float | null,
     "device":             "cpu" | "cuda",
-    "num_frames_processed": int,
+    "num_frames_sampled":  int,            frames read from the video
+    "num_faces_analyzed":  int,            faces classified (= len(frame_predictions))
+    "num_frames_processed": int,           deprecated: faces if decided, else frames
     "frame_predictions":  [float, ...],
     "processing_time_ms": float,
     "notes":              [str, ...],
