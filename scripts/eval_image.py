@@ -3,8 +3,11 @@ Evaluate the image model against the mean-ELA baseline on a labelled set.
 
     python scripts/eval_image.py --data eval/data/kodak-splice [--weights weights/model_c1.pth]
 
-The data directory holds JPEGs plus labels.csv (file, label[, variant]) with
-label 1 = tampered, 0 = authentic; scripts/make_splice_set.py builds one.
+The data directory holds images plus labels.csv (file, label[, variant][, split])
+with label 1 = tampered, 0 = authentic; scripts/make_splice_set.py and
+scripts/prepare_casia.py build one. --split keeps only rows of that split.
+Images are decoded by their own extension: a lossless PNG of a decoded JPEG
+(as in the CASIA mirror) gives the model the same pixels as the original JPEG.
 
 Each image is scored by exactly what the service computes
 (core.pipeline.image_processor.tampering_score) and by the no-model baseline
@@ -104,6 +107,7 @@ def main() -> int:
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--weights", type=Path, default=ROOT / "weights" / "model_c1.pth")
     parser.add_argument("--out", type=Path, default=ROOT / "eval" / "results")
+    parser.add_argument("--split", help="only evaluate rows whose split column has this value")
     args = parser.parse_args()
 
     import django
@@ -116,11 +120,18 @@ def main() -> int:
 
     with (args.data / "labels.csv").open(encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
+    if args.split:
+        rows = [r for r in rows if r.get("split") == args.split]
+        if not rows:
+            print(f"No rows with split={args.split!r}", file=sys.stderr)
+            return 1
+    dataset = args.data.name + (f"-{args.split}" if args.split else "")
     device = torch.device("cpu")
 
     model_scores, baseline_scores, labels, variants = [], [], [], []
     for row in rows:
-        img = open_untrusted(args.data / row["file"], "jpg").convert("RGB")
+        path = args.data / row["file"]
+        img = open_untrusted(path, path.suffix.lstrip(".")).convert("RGB")
         model_scores.append(image_processor.tampering_score(img, str(args.weights), device))
         baseline_scores.append(ela.mean_ela(img))
         labels.append(int(row["label"]))
@@ -139,7 +150,7 @@ def main() -> int:
         return out
 
     results = {
-        "dataset": args.data.name,
+        "dataset": dataset,
         "n_images": len(y),
         "n_tampered": int(y.sum()),
         "weights": args.weights.name,
@@ -154,7 +165,7 @@ def main() -> int:
     results["model_clearly_beats_baseline"] = lower > max(0.5, results["baseline_mean_ela"]["auc"])
 
     args.out.mkdir(parents=True, exist_ok=True)
-    out_file = args.out / f"{args.weights.stem}-{args.data.name}-{results['date']}.json"
+    out_file = args.out / f"{args.weights.stem}-{dataset}-{results['date']}.json"
     out_file.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")
 
     mm, bb = results["model"], results["baseline_mean_ela"]

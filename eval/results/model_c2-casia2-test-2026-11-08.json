@@ -1,0 +1,38 @@
+{
+  "dataset": "casia2-test",
+  "n_images": 1424,
+  "n_tampered": 309,
+  "weights": "model_c2.pth",
+  "weights_sha256": "3384490699363eaa5fd2f1d060efcc0dca5dbf2d87543e9dd07496e2735a7170",
+  "date": "2026-11-08",
+  "model": {
+    "auc": 0.9622273499063956,
+    "auc_95ci": [
+      0.9517118537148017,
+      0.9711585934441417
+    ],
+    "balanced_accuracy_at_0.5": 0.8770008852511356,
+    "balanced_accuracy_best_threshold_optimistic": 0.9057164003657103,
+    "best_threshold": 0.35592949390411377,
+    "by_variant_auc": {
+      "all": 0.9622273499063956
+    },
+    "ece": 0.01991500314107124,
+    "mean_score_authentic": 0.08955589005098576,
+    "mean_score_tampered": 0.7682027633469191
+  },
+  "baseline_mean_ela": {
+    "auc": 0.713677855660528,
+    "auc_95ci": [
+      0.6848406849508957,
+      0.7423991206713015
+    ],
+    "balanced_accuracy_best_threshold_optimistic": 0.6655143889590318,
+    "best_threshold": 0.036836352199316025,
+    "by_variant_auc": {
+      "all": 0.713677855660528
+    }
+  },
+  "validation_rule": "model AUC 95% CI lower bound > max(0.5, baseline AUC)",
+  "model_clearly_beats_baseline": true
+}

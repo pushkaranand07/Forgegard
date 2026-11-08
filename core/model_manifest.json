@@ -10,7 +10,17 @@
       "legacy_pickle_sha256": "5839a0d90084a00a5e00680eb801b9b44009e8f3a48b4ba1191388d9bee34fed",
       "url": null,
       "validated": false,
-      "evaluation": "Not validated. Audit 2026-11: accuracy 0.475, AUC 0.561 on 80 synthetic splices (docs/audit-2026-11.md). The API reports its score as experimental (label UNVALIDATED)."
+      "evaluation": "Not validated. Kodak splice set AUC 0.619 (0.500-0.728) vs mean-ELA baseline 0.566: fails the validation rule. CASIA v2 test split 0.780, possibly contaminated (trained on CASIA, split unrecorded). The API reports its score as experimental (label UNVALIDATED). See docs/eval.md."
+    },
+    "model_c2.pth": {
+      "kind": "image",
+      "name": "IMDModel (ELA + CNN), retrained on CASIA v2",
+      "sha256": "3384490699363eaa5fd2f1d060efcc0dca5dbf2d87543e9dd07496e2735a7170",
+      "format": "state_dict",
+      "source": "scripts/train_image.py on scripts/prepare_casia.py (JPEG-origin CASIA v2, split by source image, seed 20261108); temperature scaling folded into the last layer",
+      "url": null,
+      "validated": false,
+      "evaluation": "Not validated, not deployed. CASIA v2 test AUC 0.962 (0.952-0.971) but Kodak splice set AUC 0.576 (0.460-0.685): does not generalise beyond CASIA. See docs/eval.md."
     },
     "deepfake_detector_b7.pth": {
       "kind": "video",

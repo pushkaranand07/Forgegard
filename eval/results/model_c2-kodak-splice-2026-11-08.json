@@ -1,0 +1,40 @@
+{
+  "dataset": "kodak-splice",
+  "n_images": 96,
+  "n_tampered": 48,
+  "weights": "model_c2.pth",
+  "weights_sha256": "3384490699363eaa5fd2f1d060efcc0dca5dbf2d87543e9dd07496e2735a7170",
+  "date": "2026-11-08",
+  "model": {
+    "auc": 0.5759548611111112,
+    "auc_95ci": [
+      0.4595861291657621,
+      0.684542039135385
+    ],
+    "balanced_accuracy_at_0.5": 0.5104166666666666,
+    "balanced_accuracy_best_threshold_optimistic": 0.59375,
+    "best_threshold": 0.6324886679649353,
+    "by_variant_auc": {
+      "double": 0.5850694444444444,
+      "single": 0.5746527777777778
+    },
+    "ece": 0.213187539173911,
+    "mean_score_authentic": 0.37482271894502145,
+    "mean_score_tampered": 0.4387046270227681
+  },
+  "baseline_mean_ela": {
+    "auc": 0.56640625,
+    "auc_95ci": [
+      0.44797455533596836,
+      0.6860880834565044
+    ],
+    "balanced_accuracy_best_threshold_optimistic": 0.5833333333333334,
+    "best_threshold": 0.022600144147872925,
+    "by_variant_auc": {
+      "double": 0.6475694444444444,
+      "single": 0.5399305555555556
+    }
+  },
+  "validation_rule": "model AUC 95% CI lower bound > max(0.5, baseline AUC)",
+  "model_clearly_beats_baseline": false
+}
