@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from unittest import mock
 
@@ -63,11 +64,17 @@ def test_heartbeat_thread_keeps_going_after_an_error(monkeypatch):
 
     monkeypatch.setattr(jobs, "write_heartbeat", flaky)
     monkeypatch.setattr(jobs, "HEARTBEAT_INTERVAL", 0.01)
-    thread = jobs.start_heartbeat()
-    deadline = time.time() + 5
-    while len(calls) < 3 and time.time() < deadline:
-        time.sleep(0.01)
-    assert thread.daemon and len(calls) >= 3
+    stop = threading.Event()
+    thread = jobs.start_heartbeat(stop)
+    try:
+        deadline = time.time() + 5
+        while len(calls) < 3 and time.time() < deadline:
+            time.sleep(0.01)
+    finally:
+        stop.set()  # never leak the thread into other tests
+        thread.join(timeout=5)
+    assert len(calls) >= 3
+    assert not thread.is_alive()
 
 
 # ── worker_status ────────────────────────────────────────────────────────────
