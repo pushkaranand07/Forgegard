@@ -145,7 +145,7 @@ export default function Batch() {
                   <tr>
                     <th className="px-4 py-3 font-medium">File</th>
                     <th className="px-4 py-3 font-medium">Verdict</th>
-                    <th className="px-4 py-3 text-right font-medium">Confidence</th>
+                    <th className="px-4 py-3 text-right font-medium">Model score</th>
                     <th className="px-4 py-3 font-medium">Details</th>
                     <th className="px-4 py-3" />
                   </tr>

@@ -23,8 +23,8 @@ export function verdictMeta(a: Analysis): VerdictMeta {
         tone: "good",
         icon: ShieldCheck,
         summary: isVideo
-          ? `The classifier judged the faces in this video to be genuine with ${formatConfidence(a.confidencePct)} confidence.`
-          : `Error-level analysis found no manipulation pattern; the model is ${formatConfidence(a.confidencePct)} confident the image is authentic.`,
+          ? `The classifier scored the faces in this video as genuine (model score ${formatConfidence(a.confidencePct)}, uncalibrated: not a probability of being right).`
+          : `Error-level analysis found no manipulation pattern (model score ${formatConfidence(a.confidencePct)}, uncalibrated: not a probability of being right).`,
       };
     case "manipulated":
       return {
@@ -33,10 +33,31 @@ export function verdictMeta(a: Analysis): VerdictMeta {
         tone: "critical",
         icon: ShieldAlert,
         summary: isVideo
-          ? `The classifier flagged synthetic facial manipulation with ${formatConfidence(a.confidencePct)} confidence.`
-          : `Error-level analysis shows compression inconsistencies typical of edited regions (${formatConfidence(a.confidencePct)} confidence).`,
+          ? `The classifier flagged likely facial manipulation (model score ${formatConfidence(a.confidencePct)}, uncalibrated: not a probability of being right).`
+          : `Error-level analysis shows compression inconsistencies typical of edited regions (model score ${formatConfidence(a.confidencePct)}, uncalibrated).`,
       };
     case "inconclusive":
+      if (a.label === "UNSUPPORTED") {
+        return {
+          title: "No verdict for this file type",
+          short: "Not applicable",
+          tone: "warning",
+          icon: CircleHelp,
+          summary: a.note ?? "Error level analysis needs a JPEG source, so no score is given.",
+        };
+      }
+      if (a.label === "UNVALIDATED") {
+        const score = a.experimentalScore;
+        return {
+          title: "No verdict: experimental model",
+          short: "No verdict",
+          tone: "warning",
+          icon: CircleHelp,
+          summary:
+            "The image model has not passed an evaluation yet, so ForgeGuard gives no tampering verdict." +
+            (score != null ? ` Experimental score: ${score.toFixed(2)} (uncalibrated, not validated).` : ""),
+        };
+      }
       return {
         title: "Inconclusive",
         short: "Inconclusive",

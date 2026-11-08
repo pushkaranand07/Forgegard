@@ -15,11 +15,18 @@ export interface ModelInfo {
 
 /** POST /api/detect-image/ */
 export interface ImageApiResponse {
-  label: "AUTHENTIC" | "TAMPERED";
-  predicted_class: 0 | 1;
-  authentic_prob: number;
-  tampered_prob: number;
-  confidence_pct: number;
+  /**
+   * AUTHENTIC/TAMPERED only from a validated model. UNVALIDATED: the model has
+   * not passed an evaluation, so the probabilities are an experimental score.
+   * UNSUPPORTED: not a JPEG, so error level analysis does not apply (no score).
+   */
+  label: "AUTHENTIC" | "TAMPERED" | "UNVALIDATED" | "UNSUPPORTED";
+  predicted_class: 0 | 1 | -1;
+  authentic_prob: number | null;
+  tampered_prob: number | null;
+  confidence_pct: number | null;
+  experimental: boolean;
+  reason: string | null;
   device: string;
   level1: Level1Metadata;
   /** Saved filename, or null unless the server keeps uploads (FORGEGUARD_KEEP_UPLOADS) */
@@ -53,7 +60,13 @@ export interface UnifiedApiResult {
   device: string;
   processing_time_ms: number;
   level1?: Level1Metadata;
-  level2?: { authentic_prob: number; tampered_prob: number; method: string };
+  level2?: {
+    authentic_prob: number | null;
+    tampered_prob: number | null;
+    method: string;
+    experimental?: boolean;
+    reason?: string | null;
+  };
   num_frames_processed?: number;
   frame_predictions?: number[];
   notes?: string[];
@@ -126,6 +139,10 @@ export interface Analysis {
   processingMs: number;
   /** Probability (0–1) of each class; null when the model did not decide */
   probs: { authentic: number; manipulated: number } | null;
+  /** Unvalidated image model: its raw tampering score (0–1), shown as experimental, never as a verdict */
+  experimentalScore?: number | null;
+  /** Why no verdict was given (unvalidated model, unsupported format) */
+  note?: string | null;
   image?: {
     softwareFound: boolean;
     softwareSignature: string;

@@ -20,7 +20,7 @@ const LIMITS = [
   "The image model detects splicing and retouching in JPEGs. It does not detect AI-generated images.",
   "Re-encoding, heavy compression, screenshots and very low resolution remove the artefacts both models rely on.",
   "Image metadata is easily stripped or forged, so a clean metadata scan is weak evidence of authenticity.",
-  "Confidence describes the model's certainty, not the probability that it is right. Treat results as one input to an investigation.",
+  "Model scores are uncalibrated: they are not the probability that the result is right. The image model has not passed an evaluation, so image results carry no verdict yet. Treat results as one input to an investigation.",
 ];
 
 function Steps({ steps }: { steps: typeof IMAGE_STEPS }) {

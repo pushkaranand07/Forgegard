@@ -33,7 +33,7 @@ const FEATURES = [
 const STEPS = [
   { n: "01", title: "Upload", body: "Drop an image or video. Nothing leaves your ForgeGuard server." },
   { n: "02", title: "Analyze", body: "The matching model runs automatically — seconds for images, under a minute for most videos." },
-  { n: "03", title: "Review", body: "Read the verdict, confidence and the evidence behind it, then export or print." },
+  { n: "03", title: "Review", body: "Read the verdict, the model score and the evidence behind it, then export or print." },
 ];
 
 export default function Home() {
