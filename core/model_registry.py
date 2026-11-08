@@ -64,6 +64,16 @@ def manifest_entry(path: str) -> Optional[Dict[str, Any]]:
     return manifest()["models"].get(os.path.basename(path))
 
 
+def is_validated(path: str) -> bool:
+    """True only when the manifest marks this model as having passed a committed evaluation.
+
+    An unvalidated image model still runs, but the API reports its score as
+    experimental (label UNVALIDATED) instead of an AUTHENTIC/TAMPERED verdict.
+    """
+    entry = manifest_entry(path)
+    return bool(entry and entry.get("validated") is True)
+
+
 def verification_enabled() -> bool:
     return os.getenv("FORGEGUARD_VERIFY_WEIGHTS", "true").strip().lower() not in {"0", "false", "no", "off"}
 

@@ -30,14 +30,14 @@ import threading
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import torch
-from PIL import Image, ImageChops
+from PIL import Image
 from PIL.ExifTags import TAGS
 from torch import nn
 
 from core import model_registry
 from core.model_registry import CheckpointMismatchError, ModelUnavailableError
+from core.pipeline import ela
 from core.pipeline.safe_image import (  # re-exported: callers import these from here
     MAX_IMAGE_PIXELS,
     InvalidImageError,
@@ -106,39 +106,53 @@ class IMDModel(nn.Module):
 # Result Dataclass
 # ─────────────────────────────────────────────────────────────────────────────
 
+VERDICT_LABELS = ("AUTHENTIC", "TAMPERED")
+UNVALIDATED = "UNVALIDATED"
+UNSUPPORTED = "UNSUPPORTED"
+UNSUPPORTED_REASON = (
+    "Error level analysis needs a JPEG source: it measures differences in JPEG "
+    "compression, which lossless and WebP images do not have. No score is given."
+)
+
+
 @dataclass(frozen=True)
 class ImageDetectionResult:
     """
     Structured result returned by detect_image_file / detect_image_bytes.
 
-    Attributes
-    ----------
-    label               : "AUTHENTIC" or "TAMPERED"
-    predicted_class     : int — 1 = Authentic, 0 = Tampered
-    authentic_prob      : float in [0, 1]
-    tampered_prob       : float in [0, 1]
-    device              : "cpu" or "cuda"
-    software_found      : bool — True when EXIF software tag detected (Level 1)
-    software_signature  : str  — Software name from EXIF, or "" if not found
-    level1_notes        : list of human-readable findings from metadata scan
+    label is one of:
+      - "AUTHENTIC" / "TAMPERED": only from a model the manifest marks validated
+      - "UNVALIDATED": JPEG scored by a model that has not passed an evaluation;
+        the probabilities are an experimental score, not a verdict
+      - "UNSUPPORTED": not a JPEG, so ELA does not apply; no score
+
+    predicted_class is 1 (authentic) / 0 (tampered) for a verdict, else -1.
+    authentic_prob / tampered_prob are None for UNSUPPORTED.
     """
 
     label: str
     predicted_class: int
-    authentic_prob: float
-    tampered_prob: float
+    authentic_prob: Optional[float]
+    tampered_prob: Optional[float]
     device: str
     software_found: bool = False
     software_signature: str = ""
     level1_notes: List[str] = field(default_factory=list)
+    experimental: bool = False
+    reason: Optional[str] = None
 
     def as_dict(self) -> Dict[str, Any]:
+        has_score = self.tampered_prob is not None and self.authentic_prob is not None
+        is_verdict = self.label in VERDICT_LABELS
         return {
             "label": self.label,
             "predicted_class": int(self.predicted_class),
-            "authentic_prob": round(float(self.authentic_prob), 4),
-            "tampered_prob": round(float(self.tampered_prob), 4),
-            "confidence_pct": round(max(self.authentic_prob, self.tampered_prob) * 100, 2),
+            "authentic_prob": round(float(self.authentic_prob), 4) if has_score else None,
+            "tampered_prob": round(float(self.tampered_prob), 4) if has_score else None,
+            # A confidence figure is only shown for a validated verdict (audit I16)
+            "confidence_pct": round(max(self.authentic_prob, self.tampered_prob) * 100, 2) if is_verdict else None,
+            "experimental": self.experimental,
+            "reason": self.reason,
             "device": self.device,
             "level1": {
                 "software_found": self.software_found,
@@ -224,51 +238,9 @@ def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
 # Level 2 — ELA preprocessing (vectorized, no pixel loop)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ELA is computed in horizontal strips so peak memory is one output buffer plus
-# one strip, not several full-size copies. Strips start on the 16-row JPEG MCU
-# grid and are re-encoded with a 16-row margin on each side, so chroma
-# upsampling at strip edges sees the same neighbours as a whole-image encode:
-# the result is bit-identical to whole-image ELA (tests/test_memory_bounds.py).
-_ELA_STRIP_ROWS = 512
-_ELA_MARGIN_ROWS = 16
-
-
-def _ela_image(original: Image.Image, jpeg_quality: int = 90, scale: int = 10) -> Image.Image:
-    """
-    In-memory Error Level Analysis (ELA) at native resolution.
-
-    Re-saves the image at `jpeg_quality` and returns the per-pixel difference
-    between the original and the re-saved version, multiplied by `scale` and
-    clipped to 255. Everything stays uint8.
-    """
-    if original.mode != "RGB":
-        original = original.convert("RGB")
-    width, height = original.size
-    out = Image.new("RGB", (width, height))
-    amplify = [min(255, value * scale) for value in range(256)] * 3  # per-band lookup table
-
-    for top in range(0, height, _ELA_STRIP_ROWS):
-        bottom = min(top + _ELA_STRIP_ROWS, height)
-        lo = max(0, top - _ELA_MARGIN_ROWS)
-        hi = min(height, bottom + _ELA_MARGIN_ROWS)
-        tile = original.crop((0, lo, width, hi))
-
-        buf = io.BytesIO()
-        tile.save(buf, format="JPEG", quality=int(jpeg_quality))
-        buf.seek(0)
-        recompressed = Image.open(buf, formats=("JPEG",)).convert("RGB")  # noqa: TID251 — our own re-encode
-
-        diff = ImageChops.difference(tile, recompressed).point(amplify)
-        out.paste(diff.crop((0, top - lo, width, bottom - lo)), (0, top))
-
-    return out
-
-
-def _preprocess(img: Image.Image) -> torch.Tensor:
-    """Resize to 128×128 and normalise to [0, 1], returning (1, 3, 128, 128)."""
-    img = img.resize((128, 128))
-    arr = np.asarray(img, dtype=np.float32).transpose(2, 0, 1) / 255.0
-    return torch.from_numpy(np.expand_dims(arr, axis=0))
+# ELA lives in core/pipeline/ela.py (shared with the evaluation harness).
+_ela_image = ela.ela_image
+_preprocess = ela.to_model_input
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -337,35 +309,57 @@ def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Mod
 # Core inference
 # ─────────────────────────────────────────────────────────────────────────────
 
+def tampering_score(pil_img: Image.Image, model_path: str, device: Optional[torch.device] = None) -> float:
+    """The model's raw P(tampered) for an RGB JPEG-decoded image (no verdict policy).
+
+    Used by the API path below and by scripts/eval_image.py, so the evaluation
+    measures exactly what the service computes.
+    """
+    device = device or _select_device()
+    model = load_model(model_path=model_path, device=device)
+    x = ela.to_model_input(ela.ela_image(pil_img)).to(device)
+    with torch.no_grad():
+        probs = torch.softmax(model(x), dim=1).squeeze(0).float().cpu()  # [tampered, authentic]
+    return float(probs[0].item())
+
+
 def _run_inference(pil_img: Image.Image, model_path: str,
                    device: Optional[torch.device] = None) -> ImageDetectionResult:
     """
     Shared inference logic used by both public entry-points.
-    Runs Level 1 (metadata) and Level 2 (ELA + CNN).
+    Runs Level 1 (metadata) and, for JPEGs, Level 2 (ELA + CNN).
     """
     device = device or _select_device()
 
     # Level 1 — metadata (on the image as opened, before RGB conversion)
     software_found, software_sig, notes = _analyse_metadata(pil_img)
+    level1 = dict(software_found=software_found, software_signature=software_sig, level1_notes=notes)
+
+    # ELA measures JPEG recompression error; for any other format it is noise (audit I2)
+    if pil_img.format != "JPEG":
+        logger.info(f"[IMD] {pil_img.format} image: ELA not applicable, model not run")
+        return ImageDetectionResult(
+            label=UNSUPPORTED, predicted_class=-1, authentic_prob=None, tampered_prob=None,
+            device=device.type, reason=UNSUPPORTED_REASON, **level1,
+        )
+
     if pil_img.mode != "RGB":  # avoid a full-size copy when it already is
         pil_img = pil_img.convert("RGB")
 
     # Level 2 — ELA + CNN
-    model = load_model(model_path=model_path, device=device)
-    ela_img = _ela_image(pil_img)
-    x = _preprocess(ela_img).to(device)
+    tampered_prob = tampering_score(pil_img, model_path, device)
+    authentic_prob = 1.0 - tampered_prob
 
-    with torch.no_grad():
-        logits = model(x)  # shape: (1, 2)
-        probs = torch.softmax(logits, dim=1).squeeze(0).float().cpu()
+    if model_registry.is_validated(model_path):
+        predicted_class = 1 if authentic_prob > tampered_prob else 0
+        label = "AUTHENTIC" if predicted_class == 1 else "TAMPERED"
+        experimental, reason = False, None
+    else:
+        predicted_class, label, experimental = -1, UNVALIDATED, True
+        reason = ("This model has not passed a committed evaluation, so no verdict is given. "
+                  "The score is experimental and uncalibrated.")
 
-    tampered_prob = float(probs[0].item())
-    authentic_prob = float(probs[1].item())
-    predicted_class = int(torch.argmax(probs).item())
-    label = "AUTHENTIC" if predicted_class == 1 else "TAMPERED"
-
-    logger.info(f"[IMD] Result: {label}  "
-          f"(authentic={authentic_prob:.3f}, tampered={tampered_prob:.3f})")
+    logger.info(f"[IMD] Result: {label}  (authentic={authentic_prob:.3f}, tampered={tampered_prob:.3f})")
 
     return ImageDetectionResult(
         label=label,
@@ -373,9 +367,9 @@ def _run_inference(pil_img: Image.Image, model_path: str,
         authentic_prob=authentic_prob,
         tampered_prob=tampered_prob,
         device=device.type,
-        software_found=software_found,
-        software_signature=software_sig,
-        level1_notes=notes,
+        experimental=experimental,
+        reason=reason,
+        **level1,
     )
 
 

@@ -8,7 +8,9 @@
       "format": "state_dict",
       "source": "Trained by the project author (train.ipynb, checkpoint model_c1_e100_v2); converted from a pickled module by scripts/convert_imd_to_state_dict.py",
       "legacy_pickle_sha256": "5839a0d90084a00a5e00680eb801b9b44009e8f3a48b4ba1191388d9bee34fed",
-      "url": null
+      "url": null,
+      "validated": false,
+      "evaluation": "Not validated. Audit 2026-11: accuracy 0.475, AUC 0.561 on 80 synthetic splices (docs/audit-2026-11.md). The API reports its score as experimental (label UNVALIDATED)."
     },
     "deepfake_detector_b7.pth": {
       "kind": "video",

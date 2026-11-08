@@ -116,7 +116,7 @@ def test_image_model_end_to_end():
         buf, format="JPEG", quality=92
     )
     result = image_processor.detect_image_bytes(buf.getvalue(), os.path.join(WEIGHTS_DIR, "model_c1.pth"))
-    assert result.label in {"AUTHENTIC", "TAMPERED"}
+    assert result.label == "UNVALIDATED"  # the deployed model is not validated (core/model_manifest.json)
     assert result.authentic_prob + result.tampered_prob == pytest.approx(1.0, abs=1e-3)
 
 

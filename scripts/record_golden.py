@@ -103,7 +103,8 @@ def record() -> int:
         ext = os.path.splitext(name)[1].lower()
         if ext in IMAGE_EXT:
             r = image_processor.detect_image_file(path, image_w, torch.device("cpu"))
-            entries[name] = {"kind": "image", "label": r.label, "score": round(r.tampered_prob, 6),
+            score = None if r.tampered_prob is None else round(r.tampered_prob, 6)  # None: UNSUPPORTED
+            entries[name] = {"kind": "image", "label": r.label, "score": score,
                              "weights_sha256": sha256(image_w)}
         elif ext in VIDEO_EXT:
             r = video_processor.detect_video_file(path, video_w, device="cpu")

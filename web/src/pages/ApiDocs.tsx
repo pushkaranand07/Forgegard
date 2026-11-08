@@ -25,11 +25,14 @@ const ENDPOINTS: Endpoint[] = [
     fields: [["image", "Image file — jpg, jpeg, png or webp, up to 100 MB. The content must match the extension (415 otherwise)"]],
     curl: `curl -F "image=@photo.jpg" ${ORIGIN}/api/detect-image/`,
     response: `{
-  "label": "TAMPERED",            // or "AUTHENTIC"
-  "predicted_class": 0,           // 0 = tampered, 1 = authentic
-  "authentic_prob": 0.1584,
+  "label": "UNVALIDATED",         // no verdict: the image model has not passed an evaluation
+                                  // PNG/WebP: "UNSUPPORTED" (no score); validated model: AUTHENTIC/TAMPERED
+  "predicted_class": -1,          // 0 tampered / 1 authentic only with a verdict
+  "authentic_prob": 0.1584,       // experimental, uncalibrated score
   "tampered_prob": 0.8416,
-  "confidence_pct": 84.16,
+  "confidence_pct": null,         // only given with a validated verdict
+  "experimental": true,
+  "reason": "This model has not passed a committed evaluation, so no verdict is given. ...",
   "device": "cuda",
   "level1": {
     "software_found": true,

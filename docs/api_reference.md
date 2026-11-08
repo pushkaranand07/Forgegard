@@ -30,11 +30,13 @@ runs error-level analysis (ELA) through a CNN.
 
 ```json
 {
-  "label": "TAMPERED",
-  "predicted_class": 0,
+  "label": "UNVALIDATED",
+  "predicted_class": -1,
   "authentic_prob": 0.1584,
   "tampered_prob": 0.8416,
-  "confidence_pct": 84.16,
+  "confidence_pct": null,
+  "experimental": true,
+  "reason": "This model has not passed a committed evaluation, so no verdict is given. The score is experimental and uncalibrated.",
   "device": "cpu",
   "level1": {
     "software_found": true,
@@ -46,8 +48,17 @@ runs error-level analysis (ELA) through a CNN.
 }
 ```
 
-`predicted_class`: 0 = tampered, 1 = authentic. `original_image` is the saved
-filename only when the server runs with `FORGEGUARD_KEEP_UPLOADS=true`.
+`label` never claims more than the model's evaluation supports (audit I1, I2):
+
+| `label` | When | Scores |
+|---|---|---|
+| `AUTHENTIC` / `TAMPERED` | JPEG, and the model is marked `"validated": true` in `core/model_manifest.json` | probabilities and `confidence_pct`; `predicted_class` 1 / 0 |
+| `UNVALIDATED` | JPEG, and the model has not passed a committed evaluation (**the deployed model**) | `authentic_prob` / `tampered_prob` as an experimental, uncalibrated score; `confidence_pct` null; `predicted_class` -1; `experimental: true` |
+| `UNSUPPORTED` | PNG or WebP: error level analysis needs JPEG compression | all scores null; the model is not run; `reason` explains |
+
+Level 1 (metadata) is reported for every format. `original_image` is the saved
+filename only when the server runs with `FORGEGUARD_KEEP_UPLOADS=true`. On
+`/api/detect/`, the same fields appear under `level2`.
 
 ## `POST /api/detect-video/`
 

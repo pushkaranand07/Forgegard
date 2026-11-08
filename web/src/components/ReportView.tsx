@@ -45,7 +45,7 @@ function ConfidenceRing({ pct, tone }: { pct: number | null; tone: string }) {
       <div className="absolute inset-0 grid place-items-center text-center">
         <div>
           <div className="text-lg font-bold leading-none text-ink tabular">{formatConfidence(pct)}</div>
-          <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-ink-3">confidence</div>
+          <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-ink-3">model score</div>
         </div>
       </div>
     </div>
@@ -255,8 +255,9 @@ export default function ReportView({ analysis: a, previewUrl, actions }: Props) 
       <Card className="p-5 sm:p-6 print-avoid-break">
         <h3 className="mb-2 text-sm font-semibold text-ink">How to read this report</h3>
         <p className="text-sm text-ink-2">
-          ForgeGuard's verdicts are model predictions, not proof. Confidence reflects how certain the model is, not the
-          probability that the verdict is correct. Heavily compressed, very small, or screenshotted media lowers
+          ForgeGuard's verdicts are model predictions, not proof. Model scores are uncalibrated: they are not the
+          probability that a verdict is correct. The image model has not passed an evaluation yet, so image results
+          show an experimental score and no verdict. Heavily compressed, very small, or screenshotted media lowers
           reliability. Use this report alongside source verification and expert review before acting on it.
         </p>
       </Card>

@@ -176,8 +176,11 @@ def _detect_image(
         imd_result = detect_image_bytes(image_bytes, model_path, extension=common.extension_of(file_path))
         
         # Map to unified result
-        label = "AUTHENTIC" if imd_result.predicted_class == 1 else "TAMPERED"
-        confidence = max(imd_result.authentic_prob, imd_result.tampered_prob) * 100
+        # Label policy lives in the image pipeline: AUTHENTIC/TAMPERED only from a
+        # validated model, UNVALIDATED for an experimental score, UNSUPPORTED for non-JPEG.
+        body = imd_result.as_dict()
+        label = body["label"]
+        confidence = body["confidence_pct"]
         
         processing_time = (time.time() - start_time) * 1000
         
@@ -193,9 +196,11 @@ def _detect_image(
                 'notes': list(imd_result.level1_notes),
             },
             image_level2={
-                'authentic_prob': float(imd_result.authentic_prob),
-                'tampered_prob': float(imd_result.tampered_prob),
+                'authentic_prob': body["authentic_prob"],
+                'tampered_prob': body["tampered_prob"],
                 'method': 'ELA + CNN',
+                'experimental': body["experimental"],
+                'reason': body["reason"],
             },
             model=common.model_info(model_path),
         )

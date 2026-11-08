@@ -1,6 +1,6 @@
 # Model Cards
 
-ForgeGuard serves two models, each documented below. Metrics are filled in only from committed evaluation reports under `reports/`. Until those exist, every metric reads "not yet evaluated".
+ForgeGuard serves two models, each documented below. Metrics come only from committed evaluation scripts and result files (see [docs/eval.md](docs/eval.md) and `eval/results/`). Anything not run yet reads "not yet evaluated".
 
 ---
 
@@ -66,10 +66,11 @@ ForgeGuard serves two models, each documented below. Metrics are filled in only 
 
 | Evaluation | Result |
 |---|---|
-| CASIA, seeded held-out split, with 95 % CI | not yet evaluated |
+| **Kodak splice set** (96 JPEGs, `scripts/make_splice_set.py`), with 95 % CI | **AUC 0.619 (0.500–0.728)**, balanced accuracy 0.552; mean-ELA baseline AUC 0.566. **Fails the validation rule**, so the API gives no verdict (label `UNVALIDATED`) |
+| CASIA v2 (re-encoded), seeded held-out split, with 95 % CI | not yet evaluated |
 | Cross-dataset | not yet evaluated |
 | Recompression stress test (JPEG q70, 50 % resize) | not yet evaluated |
-| Calibration (ECE) | not yet evaluated |
+| Calibration (ECE) | 0.412 on the Kodak splice set (badly overconfident) |
 
 The notebook printed 0.827 and 0.937 test accuracy. Neither is used here: the split was unseeded and the 0.937 checkpoint was likely scored on images it had trained on. See [docs/training_methodology.md](docs/training_methodology.md).
 

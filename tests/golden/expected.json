@@ -4,49 +4,49 @@
   "samples": {
     "synthetic_noise12.png": {
       "kind": "image",
-      "label": "TAMPERED",
-      "score": 1.0,
+      "label": "UNSUPPORTED",
+      "score": null,
       "weights_sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "media_sha256": "037b34862bf95be53b0aa8b5b9944ce03f4064c2d73616d397f560df4595e540"
     },
     "synthetic_noise12_q75.jpg": {
       "kind": "image",
-      "label": "TAMPERED",
+      "label": "UNVALIDATED",
       "score": 0.704955,
       "weights_sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "media_sha256": "b2138a167cbf92b7c68cf5b4688d11ee111e7ce0cca10338eace2f63cbd9847a"
     },
     "synthetic_noise12_q90.jpg": {
       "kind": "image",
-      "label": "TAMPERED",
+      "label": "UNVALIDATED",
       "score": 0.997756,
       "weights_sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "media_sha256": "a6d725c62b78d7b4d00afd0e7b4271992a150e84c92ffc8798ee85251315f3f4"
     },
     "synthetic_noise12_q95_blur2.jpg": {
       "kind": "image",
-      "label": "AUTHENTIC",
+      "label": "UNVALIDATED",
       "score": 0.002401,
       "weights_sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "media_sha256": "125abe27a77a5eb667ab2a754665325be826703be672de7c736a7a8ae9d0c285"
     },
     "synthetic_noise3_q95.jpg": {
       "kind": "image",
-      "label": "AUTHENTIC",
+      "label": "UNVALIDATED",
       "score": 0.098841,
       "weights_sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "media_sha256": "0349c7f83e34c6380cde115cde4a185c2572a0af9f098c0ccc18b21bb05b43b1"
     },
     "synthetic_smooth_q90.jpg": {
       "kind": "image",
-      "label": "AUTHENTIC",
+      "label": "UNVALIDATED",
       "score": 6.5e-05,
       "weights_sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "media_sha256": "00ca1626760ce6a6953272751e53dfa5b247f73b58eed1aab20381e6d89893af"
     },
     "synthetic_spliced_q90.jpg": {
       "kind": "image",
-      "label": "TAMPERED",
+      "label": "UNVALIDATED",
       "score": 0.949409,
       "weights_sha256": "b6b76a422a82e0983f37816fce736ef7533b51b4f2d736d222d5096282fc1406",
       "media_sha256": "d994a727b65095e4fc87bf707516069d8a7474247e44d80d238a51c2249e33a2"

@@ -62,3 +62,6 @@ models/
 
 # collectstatic output
 staticfiles/
+
+# Evaluation data (downloaded / generated, not redistributed)
+eval/data/

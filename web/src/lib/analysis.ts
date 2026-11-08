@@ -58,6 +58,8 @@ function verdictFor(label: string): Verdict {
       return "manipulated";
     case "UNSURE":
     case "UNKNOWN":
+    case "UNVALIDATED":
+    case "UNSUPPORTED":
       return "inconclusive";
     default:
       return "error";
@@ -82,16 +84,25 @@ function base(meta: FileMeta): Pick<Analysis, "id" | "createdAt" | "source" | "f
   };
 }
 
+function imageProbs(verdict: Verdict, authentic: number | null, tampered: number | null) {
+  return (verdict === "authentic" || verdict === "manipulated") && authentic !== null && tampered !== null
+    ? { authentic, manipulated: tampered }
+    : null;
+}
+
 export function fromImageResponse(r: ImageApiResponse, meta: FileMeta): Analysis {
+  const verdict = verdictFor(r.label);
   return {
     ...base(meta),
     mediaType: "image",
-    verdict: verdictFor(r.label),
+    verdict,
     label: r.label,
     confidencePct: r.confidence_pct,
     device: r.device,
     processingMs: r.processing_time_ms,
-    probs: { authentic: r.authentic_prob, manipulated: r.tampered_prob },
+    probs: imageProbs(verdict, r.authentic_prob, r.tampered_prob),
+    experimentalScore: r.label === "UNVALIDATED" ? r.tampered_prob : null,
+    note: r.reason ?? null,
     image: {
       softwareFound: r.level1.software_found,
       softwareSignature: r.level1.software_signature,
@@ -140,7 +151,9 @@ export function fromUnifiedResult(r: UnifiedApiResult, meta: FileMeta): Analysis
   if (mediaType === "image") {
     return {
       ...common,
-      probs: r.level2 ? { authentic: r.level2.authentic_prob, manipulated: r.level2.tampered_prob } : null,
+      probs: r.level2 ? imageProbs(verdict, r.level2.authentic_prob, r.level2.tampered_prob) : null,
+      experimentalScore: r.label === "UNVALIDATED" ? (r.level2?.tampered_prob ?? null) : null,
+      note: r.level2?.reason ?? null,
       image: r.level1
         ? {
             softwareFound: r.level1.software_found,
