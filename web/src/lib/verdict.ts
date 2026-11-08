@@ -65,7 +65,11 @@ export function verdictMeta(a: Analysis): VerdictMeta {
         icon: CircleHelp,
         summary: noFaceDetected(a)
           ? `No face was found in any of the ${a.video?.framesSampled ?? 0} sampled frames. The deepfake model only analyses faces, so it cannot judge this video.`
-          : "The model could not reach a decision for this file.",
+          : a.video?.notes.includes("NO_CONSENSUS")
+            ? "The model's per-face scores disagree: some frames look genuine and others manipulated, with no clear majority. That is not evidence either way, so no verdict is given."
+            : a.video?.notes.includes("TOO_FEW_FACES")
+              ? `Only ${a.video?.framePredictions.length ?? 0} faces could be analysed; at least 8 are needed for a verdict.`
+              : "The model could not reach a decision for this file.",
       };
     default:
       return {

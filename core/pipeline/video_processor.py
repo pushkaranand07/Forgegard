@@ -22,7 +22,7 @@ import os
 import threading
 import logging
 from dataclasses import dataclass, field
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -370,6 +370,38 @@ def confident_strategy(predictions: List[float], threshold: float = 0.8) -> floa
         return float(np.mean(pred_array))
 
 
+# A verdict needs this many classified faces: a quarter of the 32 sampled frames.
+# (Upstream's fake consensus needs more than 11 confident faces anyway.)
+MIN_FACES = 8
+CONFIDENT_FAKE = 0.8   # same thresholds as confident_strategy
+CONFIDENT_REAL = 0.2
+
+
+def decide(predictions: List[float]) -> Tuple[str, float, Optional[str]]:
+    """
+    Turn per-face P(fake) scores into (label, score, note).
+
+    The score is confident_strategy's number, unchanged. The label follows the
+    consensus that confident_strategy itself uses to pick its branch:
+      - FAKE when many faces are confidently fake (> n // 2.5 and > 11),
+      - REAL when more than 90% of faces are confidently real,
+      - otherwise UNSURE ("NO_CONSENSUS"): the faces disagree, and the plain
+        average that confident_strategy falls back to is not evidence either way.
+    Fewer than MIN_FACES faces gives UNSURE ("TOO_FEW_FACES").
+    """
+    score = confident_strategy(predictions)
+    arr = np.asarray(predictions)
+    n = len(arr)
+    if n < MIN_FACES:
+        return "UNSURE", score, "TOO_FEW_FACES"
+    confident_fakes = np.count_nonzero(arr > CONFIDENT_FAKE)
+    if confident_fakes > n // 2.5 and confident_fakes > 11:
+        return "FAKE", score, None
+    if np.count_nonzero(arr < CONFIDENT_REAL) > 0.9 * n:
+        return "REAL", score, None
+    return "UNSURE", score, "NO_CONSENSUS"
+
+
 def _isotropically_resize(img: np.ndarray, size: int) -> np.ndarray:
     """
     Resize image so the largest side equals `size`, keeping aspect ratio.
@@ -646,17 +678,19 @@ def detect_video_frames(
             probs = torch.sigmoid(logits).cpu().numpy().flatten()
             frame_predictions.extend(probs.tolist())
     
-    # Aggregate predictions
-    aggregated_score = confident_strategy(frame_predictions)
+    # Aggregate: a verdict only when the faces agree (see decide())
+    label, aggregated_score, decision_note = decide(frame_predictions)
     fake_prob = aggregated_score
     real_prob = 1.0 - aggregated_score
-    
-    predicted_class = 1 if real_prob > 0.5 else 0
-    label = "REAL" if predicted_class == 1 else "FAKE"
-    confidence_pct = max(fake_prob, real_prob) * 100
-    
-    logger.info(f"[classify] Label={label}, RealProb={real_prob:.4f}, "
-                f"FakeProb={fake_prob:.4f}, Confidence={confidence_pct:.4f}")
+    if label == "UNSURE":
+        predicted_class, confidence_pct = -1, None
+        notes.append(decision_note)
+    else:
+        predicted_class = 1 if label == "REAL" else 0
+        confidence_pct = max(fake_prob, real_prob) * 100
+
+    logger.info(f"[classify] Label={label}, FakeScore={fake_prob:.4f}, faces={len(frame_predictions)}"
+                + (f", note={decision_note}" if decision_note else ""))
     
     return VideoDetectionResult(
         label=label,
