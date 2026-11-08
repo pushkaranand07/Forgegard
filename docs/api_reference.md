@@ -3,6 +3,12 @@
 All endpoints speak JSON and accept `multipart/form-data` uploads. The web UI's
 **API** page shows the same reference with copy-paste `curl` examples.
 
+**Machine-readable contract:** [`api/openapi.yaml`](../api/openapi.yaml) (OpenAPI 3.1).
+- `tests/test_openapi_contract.py` checks every endpoint's real responses against it, success and error. The schemas are strict, so an undocumented or missing field fails CI.
+- The same test fails if a route is added without documenting it.
+- The web UI's TypeScript types are generated from it (`npm run gen:api` in `web/`), and CI fails if they are stale.
+- Use it to generate clients.
+
 Limits are configurable (see `docs/deployment_guide.md`); clients should read
 the live values from `GET /api/health/` rather than hard-coding them.
 

@@ -1,0 +1,530 @@
+openapi: 3.1.0
+info:
+  title: ForgeGuard API
+  version: 1.1.0
+  summary: Image-tampering and face-swap video analysis (research demo).
+  description: |
+    The single source of truth for response shapes. `tests/test_openapi_contract.py`
+    validates real responses against these schemas, and the web UI's types are
+    generated from this file (`npm run gen:api` in `web/`), so drift fails CI.
+
+    Schemas are strict (`additionalProperties: false`).
+    - **Server:** adding a response field is a schema change.
+    - **Clients:** clients must still ignore fields they do not know, so that they keep working with newer servers.
+
+    **Errors.** Every error response is an `Error`.
+    - `code` is the stable, closed set.
+    - `status` is a legacy, endpoint-specific string, kept for old clients.
+
+    **Analysis runs as a background job.** The `detect` endpoints wait up to
+    `FORGEGUARD_SYNC_WAIT_SECONDS` for their job and then answer `202 Pending`;
+    poll the `poll` URL.
+  license:
+    name: See the repository's LICENSE and CREDITS.md
+servers:
+  - url: /
+    description: Same origin as the web UI (or the backend URL when called cross-origin; see CORS in docs/api_reference.md)
+
+paths:
+  /api/detect-image/:
+    post:
+      operationId: detectImage
+      summary: Analyse one image (metadata + error level analysis)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary, description: "jpg, jpeg, png or webp; the real format must match the extension" }
+      responses:
+        "200": { description: Result, content: { application/json: { schema: { $ref: "#/components/schemas/ImageResult" } } } }
+        "202": { $ref: "#/components/responses/JobPending" }
+        "400": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /api/detect-video/:
+    post:
+      operationId: detectVideo
+      summary: Analyse one video for face swaps
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [video]
+              properties:
+                video: { type: string, format: binary }
+      responses:
+        "200": { description: Result, content: { application/json: { schema: { $ref: "#/components/schemas/VideoResult" } } } }
+        "202": { $ref: "#/components/responses/JobPending" }
+        "400": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /api/detect/:
+    post:
+      operationId: detect
+      summary: Analyse one file, routed by extension (image or video)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "200": { description: Result, content: { application/json: { schema: { $ref: "#/components/schemas/UnifiedResult" } } } }
+        "202": { $ref: "#/components/responses/JobPending" }
+        "400": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "415": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /api/detect/batch:
+    post:
+      operationId: detectBatch
+      summary: Analyse several files (one background job each)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: array, items: { type: string, format: binary }, description: "Repeat the `file` field, up to FORGEGUARD_MAX_BATCH_FILES" }
+      responses:
+        "200": { description: Every file finished, content: { application/json: { schema: { $ref: "#/components/schemas/BatchStatus" } } } }
+        "202": { $ref: "#/components/responses/BatchPending" }
+        "400": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /api/jobs/:
+    post:
+      operationId: createJob
+      summary: Queue one file and return immediately
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                kind: { $ref: "#/components/schemas/JobKind" }
+      responses:
+        "202":
+          description: Queued
+          headers: { Location: { schema: { type: string }, description: The poll URL } }
+          content: { application/json: { schema: { $ref: "#/components/schemas/JobCreated" } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /api/jobs/{job_id}/:
+    get:
+      operationId: getJob
+      summary: Poll a job
+      parameters:
+        - { name: job_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Job state, content: { application/json: { schema: { $ref: "#/components/schemas/JobStatus" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+
+  /api/batches/:
+    post:
+      operationId: createBatch
+      summary: Queue several files and return immediately
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: array, items: { type: string, format: binary } }
+      responses:
+        "202":
+          description: Queued (rejected files are listed, not queued)
+          headers: { Location: { schema: { type: string }, description: The poll URL } }
+          content: { application/json: { schema: { $ref: "#/components/schemas/BatchCreated" } } }
+        "400": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+        "413": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /api/batches/{batch_id}/:
+    get:
+      operationId: getBatch
+      summary: Poll a batch
+      parameters:
+        - { name: batch_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Batch state, content: { application/json: { schema: { $ref: "#/components/schemas/BatchStatus" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+        "405": { $ref: "#/components/responses/Error" }
+
+  /api/health/:
+    get:
+      operationId: getHealth
+      summary: Readiness (200 when both models are servable, 503 otherwise; same body)
+      responses:
+        "200": { description: Ready, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+        "503": { description: Degraded, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+
+  /api/health/live:
+    get:
+      operationId: getLiveness
+      summary: Liveness (no I/O; answers while models are busy)
+      responses:
+        "200":
+          description: Alive
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: false, required: [status], properties: { status: { const: ok } } }
+
+components:
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    JobPending:
+      description: Still running; poll the URL (also in the Location header)
+      headers: { Location: { schema: { type: string } } }
+      content: { application/json: { schema: { $ref: "#/components/schemas/JobPending" } } }
+    BatchPending:
+      description: Still running; poll the URL (also in the Location header)
+      headers: { Location: { schema: { type: string } } }
+      content: { application/json: { schema: { $ref: "#/components/schemas/BatchPending" } } }
+
+  schemas:
+    ErrorCode:
+      type: string
+      description: Stable error code (closed set). Branch on this, not on `status`.
+      enum: [INVALID_INPUT, INVALID_MEDIA, UNSUPPORTED_MEDIA, PAYLOAD_TOO_LARGE, RATE_LIMITED, BUSY, MODEL_UNAVAILABLE, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_ERROR]
+
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error, status, code]
+      properties:
+        error: { type: string, description: Human-readable message; never contains paths or stack traces }
+        status: { type: string, description: Legacy endpoint-specific code (deprecated; use `code`) }
+        code: { $ref: "#/components/schemas/ErrorCode" }
+        request_id: { type: string, description: Present on 500s; quote it in bug reports }
+
+    Probability:
+      type: [number, "null"]
+      minimum: 0
+      maximum: 1
+
+    ModelInfo:
+      type: object
+      description: Which model and pipeline produced the result
+      additionalProperties: false
+      required: [model_name, weights_sha256, pipeline_version]
+      properties:
+        model_name: { type: string }
+        weights_sha256: { type: [string, "null"], description: First 12 hex digits }
+        pipeline_version: { type: string }
+
+    Level1Metadata:
+      type: object
+      additionalProperties: false
+      required: [software_found, software_signature, notes]
+      properties:
+        software_found: { type: boolean }
+        software_signature: { type: string }
+        notes: { type: array, items: { type: string } }
+
+    ImageLabel:
+      type: string
+      description: |
+        AUTHENTIC / TAMPERED only from a validated model. UNVALIDATED: the model has not passed
+        an evaluation, so the probabilities are an experimental score, not a verdict.
+        UNSUPPORTED: not a JPEG, so error level analysis does not apply (no score).
+      enum: [AUTHENTIC, TAMPERED, UNVALIDATED, UNSUPPORTED]
+
+    ImageResult:
+      type: object
+      additionalProperties: false
+      required: [label, predicted_class, authentic_prob, tampered_prob, confidence_pct, experimental, reason, device, level1, model, original_image, processing_time_ms]
+      properties:
+        label: { $ref: "#/components/schemas/ImageLabel" }
+        predicted_class: { type: integer, enum: [-1, 0, 1], description: "0 tampered, 1 authentic, -1 no verdict" }
+        authentic_prob: { $ref: "#/components/schemas/Probability" }
+        tampered_prob: { $ref: "#/components/schemas/Probability" }
+        confidence_pct: { type: [number, "null"], description: Only for a validated verdict }
+        experimental: { type: boolean }
+        reason: { type: [string, "null"], description: Why no verdict was given }
+        device: { type: string }
+        level1: { $ref: "#/components/schemas/Level1Metadata" }
+        model: { $ref: "#/components/schemas/ModelInfo" }
+        original_image: { type: [string, "null"], description: Saved filename when FORGEGUARD_KEEP_UPLOADS is on }
+        processing_time_ms: { type: number }
+
+    VideoLabel:
+      type: string
+      description: |
+        FAKE / REAL only when frame-level evidence agrees (consensus rule). UNSURE: no consensus,
+        too few faces or no face (see `notes`). UNKNOWN / ERROR: the video could not be analysed.
+      enum: [REAL, FAKE, UNSURE, UNKNOWN, ERROR]
+
+    VideoResult:
+      type: object
+      additionalProperties: false
+      required: [label, predicted_class, fake_prob, real_prob, confidence_pct, device, num_frames_processed, num_frames_sampled, num_faces_analyzed, frame_predictions, processing_time_ms, notes, status, model]
+      properties:
+        label: { $ref: "#/components/schemas/VideoLabel" }
+        predicted_class: { type: integer, enum: [-1, 0, 1], description: "0 fake, 1 real, -1 no verdict" }
+        fake_prob: { $ref: "#/components/schemas/Probability" }
+        real_prob: { $ref: "#/components/schemas/Probability" }
+        confidence_pct: { type: [number, "null"] }
+        device: { type: string }
+        # Anchors (&) are reused by UnifiedVideoResult below
+        num_frames_processed: &num_frames_processed { type: integer, deprecated: true, description: "Faces if decided, frames otherwise. Use the two fields below." }
+        num_frames_sampled: &num_frames_sampled { type: integer, description: Frames read from the video }
+        num_faces_analyzed: &num_faces_analyzed { type: integer, description: Faces the model scored }
+        frame_predictions: &frame_predictions { type: array, items: { type: number, minimum: 0, maximum: 1 }, description: Per-face P(fake) }
+        processing_time_ms: { type: number }
+        notes: { type: array, items: { type: string }, description: "e.g. NO_FACE_DETECTED, NO_CONSENSUS, TOO_FEW_FACES, FACE_DETECTION_ERRORS" }
+        status: { type: string, description: '"success" or the reason the video was not decided' }
+        model: { $ref: "#/components/schemas/ModelInfo" }
+
+    UnifiedImageResult:
+      type: object
+      additionalProperties: false
+      required: [media_type, label, confidence_pct, device, processing_time_ms, level1, level2, model, status]
+      properties:
+        media_type: { const: image }
+        label: { $ref: "#/components/schemas/ImageLabel" }
+        confidence_pct: { type: [number, "null"] }
+        device: { type: string }
+        processing_time_ms: { type: number }
+        level1: { $ref: "#/components/schemas/Level1Metadata" }
+        level2:
+          type: object
+          additionalProperties: false
+          required: [authentic_prob, tampered_prob, method, experimental, reason]
+          properties:
+            authentic_prob: { $ref: "#/components/schemas/Probability" }
+            tampered_prob: { $ref: "#/components/schemas/Probability" }
+            method: { type: string }
+            experimental: { type: boolean }
+            reason: { type: [string, "null"] }
+        model: { $ref: "#/components/schemas/ModelInfo" }
+        status: { type: string }
+        file_index: { type: integer, description: Batch results only }
+        file_name: { type: string, description: Batch results only }
+
+    UnifiedVideoResult:
+      type: object
+      additionalProperties: false
+      required: [media_type, label, confidence_pct, device, processing_time_ms, num_frames_processed, num_frames_sampled, num_faces_analyzed, frame_predictions, model, status]
+      properties:
+        media_type: { const: video }
+        label: { $ref: "#/components/schemas/VideoLabel" }
+        confidence_pct: { type: [number, "null"] }
+        device: { type: string }
+        processing_time_ms: { type: number }
+        num_frames_processed: *num_frames_processed
+        num_frames_sampled: *num_frames_sampled
+        num_faces_analyzed: *num_faces_analyzed
+        frame_predictions: *frame_predictions
+        notes: { type: array, items: { type: string } }
+        model: { $ref: "#/components/schemas/ModelInfo" }
+        status: { type: string }
+        file_index: { type: integer, description: Batch results only }
+        file_name: { type: string, description: Batch results only }
+
+    UnifiedResult:
+      oneOf:
+        - { $ref: "#/components/schemas/UnifiedImageResult" }
+        - { $ref: "#/components/schemas/UnifiedVideoResult" }
+      discriminator:
+        propertyName: media_type
+        mapping:
+          image: "#/components/schemas/UnifiedImageResult"
+          video: "#/components/schemas/UnifiedVideoResult"
+
+    FileError:
+      type: object
+      additionalProperties: false
+      required: [file_index, file_name, error, code]
+      properties:
+        file_index: { type: integer }
+        file_name: { type: string }
+        error: { type: string }
+        code: { $ref: "#/components/schemas/ErrorCode" }
+
+    JobKind:
+      type: string
+      enum: [image, video, unified]
+
+    JobPending:
+      type: object
+      additionalProperties: false
+      required: [status, job_id, poll, message]
+      properties:
+        status: { const: PENDING }
+        job_id: { type: string }
+        poll: { type: string, description: Relative URL to poll }
+        message: { type: string }
+
+    BatchPending:
+      type: object
+      additionalProperties: false
+      required: [status, batch_id, poll, message]
+      properties:
+        status: { const: PENDING }
+        batch_id: { type: string }
+        poll: { type: string }
+        message: { type: string }
+
+    JobCreated:
+      type: object
+      additionalProperties: false
+      required: [job_id, status, kind, poll]
+      properties:
+        job_id: { type: string }
+        status: { const: queued }
+        kind: { $ref: "#/components/schemas/JobKind" }
+        poll: { type: string }
+
+    JobStatus:
+      type: object
+      additionalProperties: false
+      required: [job_id, kind, status, file_name, created_at, started_at, finished_at, http_status, result]
+      properties:
+        job_id: { type: string }
+        kind: { $ref: "#/components/schemas/JobKind" }
+        status: { type: string, enum: [queued, running, done, failed] }
+        file_name: { type: string }
+        created_at: { type: number, description: Unix time }
+        started_at: { type: [number, "null"] }
+        finished_at: { type: [number, "null"] }
+        http_status: { type: [integer, "null"], description: What the synchronous endpoint would have returned }
+        result:
+          description: The synchronous endpoint's body (an Error when failed); null until finished
+          oneOf:
+            - { type: "null" }
+            - { $ref: "#/components/schemas/ImageResult" }
+            - { $ref: "#/components/schemas/VideoResult" }
+            - { $ref: "#/components/schemas/UnifiedResult" }
+            - { $ref: "#/components/schemas/Error" }
+
+    BatchCreated:
+      type: object
+      additionalProperties: false
+      required: [batch_id, jobs, rejected, poll]
+      properties:
+        batch_id: { type: string }
+        jobs:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [job_id, file_index, file_name]
+            properties:
+              job_id: { type: string }
+              file_index: { type: integer }
+              file_name: { type: string }
+        rejected: { type: array, items: { $ref: "#/components/schemas/FileError" } }
+        poll: { type: string }
+
+    BatchStatus:
+      type: object
+      additionalProperties: false
+      required: [batch_id, status, done, total, results, errors, num_success, num_errors, processing_time_ms]
+      properties:
+        batch_id: { type: string }
+        status: { type: string, enum: [running, success, partial_error, error] }
+        done: { type: integer }
+        total: { type: integer }
+        results: { type: array, items: { $ref: "#/components/schemas/UnifiedResult" } }
+        errors: { type: array, items: { $ref: "#/components/schemas/FileError" } }
+        num_success: { type: integer }
+        num_errors: { type: integer }
+        processing_time_ms: { type: number }
+
+    ModelHealth:
+      type: object
+      additionalProperties: false
+      required: [name, file, present, loaded, size_mb, weights_sha256, verified, load_state, load_error, healthy]
+      properties:
+        name: { type: string }
+        file: { type: string }
+        present: { type: boolean }
+        loaded: { type: boolean }
+        size_mb: { type: number }
+        weights_sha256: { type: [string, "null"] }
+        verified: { type: [boolean, "null"], description: null when not in the manifest or verification is off }
+        load_state: { type: string, enum: [loaded, failed, not_loaded] }
+        load_error: { type: [string, "null"] }
+        healthy: { type: boolean }
+
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, pipeline_version, device, gpu_name, models, worker, limits]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        pipeline_version: { type: string }
+        device: { type: string, enum: [cpu, cuda] }
+        gpu_name: { type: [string, "null"] }
+        models:
+          type: object
+          additionalProperties: false
+          required: [image, video]
+          properties:
+            image: { $ref: "#/components/schemas/ModelHealth" }
+            video: { $ref: "#/components/schemas/ModelHealth" }
+        worker:
+          type: object
+          additionalProperties: false
+          required: [alive, mode, queue_reachable, queue_depth]
+          properties:
+            alive: { type: boolean }
+            mode: { type: string, enum: [worker, in-process] }
+            queue_reachable: { type: boolean }
+            queue_depth: { type: [integer, "null"] }
+            last_seen_seconds: { type: [number, "null"], description: Worker mode only }
+        limits:
+          type: object
+          additionalProperties: false
+          required: [max_upload_mb, max_batch_files, max_queue, image_extensions, video_extensions, video_frames_sampled]
+          properties:
+            max_upload_mb: { type: integer }
+            max_batch_files: { type: integer }
+            max_queue: { type: integer }
+            image_extensions: { type: array, items: { type: string } }
+            video_extensions: { type: array, items: { type: string } }
+            video_frames_sampled: { type: integer }
