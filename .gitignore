@@ -69,3 +69,5 @@ eval/data/
 # Test coverage data
 .coverage
 web/coverage/
+web/test-results/
+web/playwright-report/
