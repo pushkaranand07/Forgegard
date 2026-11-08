@@ -55,6 +55,13 @@ class RequestContextMiddleware:
             response = self._too_large(request) if is_api else None
             if response is None:
                 response = self.get_response(request)
+            if is_api and response.status_code == 405 and not response.get("Content-Type", "").startswith(
+                "application/json"
+            ):
+                allow = response.get("Allow", "")
+                response = error_response(f"Method {request.method} is not allowed here.", 405,
+                                          "METHOD_NOT_ALLOWED")
+                response["Allow"] = allow
             response["X-Request-ID"] = request_id
             if is_api:
                 logger.info(

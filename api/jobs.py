@@ -279,6 +279,9 @@ def run_job(job_id: str) -> None:
         status, body = 500, common.error_response_body("Analysis failed due to a server error.")
     finally:
         _discard(record["path"])
+    from .errors import with_code
+
+    body = with_code(body, status)
     _update_job(
         job_id,
         status=DONE if status < 400 else FAILED,

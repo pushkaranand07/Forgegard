@@ -59,7 +59,10 @@ def error_response_body(message: str, code: str = "error", **extra) -> dict:
 
 
 def error_response(message: str, status: int, code: str = "error", **extra) -> JsonResponse:
-    return JsonResponse(error_response_body(message, code, **extra), status=status)
+    """JSON error with the legacy "status" string plus the standard "code" (api/errors.py)."""
+    from .errors import with_code
+
+    return JsonResponse(with_code(error_response_body(message, code, **extra), status), status=status)
 
 
 def validate_upload(file_obj, allowed: frozenset) -> Optional[str]:

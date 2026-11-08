@@ -200,22 +200,27 @@ than a placeholder number.
 
 ## Errors
 
-Every error body is `{"error": "<human-readable message>", "status": "<CODE>"}`,
+Every error body is `{"error": "<message>", "status": "<legacy code>", "code": "<CODE>"}`,
 and every response carries an `X-Request-ID` header to quote in bug reports.
 
-| HTTP | `status` | When |
-|---|---|---|
-| 400 | `error` | No file, unsupported extension, empty or oversized file, too many batch files |
-| 400 | `INVALID_IMAGE` | Not a decodable image, truncated, or over 50 megapixels |
-| 415 | `UNSUPPORTED_MEDIA` | A recognised image format other than JPEG, PNG or WebP, or a format that does not match the extension (e.g. PNG bytes named `.jpg`) |
-| 400 | `INVALID_FILE`, `EMPTY_VIDEO`, `NO_VISUAL_FRAMES` | Video cannot be opened or has no frames |
-| 404 | `NOT_FOUND` | Unknown `/api/` path, or an unknown/expired job or batch id |
-| 405 | — | Wrong HTTP method |
-| 413 | `TOO_LARGE` | Request body over `FORGEGUARD_MAX_REQUEST_MB` |
-| 422 | `error` | `/api/detect/` only: accepted but could not be analysed |
-| 429 | `RATE_LIMITED` | Per-IP limit reached; see `Retry-After` |
-| 500 | `error` | Unexpected server failure (details are logged, never returned) |
-| 503 | `model_not_found` | Weights missing on the server |
-| 503 | `MODEL_UNAVAILABLE` | Weights present but failed the hash check or could not be loaded (see `/api/health/`) |
-| 202 | `PENDING` | `detect` endpoints: the job outlasted the wait; poll the `poll` URL |
-| 503 | `BUSY` | The job queue is full (`FORGEGUARD_MAX_QUEUE`); refused immediately, see `Retry-After` |
+`code` is the field to switch on: it comes from one fixed set and means the same thing on
+every endpoint. `status` keeps its historical values so older clients keep working; it
+varies by endpoint (e.g. a corrupt image is `INVALID_IMAGE` with 400 on
+`/api/detect-image/` but `error` with 422 on `/api/detect/`; both have `code`
+`INVALID_MEDIA`).
+
+| HTTP | `code` | Legacy `status` | When |
+|---|---|---|---|
+| 400 | `INVALID_INPUT` | `error` | No file, unsupported extension, empty or oversized file, too many batch files, bad `kind` |
+| 400 / 422 | `INVALID_MEDIA` | `INVALID_IMAGE`, `INVALID_FILE`, `EMPTY_VIDEO`, `NO_VISUAL_FRAMES`; `error` (422 on `/api/detect/`) | The file could not be decoded, is truncated, over 50 megapixels, or has no frames |
+| 415 | `UNSUPPORTED_MEDIA` | `UNSUPPORTED_MEDIA` (`error` on `/api/detect/`) | A recognised image format other than JPEG, PNG or WebP, or a format that does not match the extension |
+| 413 | `PAYLOAD_TOO_LARGE` | `TOO_LARGE` | Request body over `FORGEGUARD_MAX_REQUEST_MB` |
+| 404 | `NOT_FOUND` | `NOT_FOUND` | Unknown `/api/` path, or an unknown/expired job or batch id |
+| 405 | `METHOD_NOT_ALLOWED` | `METHOD_NOT_ALLOWED` | Wrong HTTP method (the `Allow` header lists the right ones) |
+| 429 | `RATE_LIMITED` | `RATE_LIMITED` | Per-IP limit reached; see `Retry-After` |
+| 500 | `INTERNAL_ERROR` | `error` | Unexpected server failure (details are logged, never returned) |
+| 503 | `MODEL_UNAVAILABLE` | `model_not_found`, `MODEL_UNAVAILABLE` (`error` on `/api/detect/`) | Weights missing, or present but failed the hash check or could not be loaded (see `/api/health/`) |
+| 503 | `BUSY` | `BUSY` | The job queue is full (`FORGEGUARD_MAX_QUEUE`); refused immediately, see `Retry-After` |
+
+Not an error: `202` with `"status": "PENDING"` means a `detect` endpoint's job outlasted
+the wait; poll the `poll` URL. Per-file errors in a batch carry the same `code` values.

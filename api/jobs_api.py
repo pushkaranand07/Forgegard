@@ -22,6 +22,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from . import jobs
+from .errors import ErrorCode
 from .common import (
     IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, busy_response, error_response, media_type_for,
     rate_limited, validate_upload,
@@ -78,6 +79,7 @@ def batch_summary(batch: Dict[str, Any]) -> Dict[str, Any]:
                 "file_index": entry["file_index"],
                 "file_name": entry["file_name"],
                 "error": body.get("error") or "Detection failed",
+                "code": body.get("code") or ErrorCode.INTERNAL_ERROR.value,
             })
     results.sort(key=lambda r: r["file_index"])
     errors.sort(key=lambda e: e["file_index"])
@@ -116,7 +118,8 @@ def submit_batch_files(request) -> tuple[Optional[str], Optional[JsonResponse]]:
     for index, upload in enumerate(files):
         invalid = validate_upload(upload, ALL_EXTENSIONS)
         if invalid:
-            rejected.append({"file_index": index, "file_name": upload.name, "error": invalid})
+            rejected.append({"file_index": index, "file_name": upload.name, "error": invalid,
+                             "code": ErrorCode.INVALID_INPUT.value})
         else:
             accepted.append((index, upload))
     try:
