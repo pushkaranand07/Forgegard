@@ -164,9 +164,7 @@ export default function ReportView({ analysis: a, previewUrl, actions }: Props) 
                 ))}
             </div>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-4 p-5">
-              <div className="col-span-2">
-                <Stat label="File" value={<span title={a.fileName}>{a.fileName}</span>} />
-              </div>
+              <Stat className="col-span-2" label="File" value={<span title={a.fileName}>{a.fileName}</span>} />
               <Stat label="Size" value={formatBytes(a.fileSize)} />
               <Stat label="Type" value={isVideo ? "Video" : "Image"} />
               <Stat label="Analyzed" value={formatDateTime(a.createdAt)} />
