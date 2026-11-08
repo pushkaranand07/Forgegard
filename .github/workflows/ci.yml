@@ -206,6 +206,32 @@ jobs:
           test "$(docker compose exec -T worker id -u)" != "0"
       - name: Container memory
         run: docker stats --no-stream --format '{{.Name}} {{.MemUsage}}'
+      - name: "Single container (FORGEGUARD_ROLE=all, as on a Hugging Face Space): downloads weights, runs a job"
+        run: |
+          # No weights volume, user 1000, web + worker in one container, as on a Space
+          docker run -d --name fg-all --user 1000:1000 -p 8001:8000 \
+            -e FORGEGUARD_ROLE=all -e FORGEGUARD_DOWNLOAD_WEIGHTS=true \
+            -e DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')" \
+            forgeguard:latest
+          for _ in $(seq 1 150); do
+            curl -sS http://127.0.0.1:8001/api/health/ > health-all.json 2>/dev/null || true
+            python3 -c "import json, sys; h = json.load(open('health-all.json')); sys.exit(0 if h['worker']['alive'] and h['models']['video']['loaded'] else 1)" 2>/dev/null && break
+            sleep 4
+          done
+          cat health-all.json
+          curl -sS -F "file=@noface.avi" http://127.0.0.1:8001/api/jobs/ | tee job-all.json
+          POLL=$(python3 -c "import json; print(json.load(open('job-all.json'))['poll'])")
+          for _ in $(seq 1 60); do
+            curl -sS "http://127.0.0.1:8001$POLL" > result-all.json
+            python3 -c "import json, sys; sys.exit(0 if json.load(open('result-all.json'))['status'] in ('done', 'failed') else 1)" && break
+            sleep 2
+          done
+          cat result-all.json
+          python3 -c "import json; r = json.load(open('result-all.json')); assert r['status'] == 'done' and r['result']['label'] == 'UNSURE', r"
+          docker stats --no-stream --format '{{.Name}} {{.MemUsage}}' fg-all
+      - name: Single-container logs
+        if: always()
+        run: docker logs fg-all 2>&1 | tail -100 || true
       - name: Stack logs
         if: always()
         run: docker compose logs --no-color
