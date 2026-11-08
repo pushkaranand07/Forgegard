@@ -12,7 +12,7 @@ dependencies = [
     "gunicorn>=26.2,<27",
     "python-dotenv>=1.0,<2",
     # Background jobs (api/jobs.py): SQLite queue by default, Redis optional
-    "huey>=2.5,<3",
+    "huey>=3.5.4,<4",
     "redis>=5,<7",
     # Numerics, images & video
     "numpy>=2.0,<3",
