@@ -627,11 +627,13 @@ dependencies = [
 dev = [
     { name = "django-stubs" },
     { name = "hypothesis" },
+    { name = "jsonschema" },
     { name = "mypy" },
     { name = "psutil" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 train = [
@@ -666,11 +668,13 @@ requires-dist = [
 dev = [
     { name = "django-stubs", specifier = ">=5.1" },
     { name = "hypothesis", specifier = ">=6.100" },
+    { name = "jsonschema", specifier = ">=4.23" },
     { name = "mypy", specifier = ">=1.11" },
     { name = "psutil", specifier = ">=6.0" },
     { name = "pytest", specifier = ">=8,<10" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "pytest-django", specifier = ">=4.9,<5" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.6" },
 ]
 train = [

@@ -71,3 +71,6 @@ eval/data/
 web/coverage/
 web/test-results/
 web/playwright-report/
+
+# Any npm package directory (web/, web/tools/gen-api/)
+node_modules/

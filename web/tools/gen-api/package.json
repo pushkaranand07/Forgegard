@@ -1,0 +1,12 @@
+{
+  "name": "forgeguard-gen-api",
+  "private": true,
+  "description": "Generates web/src/lib/api-schema.ts from api/openapi.yaml. Separate package: openapi-typescript needs TypeScript 5, the app uses TypeScript 7.",
+  "scripts": {
+    "gen": "openapi-typescript ../../../api/openapi.yaml -o ../../src/lib/api-schema.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

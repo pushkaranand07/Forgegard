@@ -12,6 +12,7 @@ import type {
 export const DEFAULT_LIMITS: HealthResponse["limits"] = {
   max_upload_mb: 100,
   max_batch_files: 20,
+  max_queue: 32,
   image_extensions: ["jpeg", "jpg", "png", "webp"],
   video_extensions: ["3gp", "avi", "flv", "gif", "mkv", "mov", "mp4", "webm", "wmv"],
   video_frames_sampled: 32,
@@ -135,37 +136,33 @@ export function fromVideoResponse(r: VideoApiResponse, meta: FileMeta): Analysis
 }
 
 export function fromUnifiedResult(r: UnifiedApiResult, meta: FileMeta): Analysis {
-  const mediaType: MediaType = r.media_type === "video" ? "video" : "image";
   const verdict = verdictFor(r.label);
   const common = {
     ...base(meta),
-    mediaType,
+    mediaType: r.media_type,
     verdict,
     label: r.label,
     confidencePct: r.confidence_pct,
     device: r.device,
     processingMs: r.processing_time_ms,
-    error: r.error,
   };
 
-  if (mediaType === "image") {
+  if (r.media_type === "image") {
     return {
       ...common,
-      probs: r.level2 ? imageProbs(verdict, r.level2.authentic_prob, r.level2.tampered_prob) : null,
-      experimentalScore: r.label === "UNVALIDATED" ? (r.level2?.tampered_prob ?? null) : null,
-      note: r.level2?.reason ?? null,
-      image: r.level1
-        ? {
-            softwareFound: r.level1.software_found,
-            softwareSignature: r.level1.software_signature,
-            notes: r.level1.notes,
-            method: r.level2?.method ?? "ELA + CNN",
-          }
-        : undefined,
+      probs: imageProbs(verdict, r.level2.authentic_prob, r.level2.tampered_prob),
+      experimentalScore: r.label === "UNVALIDATED" ? r.level2.tampered_prob : null,
+      note: r.level2.reason,
+      image: {
+        softwareFound: r.level1.software_found,
+        softwareSignature: r.level1.software_signature,
+        notes: r.level1.notes,
+        method: r.level2.method,
+      },
     };
   }
 
-  const preds = r.frame_predictions ?? [];
+  const preds = r.frame_predictions;
   // The unified endpoint omits class probabilities for video; recover them from
   // the confidence and label, which is exactly how the backend derives them.
   const c = (r.confidence_pct ?? 0) / 100;
@@ -179,7 +176,7 @@ export function fromUnifiedResult(r: UnifiedApiResult, meta: FileMeta): Analysis
     ...common,
     probs,
     video: {
-      framesSampled: r.num_frames_sampled ?? r.num_frames_processed ?? 0,
+      framesSampled: r.num_frames_sampled,
       framePredictions: preds,
       notes: r.notes ?? [],
     },
