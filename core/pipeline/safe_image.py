@@ -83,6 +83,11 @@ def _open(fp: BinaryIO, extension: str | None) -> Image.Image:
         if other:
             raise UnsupportedMediaError(f"{other} images are not supported. Use JPEG, PNG or WebP.") from exc
         raise InvalidImageError("The file is not a readable image.") from exc
+    except (OSError, SyntaxError, ValueError) as exc:
+        # A recognised format that breaks while its header is parsed (e.g. a JPEG
+        # cut off after a few bytes raises OSError "Truncated File Read"). Found by
+        # tests/test_properties.py; it used to escape and become a 500.
+        raise InvalidImageError("The image file is corrupt or truncated.") from exc
 
     if expected is not None and img.format != expected:
         raise UnsupportedMediaError(

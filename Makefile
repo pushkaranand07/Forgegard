@@ -14,8 +14,8 @@ weights: ## Download and verify every weight file (fails if one has no URL)
 web: ## Typecheck and build the web UI into frontend/static/app
 	cd web && npm run build
 
-test: ## Run the test suite (model tests skip when weights are missing)
-	uv run pytest
+test: ## Test suite with a 90% coverage gate (model tests skip when weights are missing)
+	uv run pytest --cov --cov-fail-under=90
 
 lint: ## Ruff
 	uv run ruff check .

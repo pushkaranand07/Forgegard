@@ -1,0 +1,22 @@
+# Store and check out text files with LF everywhere, whatever core.autocrlf says.
+# Prevents phantom "modified" files and line-ending conflicts between Windows and Linux/CI.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary: never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.mp4 binary
+*.avi binary
+*.pth binary
+*.pt binary
+*.zip binary
+*.tar binary
+*.sqlite3 binary

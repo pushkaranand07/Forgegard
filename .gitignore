@@ -65,3 +65,7 @@ staticfiles/
 
 # Evaluation data (downloaded / generated, not redistributed)
 eval/data/
+
+# Test coverage data
+.coverage
+web/coverage/

@@ -321,14 +321,17 @@ def read_heartbeat() -> dict[str, Any] | None:
     return huey.get(HEARTBEAT_KEY, peek=True)
 
 
-def start_heartbeat() -> threading.Thread:
+def start_heartbeat(stop: threading.Event | None = None) -> threading.Thread:
+    """Write a heartbeat every HEARTBEAT_INTERVAL seconds until ``stop`` is set."""
+    stop = stop or threading.Event()
+
     def beat():
-        while True:
+        while not stop.is_set():
             try:
                 write_heartbeat()
-            except Exception:
+            except Exception:  # a failed beat must not kill the loop; logged below
                 logger.exception("Could not write worker heartbeat")
-            time.sleep(HEARTBEAT_INTERVAL)
+            stop.wait(HEARTBEAT_INTERVAL)
 
     thread = threading.Thread(target=beat, name="forgeguard-heartbeat", daemon=True)
     thread.start()
