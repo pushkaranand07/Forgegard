@@ -13,7 +13,7 @@ threads stay free and a full queue is refused immediately (audit I6).
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -22,11 +22,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from . import jobs
-from .errors import ErrorCode
 from .common import (
-    IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, busy_response, error_response, media_type_for,
-    rate_limited, validate_upload,
+    IMAGE_EXTENSIONS,
+    VIDEO_EXTENSIONS,
+    busy_response,
+    error_response,
+    media_type_for,
+    rate_limited,
+    validate_upload,
 )
+from .errors import ErrorCode
 
 ALL_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
 
@@ -59,10 +64,10 @@ def submit_and_respond(kind: str, upload) -> JsonResponse:
     return _pending("job", job_id)
 
 
-def batch_summary(batch: Dict[str, Any]) -> Dict[str, Any]:
+def batch_summary(batch: dict[str, Any]) -> dict[str, Any]:
     """The /api/detect/batch response shape, built from a batch's jobs."""
-    results: List[Dict[str, Any]] = []
-    errors: List[Dict[str, Any]] = list(batch["rejected"])
+    results: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = list(batch["rejected"])
     done = 0
     for entry in batch["jobs"]:
         record = jobs.get_job(entry["job_id"]) or {}
@@ -105,7 +110,7 @@ def batch_summary(batch: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def submit_batch_files(request) -> tuple[Optional[str], Optional[JsonResponse]]:
+def submit_batch_files(request) -> tuple[str | None, JsonResponse | None]:
     """Validate a multi-file upload and queue it. Returns (batch_id, None) or (None, error response)."""
     files = request.FILES.getlist("file")
     if not files:
@@ -132,7 +137,7 @@ def submit_batch_files(request) -> tuple[Optional[str], Optional[JsonResponse]]:
 # Job endpoints
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _job_view(record: Dict[str, Any]) -> Dict[str, Any]:
+def _job_view(record: dict[str, Any]) -> dict[str, Any]:
     view = {k: record[k] for k in ("job_id", "kind", "status", "file_name", "created_at", "started_at",
                                    "finished_at", "http_status", "result")}
     if record.get("batch_id"):

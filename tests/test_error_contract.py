@@ -35,7 +35,7 @@ def _assert_error(response, status_code, code):
     assert body["code"] in CODES
 
 
-@pytest.mark.parametrize("url,field", SINGLE + [("/api/detect-video/", "video"), ("/api/batches/", "file")])
+@pytest.mark.parametrize("url,field", [*SINGLE, ("/api/detect-video/", "video"), ("/api/batches/", "file")])
 def test_missing_file_is_invalid_input_everywhere(client, url, field):
     _assert_error(client.post(url), 400, ErrorCode.INVALID_INPUT)
 
@@ -123,5 +123,5 @@ def test_batch_errors_carry_codes(client, fake_weights):
 
 
 def test_error_code_set_is_closed():
-    assert CODES == {"INVALID_INPUT", "INVALID_MEDIA", "UNSUPPORTED_MEDIA", "PAYLOAD_TOO_LARGE", "RATE_LIMITED",
-                     "BUSY", "MODEL_UNAVAILABLE", "NOT_FOUND", "METHOD_NOT_ALLOWED", "INTERNAL_ERROR"}
+    assert {"INVALID_INPUT", "INVALID_MEDIA", "UNSUPPORTED_MEDIA", "PAYLOAD_TOO_LARGE", "RATE_LIMITED",
+                     "BUSY", "MODEL_UNAVAILABLE", "NOT_FOUND", "METHOD_NOT_ALLOWED", "INTERNAL_ERROR"} == CODES

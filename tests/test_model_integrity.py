@@ -89,7 +89,7 @@ def test_image_loader_rejects_architecture_mismatch(tmp_path):
     state = IMDModel().state_dict()
     state.pop("linear.4.bias")
     torch.save(state, path)
-    with pytest.raises(CheckpointMismatchError, match="linear.4.bias"):
+    with pytest.raises(CheckpointMismatchError, match=r"linear\.4\.bias"):
         image_processor.load_model(str(path), torch.device("cpu"))
 
 
@@ -180,7 +180,8 @@ def test_no_face_result_has_null_scores(tmp_path, monkeypatch):
 # ── API mapping ──────────────────────────────────────────────────────────────
 
 def test_image_endpoint_maps_unavailable_model_to_503(client, fake_weights):
-    with mock.patch("core.pipeline.image_processor.detect_image_bytes", side_effect=WeightsIntegrityError("secret detail")):
+    integrity_error = WeightsIntegrityError("secret detail")
+    with mock.patch("core.pipeline.image_processor.detect_image_bytes", side_effect=integrity_error):
         response = client.post("/api/detect-image/", {"image": make_image()})
     assert response.status_code == 503
     assert response.json()["status"] == "MODEL_UNAVAILABLE"

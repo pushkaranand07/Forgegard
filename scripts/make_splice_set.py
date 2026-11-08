@@ -77,7 +77,7 @@ def fetch_kodak(cache: Path) -> list[Path]:
     for name, expected in sorted(KODAK_SHA256.items()):
         path = cache / name
         if not path.is_file() or sha256(path.read_bytes()) != expected:
-            with urllib.request.urlopen(KODAK_URL.format(name=name), timeout=60) as resp:  # noqa: S310
+            with urllib.request.urlopen(KODAK_URL.format(name=name), timeout=60) as resp:
                 data = resp.read()
             if sha256(data) != expected:
                 raise SystemExit(f"{name}: downloaded file does not match the pinned SHA-256")

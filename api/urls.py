@@ -18,13 +18,8 @@ it bypassed the rate limit and kept every upload (audit I8). Those paths are 404
 """
 
 from django.urls import path, re_path
-from api import views
-from api import health_api
-from api import video_api
-from api import image_api
-from api import unified_api
-from api import jobs_api
 
+from api import health_api, image_api, jobs_api, unified_api, video_api, views
 
 app_name = 'api'
 

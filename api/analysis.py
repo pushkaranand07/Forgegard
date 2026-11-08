@@ -16,13 +16,13 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from .common import error_response_body, extension_of, image_model_path, video_model_path
 
 logger = logging.getLogger("forgeguard.analysis")
 
-Result = Tuple[int, Dict[str, Any]]
+Result = tuple[int, dict[str, Any]]
 
 # Video pipeline configuration (shared with /api/health/)
 DEFAULT_ENCODER = "tf_efficientnet_b7_ns"
@@ -32,11 +32,11 @@ TARGET_FRAME_SIZE = 380
 MODEL_UNAVAILABLE_MESSAGE = "The {kind} model is unavailable on this server. See /api/health/."
 
 
-def _num(value) -> Optional[float]:
+def _num(value) -> float | None:
     return None if value is None else float(value)
 
 
-def _model_info(path: str) -> Dict[str, Any]:
+def _model_info(path: str) -> dict[str, Any]:
     from core import model_registry
 
     return model_registry.model_info(path)
@@ -46,7 +46,7 @@ def _model_info(path: str) -> Dict[str, Any]:
 # Image  (/api/detect-image/)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run_image(path: str, file_name: str, saved_name: Optional[str] = None) -> Result:
+def run_image(path: str, file_name: str, saved_name: str | None = None) -> Result:
     from core.model_registry import ModelUnavailableError
     from core.pipeline import image_processor
 

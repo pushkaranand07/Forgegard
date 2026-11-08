@@ -8,6 +8,7 @@ silently became an UNSURE "no face" result with nothing in the logs.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -83,7 +84,7 @@ def test_api_maps_a_failed_detector_to_500(client, fake_weights, engine, db):
     from django.core.files.uploadedfile import SimpleUploadedFile
 
     engine(fail_on=range(100))
-    data = open(_video(fake_weights / "v.avi"), "rb").read()
+    data = Path(_video(fake_weights / "v.avi")).read_bytes()
     response = client.post("/api/detect-video/", {"video": SimpleUploadedFile("v.avi", data)})
     assert response.status_code == 500
     assert "detector exploded" not in response.content.decode()

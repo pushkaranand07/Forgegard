@@ -1,5 +1,5 @@
 """ForgeGuard URL Configuration"""
-from django.urls import path, include
+from django.urls import include, path
 
 # Django only honours error handlers declared in the root URLconf
 handler404 = 'api.views.handler404'

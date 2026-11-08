@@ -12,12 +12,10 @@ from __future__ import annotations
 import functools
 import os
 import time
-from typing import Optional
 
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
-
 
 # Must match core.pipeline.safe_image.FORMAT_FOR_EXTENSION: only these decoders are ever run.
 IMAGE_EXTENSIONS: frozenset = frozenset({"jpg", "jpeg", "png", "webp"})
@@ -29,7 +27,7 @@ def extension_of(file_name: str) -> str:
     return os.path.splitext(file_name)[1].lower().lstrip(".")
 
 
-def media_type_for(file_name: str) -> Optional[str]:
+def media_type_for(file_name: str) -> str | None:
     """'image', 'video', or None when the extension is not supported."""
     ext = extension_of(file_name)
     if ext in IMAGE_EXTENSIONS:
@@ -65,7 +63,7 @@ def error_response(message: str, status: int, code: str = "error", **extra) -> J
     return JsonResponse(with_code(error_response_body(message, code, **extra), status), status=status)
 
 
-def validate_upload(file_obj, allowed: frozenset) -> Optional[str]:
+def validate_upload(file_obj, allowed: frozenset) -> str | None:
     """Return an error message, or None when the upload is acceptable."""
     if extension_of(file_obj.name) not in allowed:
         return f"Unsupported file format. Allowed: {', '.join(sorted(allowed))}"

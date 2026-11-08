@@ -12,7 +12,6 @@ should switch on it.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Optional
 
 
 class ErrorCode(StrEnum):
@@ -54,7 +53,7 @@ _FROM_HTTP = {
 }
 
 
-def code_for(legacy_status: Optional[str], http_status: int) -> ErrorCode:
+def code_for(legacy_status: str | None, http_status: int) -> ErrorCode:
     """The ErrorCode for an error, from its legacy status string and HTTP status."""
     if legacy_status in _FROM_LEGACY:
         return _FROM_LEGACY[legacy_status]

@@ -7,6 +7,8 @@ for compatibility; num_frames_sampled and num_faces_analyzed say what they mean.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import cv2
 import numpy as np
 import pytest
@@ -66,7 +68,7 @@ def test_counts_when_no_face_is_found(monkeypatch, tmp_path):
 
 @pytest.mark.django_db
 def test_api_reports_both_counts(client, fake_weights, stubbed):
-    data = open(_video(fake_weights / "v.avi"), "rb").read()
+    data = Path(_video(fake_weights / "v.avi")).read_bytes()
     body = client.post("/api/detect-video/", {"video": SimpleUploadedFile("v.avi", data)}).json()
     # The service samples 32 frames; the stub finds a face on every other one
     assert body["num_frames_sampled"] == 32
@@ -75,7 +77,7 @@ def test_api_reports_both_counts(client, fake_weights, stubbed):
 
 @pytest.mark.django_db
 def test_unified_endpoint_reports_both_counts(client, fake_weights, stubbed):
-    data = open(_video(fake_weights / "v.avi"), "rb").read()
+    data = Path(_video(fake_weights / "v.avi")).read_bytes()
     body = client.post("/api/detect/", {"file": SimpleUploadedFile("v.avi", data)}).json()
     assert body["num_faces_analyzed"] == len(body["frame_predictions"])
     assert body["num_frames_sampled"] >= body["num_faces_analyzed"]

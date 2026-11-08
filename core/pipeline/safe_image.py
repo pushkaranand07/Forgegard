@@ -17,7 +17,7 @@ Calling ``PIL.Image.open`` anywhere else is blocked by ruff (TID251).
 from __future__ import annotations
 
 import os
-from typing import BinaryIO, Optional, Union
+from typing import BinaryIO
 
 from PIL import Image
 
@@ -65,7 +65,7 @@ def _recognised_other_format(head: bytes) -> str | None:
     return None
 
 
-def _open(fp: BinaryIO, extension: Optional[str]) -> Image.Image:
+def _open(fp: BinaryIO, extension: str | None) -> Image.Image:
     expected = None
     if extension is not None:
         expected = FORMAT_FOR_EXTENSION.get(extension.lower().lstrip("."))
@@ -99,7 +99,7 @@ def _open(fp: BinaryIO, extension: Optional[str]) -> Image.Image:
     return img
 
 
-def open_untrusted(source: Union[str, os.PathLike, BinaryIO], extension: Optional[str] = None) -> Image.Image:
+def open_untrusted(source: str | os.PathLike | BinaryIO, extension: str | None = None) -> Image.Image:
     """Open and fully decode an untrusted image.
 
     ``extension`` is the upload's declared extension (``"jpg"``, ``".png"``, ...).

@@ -86,7 +86,7 @@ def test_video_model_is_cached_on_requested_device(tiny_video_model):
 def test_video_checkpoint_with_missing_weights_raises(tiny_video_model, tmp_path):
     # Previously this only logged a warning and served partly random weights.
     partial = _save_tiny(tmp_path / "partial.pth", drop_prefix="extra.")
-    with pytest.raises(CheckpointMismatchError, match="extra.weight"):
+    with pytest.raises(CheckpointMismatchError, match=r"extra\.weight"):
         video_processor.load_model(partial, encoder="tiny", device="cpu")
     assert model_registry.load_state(partial)["state"] == "failed"
     assert not video_processor.is_model_loaded(partial)
@@ -105,7 +105,9 @@ def test_confident_strategy_bounds():
 # ── Real weights (skipped in CI / when weights are absent) ───────────────────
 
 needs_image_weights = pytest.mark.skipif(not HAS_IMAGE_WEIGHTS, reason="model_c1.pth not present in weights/")
-needs_video_weights = pytest.mark.skipif(not HAS_VIDEO_WEIGHTS, reason="deepfake_detector_b7.pth not present in weights/")
+needs_video_weights = pytest.mark.skipif(
+    not HAS_VIDEO_WEIGHTS, reason="deepfake_detector_b7.pth not present in weights/"
+)
 
 
 @pytest.mark.models

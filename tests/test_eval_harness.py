@@ -13,7 +13,6 @@ from core.pipeline import ela
 from scripts import eval_image as ev
 from scripts import make_splice_set as mk
 
-
 # ── Metrics ──────────────────────────────────────────────────────────────────
 
 def test_auc_is_one_for_perfect_ranking_and_zero_for_inverted():
