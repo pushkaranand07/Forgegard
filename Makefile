@@ -20,14 +20,14 @@ test: ## Run the test suite (model tests skip when weights are missing)
 lint: ## Ruff
 	uv run ruff check .
 
-typecheck: ## mypy (not yet clean; see docs/remediation.md)
-	uv run mypy api core --ignore-missing-imports --explicit-package-bases
+typecheck: ## mypy (settings in pyproject.toml)
+	uv run mypy api core
 
 audit: ## Known-vulnerability scan of the locked environment and the web UI
 	uv run --with pip-audit pip-audit
 	cd web && npm audit --audit-level=high
 
-check: lint test ## What CI's blocking jobs run
+check: lint typecheck test ## What CI's blocking Python jobs run
 
 up: ## Production-like stack (needs .env with DJANGO_SECRET_KEY)
 	docker compose up --build

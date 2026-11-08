@@ -37,10 +37,8 @@ jobs:
           ./actionlint -color
 
   typecheck:
-    name: Typecheck (mypy, not yet blocking)
+    name: Typecheck (mypy)
     runs-on: ubuntu-latest
-    # 13 known errors; made blocking in remediation phase 4 (docs/remediation.md)
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
@@ -48,7 +46,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
       - run: uv sync --frozen
-      - run: uv run mypy api core --ignore-missing-imports --explicit-package-bases
+      - run: uv run mypy api core   # settings in pyproject.toml [tool.mypy]
 
   test:
     name: Setup from scratch + tests

@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from collections.abc import Callable
 from typing import Any
 
 from .common import error_response_body, extension_of, image_model_path, video_model_path
@@ -164,4 +165,5 @@ def run_unified(path: str, file_name: str) -> Result:
     return status, body
 
 
-RUNNERS = {"image": run_image, "video": run_video, "unified": run_unified}
+# Image runners take the kept-upload name as a third argument
+RUNNERS: dict[str, Callable[..., Result]] = {"image": run_image, "video": run_video, "unified": run_unified}

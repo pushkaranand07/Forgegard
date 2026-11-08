@@ -67,7 +67,7 @@ class UnifiedDetectionResult:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert result to JSON-serializable dictionary."""
-        result = {
+        result: dict[str, Any] = {
             'media_type': self.media_type,
             'label': self.label,
             'confidence_pct': self.confidence_pct,

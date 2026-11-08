@@ -149,15 +149,16 @@ class ImageDetectionResult:
     reason: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        has_score = self.tampered_prob is not None and self.authentic_prob is not None
-        is_verdict = self.label in VERDICT_LABELS
+        authentic, tampered = self.authentic_prob, self.tampered_prob
+        scores = (authentic, tampered) if authentic is not None and tampered is not None else None
+        # A confidence figure is only shown for a validated verdict (audit I16)
+        confidence = round(max(scores) * 100, 2) if scores and self.label in VERDICT_LABELS else None
         return {
             "label": self.label,
             "predicted_class": int(self.predicted_class),
-            "authentic_prob": round(float(self.authentic_prob), 4) if has_score else None,
-            "tampered_prob": round(float(self.tampered_prob), 4) if has_score else None,
-            # A confidence figure is only shown for a validated verdict (audit I16)
-            "confidence_pct": round(max(self.authentic_prob, self.tampered_prob) * 100, 2) if is_verdict else None,
+            "authentic_prob": round(float(scores[0]), 4) if scores else None,
+            "tampered_prob": round(float(scores[1]), 4) if scores else None,
+            "confidence_pct": confidence,
             "experimental": self.experimental,
             "reason": self.reason,
             "device": self.device,
@@ -342,7 +343,8 @@ def _run_inference(pil_img: Image.Image, model_path: str,
 
     # Level 1 — metadata (on the image as opened, before RGB conversion)
     software_found, software_sig, notes = _analyse_metadata(pil_img)
-    level1 = {"software_found": software_found, "software_signature": software_sig, "level1_notes": notes}
+    level1: dict[str, Any] = {"software_found": software_found, "software_signature": software_sig,
+                              "level1_notes": notes}
 
     # ELA measures JPEG recompression error; for any other format it is noise (audit I2)
     if pil_img.format != "JPEG":

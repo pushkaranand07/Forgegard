@@ -23,6 +23,7 @@ import os
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from typing import Any
 
 import cv2
 import numpy as np
@@ -487,10 +488,10 @@ def preprocess_frame(
 # Model Loading
 # ─────────────────────────────────────────────────────────────────────────────
 
-_model_cache = {}
+_model_cache: dict[tuple[str, str, str], nn.Module] = {}
 _cache_lock = threading.Lock()
 
-_face_extractor_cache = {}
+_face_extractor_cache: dict[str, FaceDetectionEngine] = {}
 _face_extractor_lock = threading.Lock()
 
 def get_face_extractor(device: str) -> FaceDetectionEngine:
@@ -554,7 +555,7 @@ def load_model(
             # NumPy 1.x name; NumPy 2 moved it to numpy._core, so allow-list it by
             # the old name. These are plain data types, not code.
             np_core = getattr(np, "_core", None) or np.core
-            safe_globals = [
+            safe_globals: list[Any] = [  # (function, name) pairs and types, as torch accepts
                 (np_core.multiarray.scalar, "numpy.core.multiarray.scalar"),
                 np.dtype,
                 type(np.dtype("float64")),
@@ -716,7 +717,7 @@ def detect_video_frames(
     real_prob = 1.0 - aggregated_score
     if label == "UNSURE":
         predicted_class, confidence_pct = -1, None
-        notes.append(decision_note)
+        notes.append(decision_note or "NO_CONSENSUS")  # always set for UNSURE
     else:
         predicted_class = 1 if label == "REAL" else 0
         confidence_pct = max(fake_prob, real_prob) * 100

@@ -100,3 +100,9 @@ known-first-party = ["api", "config", "core", "scripts", "tests"]
 # Untrusted images must go through core.pipeline.safe_image.open_untrusted (I4)
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "PIL.Image.open".msg = "Use core.pipeline.safe_image.open_untrusted(): it restricts Pillow to JPEG/PNG/WebP decoders."
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+explicit_package_bases = true
+exclude = ["core/models/"]  # untracked local files; not part of the repository
