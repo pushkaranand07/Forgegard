@@ -28,10 +28,6 @@ _request_id: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", 
 _INCOMING_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
-def current_request_id() -> str:
-    return _request_id.get()
-
-
 class RequestIdLogFilter(logging.Filter):
     """Adds `request_id` to log records so formatters can reference it."""
 

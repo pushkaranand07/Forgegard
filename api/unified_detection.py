@@ -100,7 +100,6 @@ class UnifiedDetectionResult:
 
 def detect_file(
     file_path: str,
-    auto_detect_type: bool = True,
     image_model_path: Optional[str] = None,
     video_model_path: Optional[str] = None,
     device: Optional[str] = None
@@ -110,7 +109,6 @@ def detect_file(
     
     Args:
         file_path: Path to media file
-        auto_detect_type: Whether to auto-detect media type from file extension
         image_model_path: Path to image model weights
         video_model_path: Path to video model weights
         device: Computation device ("cuda" or "cpu")

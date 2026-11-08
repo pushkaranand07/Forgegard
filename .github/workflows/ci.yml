@@ -26,6 +26,11 @@ jobs:
           version: ${{ env.UV_VERSION }}
       - name: Ruff
         run: uvx ruff@0.17.3 check .
+      - name: Dead code (vulture)
+        # Names below are used by Django/PyTorch/Huey/tests by name, not by direct call
+        run: >-
+          uvx vulture@2.14 api core scripts --min-confidence 60 --exclude "api/tests.py"
+          --ignore-names "ApiConfig,Command,help,add_arguments,handle,app_name,urlpatterns,handler404,RequestIdLogFilter,RequestContextMiddleware,process_exception,forward,purge_expired_periodically,invalidate_caches"
       - name: actionlint
         run: |
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
