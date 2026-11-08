@@ -1,0 +1,59 @@
+name: Deploy backend to Hugging Face Space
+
+# Pushes a snapshot of main to the Space named by the repository variable
+# HF_SPACE (e.g. "user/forgeguard-api"), authenticated with the secret HF_TOKEN
+# (a write token). Does nothing until both are configured.
+# Space settings (Variables): FORGEGUARD_ROLE=all, FORGEGUARD_DOWNLOAD_WEIGHTS=true,
+# DJANGO_DEBUG=false, DJANGO_ALLOWED_HOSTS=<space host>, DJANGO_CORS_ALLOWED_ORIGINS=<frontend origin>.
+# Space settings (Secrets): DJANGO_SECRET_KEY. See docs/deployment_guide.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-space
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HF_SPACE: ${{ vars.HF_SPACE }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - name: Skip when the Space is not configured
+        id: configured
+        run: |
+          if [ -z "$HF_SPACE" ] || [ -z "$HF_TOKEN" ]; then
+            echo "::notice::HF_SPACE variable or HF_TOKEN secret not set; nothing to deploy."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v7
+        if: steps.configured.outputs.ok == 'true'
+      - name: Build the snapshot (what the image needs; no tests, training or eval data)
+        if: steps.configured.outputs.ok == 'true'
+        run: |
+          mkdir space
+          git archive HEAD | tar -x -C space
+          rm -rf space/tests space/training space/eval
+          cp deploy/huggingface/README.md space/README.md
+          # The Hub rejects binary files outside LFS/Xet; fail here with a clear message instead
+          binaries=$(cd space && find . -type f -size +0 ! -path './.git/*' -exec grep -IL . {} +)
+          if [ -n "$binaries" ]; then echo "::error::Binary files in the snapshot: $binaries"; exit 1; fi
+      - name: Push to the Space
+        if: steps.configured.outputs.ok == 'true'
+        working-directory: space
+        run: |
+          git init -q -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::12} from ${GITHUB_REPOSITORY}"
+          git push --force "https://${HF_SPACE%%/*}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" main

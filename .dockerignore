@@ -27,6 +27,11 @@ calibration
 # Mounted at runtime (remove this line to bake the weights into the image)
 weights
 
+# Evaluation data (multi-GB downloads) and browser-test output
+eval/data
+web/test-results
+web/playwright-report
+
 # Training data and artifacts
 training
 data

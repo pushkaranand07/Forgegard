@@ -81,6 +81,53 @@ solely through the platform router.
 PyTorch plus the B7 checkpoint far exceeds their bundle size limits, and a
 video analysis outlasts typical function timeouts.
 
+### Hugging Face Space (free CPU, 16 GB RAM)
+
+The image runs as a Docker Space in one container: web, worker and the SQLite
+queue (`FORGEGUARD_ROLE=all`). It downloads its weights at startup
+(`FORGEGUARD_DOWNLOAD_WEIGHTS=true`, hash-checked). CI runs exactly this
+configuration as user 1000 with no weights volume, and puts a real job through it.
+
+1. **Create the Space** on huggingface.co: *New Space*, SDK **Docker**, blank
+   template, hardware *CPU basic*, any name (e.g. `forgeguard-api`).
+2. **Space settings, Variables:**
+
+   ```
+   FORGEGUARD_ROLE=all
+   FORGEGUARD_DOWNLOAD_WEIGHTS=true
+   DJANGO_DEBUG=false
+   DJANGO_ALLOWED_HOSTS=<user>-<space>.hf.space
+   DJANGO_CORS_ALLOWED_ORIGINS=https://<your-project>.vercel.app
+   ```
+
+   **Space settings, Secrets:** `DJANGO_SECRET_KEY` (generate it as shown above).
+3. **GitHub repository settings:**
+   - Under *Secrets and variables, Actions*, add the variable `HF_SPACE=<user>/<space>`.
+   - Add the secret `HF_TOKEN`: a Hugging Face access token with write access to that Space.
+   - Every push to `main` then deploys through `.github/workflows/deploy-space.yml`.
+   - The workflow pushes a snapshot without tests or training data, and uses `deploy/huggingface/README.md` as the Space's README.
+4. **Vercel:** set `VITE_API_BASE=https://<user>-<space>.hf.space` and redeploy
+   (see the next section).
+
+Notes:
+
+- **The image model needs a public download.** `model_c1.pth` has no public
+  download URL (`"url": null` in `core/model_manifest.json`), so the Space runs
+  without it: video works, and image analysis reports the model as missing.
+  - To enable it, upload the file to a Hugging Face model repository.
+  - Then set its `url` in the manifest to `https://huggingface.co/<user>/<repo>/resolve/main/model_c1.pth`.
+  - The SHA-256 check stays in force.
+  - This publishes the weights.
+- **Not checked yet (rate limits):** whether the Space's proxy sets a trustworthy
+  `X-Forwarded-For`. `DJANGO_BEHIND_PROXY` is therefore left off, so the
+  per-IP rate limit may see the proxy's address and act as one shared limit.
+  Inspect the headers once the Space is live before enabling it.
+- **Use the `*.hf.space` URL directly.** The Space page on huggingface.co embeds
+  the app in an iframe, which the app's `X-Frame-Options: DENY` blocks. The
+  frontend never uses that page.
+- **Sleep:** free Spaces sleep after a period without traffic. The first
+  request after that waits for a cold start, including the weight download.
+
 ### Frontend on Vercel, backend elsewhere
 
 The UI can be hosted on Vercel while the API runs on a container host. The
@@ -116,6 +163,8 @@ defaults. The important ones:
 | `DJANGO_HSTS_INCLUDE_SUBDOMAINS`, `DJANGO_HSTS_PRELOAD` | `false` | Opt-in HSTS extensions; enable only when every subdomain is HTTPS |
 | `DJANGO_BEHIND_PROXY` | `false` | Trust `X-Forwarded-Proto` / `X-Forwarded-For` |
 | `DJANGO_CORS_ALLOWED_ORIGINS` | *(empty)* | Exact browser origins allowed to call `/api/` cross-origin (e.g. the Vercel frontend). Empty: same-origin only |
+| `FORGEGUARD_ROLE` | `web` | What the container runs (`docker/entrypoint.sh`): `web`, `worker`, or `all` (both in one container; SQLite queue) |
+| `FORGEGUARD_DOWNLOAD_WEIGHTS` | `false` | Fetch missing weights at startup (hash-checked) for hosts without a weights volume |
 | `FORGEGUARD_MAX_UPLOAD_MB` | `100` | Per-file limit (UI reads it from `/api/health/`) |
 | `FORGEGUARD_MAX_BATCH_FILES` | `20` | Files per batch request |
 | `FORGEGUARD_MAX_REQUEST_MB` | `500` | Whole request body, rejected with 413 before reading |

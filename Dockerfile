@@ -56,7 +56,9 @@ COPY --from=web /src/frontend/static/app ./frontend/static/app
 
 # collectstatic only needs settings to import; this throwaway key never serves traffic
 RUN DJANGO_SECRET_KEY=collectstatic-only python manage.py collectstatic --noinput \
-    && useradd --create-home --uid 10001 forgeguard \
+    # UID 1000: Hugging Face Spaces run containers as user 1000, and the
+    # writable directories below must belong to whoever runs the process
+    && useradd --create-home --uid 1000 forgeguard \
     && mkdir -p /app/weights /tmp/forgeguard /var/forgeguard \
     && chown -R forgeguard /app/weights /tmp/forgeguard /var/forgeguard
 
@@ -66,6 +68,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\", \"8000\")}/api/health/live', timeout=4)"
 
-# Default command: the web server. The worker runs the same image with
-# `python manage.py run_worker` (see docker-compose.yml).
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec gunicorn config.wsgi:application -c gunicorn.conf.py"]
+# Default command: the web server. FORGEGUARD_ROLE=worker runs the job worker
+# and FORGEGUARD_ROLE=all runs both in one container (docker/entrypoint.sh);
+# docker-compose.yml runs the worker as a separate service.
+CMD ["bash", "docker/entrypoint.sh"]
