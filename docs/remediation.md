@@ -25,7 +25,7 @@ green in CI.
 | I17 | Low | 4.2 | Additive `code` field from one closed ErrorCode set on every error (legacy `status` kept); JSON 405s | `tests/test_error_contract.py` (31): same problem → same code on every endpoint | `5d471bd51` | Done (OpenAPI schema still to do) |
 | I18 | Low | 4.3 | `num_frames_sampled` + `num_faces_analyzed`; old field kept, deprecated | `tests/test_video_counts.py` (4) | `6311599e0` | Done |
 | I19 | Low | 1.4, 4.3 | Legacy UI and 16 MB of assets (phase 1); remaining dead code removed; vulture in CI | vulture clean in CI | `5046f6919`, `a538f34f1` | Done |
-| I20 | Low | 6.1 | Contrast tokens, `/docs` overflow, 404 `<h1>` | Playwright + axe: 0 serious | | Not started |
+| I20 | Low | 6.1 | Contrast tokens (light accent, text-3; dark accent + dark button text), `<dl>` structure, 404 `<h1>`, `/docs` code blocks shrink and scroll (focusable) | `web/e2e/a11y.spec.ts` in CI: 13 routes × light / dark / OS-dark × 375 / 1280 px = 78 checks, 0 serious or critical axe violations, no overflow, one `<h1>`. Before: 44 of 52 failed | `813b1ee21`, `228797ad7` | Done (CI to confirm) |
 | I21 | Low | 1.5 | Verified the old key was never in a recorded deployment; gitleaks with a custom Django-key rule in CI | gitleaks full-history scan clean with 1 reviewed fingerprint | see below | Done (CI to confirm) |
 | I22 | Low | 0 | Jupyter moved to the `train` dependency group | Fresh-clone setup + tests: 195 s (was 716 s) | `c4913369d` | Done |
 
