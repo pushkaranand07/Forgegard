@@ -79,7 +79,7 @@ them; REAL needs more than 90% of faces confidently real (< 0.2). Otherwise the 
 thresholds are upstream's own, and the 8-face minimum was fixed before this evaluation;
 nothing was tuned on this set.
 
-**Set:** 17 clips from 4 real talking-head videos of consenting people (not shipped): 8
+**Set:** 17 clips from 4 real talking-head videos available locally to the developer (not shipped): 8
 real 4 s segments, the same 8 segments with the face swapped (MTCNN + seamless clone, the
 audit's recipe), and one full-length real video.
 
