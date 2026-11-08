@@ -37,9 +37,9 @@ Both sit behind a hardened Django API and a React UI. The serving layer, the UI,
 - **Video detects face-swap manipulation of the kind in DFDC (2019–2020 methods).** It hasn't been tested against, and should be assumed weak on, diffusion-generated or fully synthetic video, lip-sync edits and face reenactment.
 - **Only one face per frame is classified** (the most confident detection). A manipulated face that isn't the most prominent can be missed. Upstream classifies all faces.
 - **Single checkpoint.** Upstream's competition entry averaged an ensemble, so its published results don't transfer to this single model.
-- **The image pipeline detects splicing and retouching in JPEGs.** It does **not** detect AI-generated images.
-- **ELA degrades on re-encoded images** (social-media uploads, screenshots, resized files) and isn't meaningful for lossless sources such as PNG.
-- **Scores are uncalibrated.** "Confidence" in the current API and UI is `max(p, 1 − p)`, not a probability of being correct.
+- **The image model gives no verdict yet.** It scored at chance in the November 2026 audit (accuracy 0.475, AUC 0.561), so the API labels its JPEG results `UNVALIDATED` and reports the score as experimental, with no AUTHENTIC/TAMPERED verdict, until a model passes a committed evaluation. It targets splicing and retouching in JPEGs and does **not** detect AI-generated images.
+- **ELA only applies to JPEGs.** PNG and WebP uploads get `UNSUPPORTED` and no score. ELA also degrades on re-encoded images (social-media uploads, screenshots, resized files).
+- **Scores are uncalibrated.** The UI calls them "model scores"; `confidence_pct` is `max(p, 1 − p)`, not a probability of being correct, and is only given with a verdict.
 - **Licences:** the training datasets (DFDC, CASIA) allow non-commercial research only. See [CREDITS.md](CREDITS.md).
 
 ## Installation & Setup

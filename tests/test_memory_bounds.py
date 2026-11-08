@@ -174,7 +174,7 @@ def test_49_megapixel_jpeg_stays_within_budget(tmp_path, tiny_imd_weights, capsy
 
     result = _peak_growth_mb(tmp_path, "image", media, tiny_imd_weights, capsys)
 
-    assert result["label"] in {"AUTHENTIC", "TAMPERED"}
+    assert result["label"] == "UNVALIDATED"  # tiny test model: scored, but not validated
     assert result["growth_mb"] < BUDGET_MB, f"peak RSS growth {result['growth_mb']:.0f} MB"
 
 

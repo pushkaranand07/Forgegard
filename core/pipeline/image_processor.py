@@ -106,39 +106,53 @@ class IMDModel(nn.Module):
 # Result Dataclass
 # ─────────────────────────────────────────────────────────────────────────────
 
+VERDICT_LABELS = ("AUTHENTIC", "TAMPERED")
+UNVALIDATED = "UNVALIDATED"
+UNSUPPORTED = "UNSUPPORTED"
+UNSUPPORTED_REASON = (
+    "Error level analysis needs a JPEG source: it measures differences in JPEG "
+    "compression, which lossless and WebP images do not have. No score is given."
+)
+
+
 @dataclass(frozen=True)
 class ImageDetectionResult:
     """
     Structured result returned by detect_image_file / detect_image_bytes.
 
-    Attributes
-    ----------
-    label               : "AUTHENTIC" or "TAMPERED"
-    predicted_class     : int — 1 = Authentic, 0 = Tampered
-    authentic_prob      : float in [0, 1]
-    tampered_prob       : float in [0, 1]
-    device              : "cpu" or "cuda"
-    software_found      : bool — True when EXIF software tag detected (Level 1)
-    software_signature  : str  — Software name from EXIF, or "" if not found
-    level1_notes        : list of human-readable findings from metadata scan
+    label is one of:
+      - "AUTHENTIC" / "TAMPERED": only from a model the manifest marks validated
+      - "UNVALIDATED": JPEG scored by a model that has not passed an evaluation;
+        the probabilities are an experimental score, not a verdict
+      - "UNSUPPORTED": not a JPEG, so ELA does not apply; no score
+
+    predicted_class is 1 (authentic) / 0 (tampered) for a verdict, else -1.
+    authentic_prob / tampered_prob are None for UNSUPPORTED.
     """
 
     label: str
     predicted_class: int
-    authentic_prob: float
-    tampered_prob: float
+    authentic_prob: Optional[float]
+    tampered_prob: Optional[float]
     device: str
     software_found: bool = False
     software_signature: str = ""
     level1_notes: List[str] = field(default_factory=list)
+    experimental: bool = False
+    reason: Optional[str] = None
 
     def as_dict(self) -> Dict[str, Any]:
+        has_score = self.tampered_prob is not None and self.authentic_prob is not None
+        is_verdict = self.label in VERDICT_LABELS
         return {
             "label": self.label,
             "predicted_class": int(self.predicted_class),
-            "authentic_prob": round(float(self.authentic_prob), 4),
-            "tampered_prob": round(float(self.tampered_prob), 4),
-            "confidence_pct": round(max(self.authentic_prob, self.tampered_prob) * 100, 2),
+            "authentic_prob": round(float(self.authentic_prob), 4) if has_score else None,
+            "tampered_prob": round(float(self.tampered_prob), 4) if has_score else None,
+            # A confidence figure is only shown for a validated verdict (audit I16)
+            "confidence_pct": round(max(self.authentic_prob, self.tampered_prob) * 100, 2) if is_verdict else None,
+            "experimental": self.experimental,
+            "reason": self.reason,
             "device": self.device,
             "level1": {
                 "software_found": self.software_found,
@@ -341,12 +355,22 @@ def _run_inference(pil_img: Image.Image, model_path: str,
                    device: Optional[torch.device] = None) -> ImageDetectionResult:
     """
     Shared inference logic used by both public entry-points.
-    Runs Level 1 (metadata) and Level 2 (ELA + CNN).
+    Runs Level 1 (metadata) and, for JPEGs, Level 2 (ELA + CNN).
     """
     device = device or _select_device()
 
     # Level 1 — metadata (on the image as opened, before RGB conversion)
     software_found, software_sig, notes = _analyse_metadata(pil_img)
+    level1 = dict(software_found=software_found, software_signature=software_sig, level1_notes=notes)
+
+    # ELA measures JPEG recompression error; for any other format it is noise (audit I2)
+    if pil_img.format != "JPEG":
+        logger.info(f"[IMD] {pil_img.format} image: ELA not applicable, model not run")
+        return ImageDetectionResult(
+            label=UNSUPPORTED, predicted_class=-1, authentic_prob=None, tampered_prob=None,
+            device=device.type, reason=UNSUPPORTED_REASON, **level1,
+        )
+
     if pil_img.mode != "RGB":  # avoid a full-size copy when it already is
         pil_img = pil_img.convert("RGB")
 
@@ -361,11 +385,17 @@ def _run_inference(pil_img: Image.Image, model_path: str,
 
     tampered_prob = float(probs[0].item())
     authentic_prob = float(probs[1].item())
-    predicted_class = int(torch.argmax(probs).item())
-    label = "AUTHENTIC" if predicted_class == 1 else "TAMPERED"
 
-    logger.info(f"[IMD] Result: {label}  "
-          f"(authentic={authentic_prob:.3f}, tampered={tampered_prob:.3f})")
+    if model_registry.is_validated(model_path):
+        predicted_class = int(torch.argmax(probs).item())
+        label = "AUTHENTIC" if predicted_class == 1 else "TAMPERED"
+        experimental, reason = False, None
+    else:
+        predicted_class, label, experimental = -1, UNVALIDATED, True
+        reason = ("This model has not passed a committed evaluation, so no verdict is given. "
+                  "The score is experimental and uncalibrated.")
+
+    logger.info(f"[IMD] Result: {label}  (authentic={authentic_prob:.3f}, tampered={tampered_prob:.3f})")
 
     return ImageDetectionResult(
         label=label,
@@ -373,9 +403,9 @@ def _run_inference(pil_img: Image.Image, model_path: str,
         authentic_prob=authentic_prob,
         tampered_prob=tampered_prob,
         device=device.type,
-        software_found=software_found,
-        software_signature=software_sig,
-        level1_notes=notes,
+        experimental=experimental,
+        reason=reason,
+        **level1,
     )
 
 

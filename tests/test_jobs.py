@@ -297,7 +297,9 @@ def test_worker_process_runs_jobs_and_web_never_loads_torch(tmp_path):
 
     assert result["created"] == 202
     assert result["record"]["status"] == "done", (result, worker_log[-2000:])
-    assert result["record"]["result"]["label"] in {"AUTHENTIC", "TAMPERED"}
+    # Tiny test model is not in the manifest, so it is unvalidated: a score, no verdict
+    assert result["record"]["result"]["label"] == "UNVALIDATED"
+    assert result["record"]["result"]["tampered_prob"] is not None
     assert result["live"] == 200
     assert result["torch_loaded_in_web"] is False
     assert list((tmp_path / "spool" / "uploads").iterdir()) == []
