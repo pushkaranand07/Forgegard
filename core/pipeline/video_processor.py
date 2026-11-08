@@ -271,50 +271,47 @@ class FaceDetectionEngine:
         
         Returns:
             RGB face crop (numpy array) or None if no face detected
+
+        Detector errors propagate: the caller decides how to report them, so a
+        failing detector is never mistaken for a frame with no face (audit I9).
         """
-        try:
-            h, w = frame.shape[:2]
-            logger.debug(f"[extract_face] Frame shape: {frame.shape}, dtype: {frame.dtype}, "
-                         f"R_mean: {frame[:,:,0].mean():.2f}, B_mean: {frame[:,:,2].mean():.2f}")
+        h, w = frame.shape[:2]
+        logger.debug(f"[extract_face] Frame shape: {frame.shape}, dtype: {frame.dtype}, "
+                     f"R_mean: {frame[:,:,0].mean():.2f}, B_mean: {frame[:,:,2].mean():.2f}")
 
-            # STEP 1: Detect on half-size image (matches training exactly)
-            img = Image.fromarray(frame)
-            half_img = img.resize([s // 2 for s in img.size])
-            batch_boxes, probs = self.detector.detect(half_img, landmarks=False)
+        # STEP 1: Detect on half-size image (matches training exactly)
+        img = Image.fromarray(frame)
+        half_img = img.resize([s // 2 for s in img.size])
+        batch_boxes, probs = self.detector.detect(half_img, landmarks=False)
 
-            if batch_boxes is None or len(batch_boxes) == 0:
-                return None
-
-            # STEP 2: Pick best face (highest probability)
-            best_idx = int(np.argmax(probs))
-            bbox = batch_boxes[best_idx]
-            if bbox is None:
-                return None
-
-            # STEP 3: Scale box back to full resolution (boxes were from half-size)
-            xmin, ymin, xmax, ymax = [int(b * 2) for b in bbox]
-            bw = xmax - xmin
-            bh = ymax - ymin
-
-            # STEP 4: Add padding exactly as training does (h//3, w//3 of bbox)
-            p_h = bh // 3
-            p_w = bw // 3
-            x1 = max(xmin - p_w, 0)
-            y1 = max(ymin - p_h, 0)
-            x2 = min(xmax + p_w, w)
-            y2 = min(ymax + p_h, h)
-
-            face = frame[y1:y2, x1:x2]
-
-            if face.size == 0:
-                return None
-
-            return face
-
-        except Exception as e:
-            if self.verbose:
-                logger.warning(f"[extract_face] Face detection error: {e}")
+        if batch_boxes is None or len(batch_boxes) == 0:
             return None
+
+        # STEP 2: Pick best face (highest probability)
+        best_idx = int(np.argmax(probs))
+        bbox = batch_boxes[best_idx]
+        if bbox is None:
+            return None
+
+        # STEP 3: Scale box back to full resolution (boxes were from half-size)
+        xmin, ymin, xmax, ymax = [int(b * 2) for b in bbox]
+        bw = xmax - xmin
+        bh = ymax - ymin
+
+        # STEP 4: Add padding exactly as training does (h//3, w//3 of bbox)
+        p_h = bh // 3
+        p_w = bw // 3
+        x1 = max(xmin - p_w, 0)
+        y1 = max(ymin - p_h, 0)
+        x2 = min(xmax + p_w, w)
+        y2 = min(ymax + p_h, h)
+
+        face = frame[y1:y2, x1:x2]
+
+        if face.size == 0:
+            return None
+
+        return face
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -590,6 +587,38 @@ def is_model_loaded(model_path: str) -> bool:
 # Detection Functions
 # ─────────────────────────────────────────────────────────────────────────────
 
+class FaceDetectionError(RuntimeError):
+    """The face detector failed on every sampled frame (a bug or resource problem, not "no face")."""
+
+
+# Errors a detector run can raise on a bad frame. MemoryError and anything
+# unexpected propagate and fail the job.
+_DETECTOR_ERRORS = (RuntimeError, ValueError, cv2.error)
+
+
+def _extract_faces(frames, face_extractor) -> Tuple[List[np.ndarray], int, int]:
+    """Run face detection over frames. Returns (face crops, frames seen, frames that errored).
+
+    Each detector error is logged with its traceback; if every frame errors,
+    FaceDetectionError is raised rather than reporting "no face".
+    """
+    crops: List[np.ndarray] = []
+    seen = errors = 0
+    for frame in frames:
+        seen += 1
+        try:
+            face = face_extractor.extract_face(frame)
+        except _DETECTOR_ERRORS:
+            errors += 1
+            logger.exception("Face detection failed on sampled frame %d", seen - 1)
+            continue
+        if face is not None:
+            crops.append(face.copy())  # the crop is a view; copy so the full frame can be freed
+    if seen and errors == seen:
+        raise FaceDetectionError(f"Face detection failed on every sampled frame ({seen}); see the log.")
+    return crops, seen, errors
+
+
 def detect_video_frames(
     frames: List[np.ndarray],
     model_path: str,
@@ -628,30 +657,18 @@ def detect_video_frames(
     # Load model
     model = load_model(model_path, encoder, device)
     
-    # Extract faces if needed
-    notes = []
+    notes: List[str] = []
     if extract_faces:
-        face_extractor = get_face_extractor(device)
-        extracted_frames = []
-        for frame in frames:
-            face = face_extractor.extract_face(frame)
-            if face is not None:
-                extracted_frames.append(face)
-        
-        if not extracted_frames:
-            logger.warning(f"[detect_video] No faces found in any of {len(frames)} frames → returning UNSURE")
+        frames, sampled, errors = _extract_faces(frames, get_face_extractor(device))
+        if errors:
+            notes.append("FACE_DETECTION_ERRORS")
+        if not frames:
             return VideoDetectionResult(
                 label="UNSURE", predicted_class=-1, fake_prob=None, real_prob=None,
-                confidence_pct=None, device=device, num_frames_processed=len(frames),
-                notes=["NO_FACE_DETECTED"]
+                confidence_pct=None, device=device, num_frames_processed=sampled,
+                notes=["NO_FACE_DETECTED", *notes]
             )
-            
-        if len(extracted_frames) == 1:
-            logger.warning(f"[detect_video] Face detected in only 1 of {len(frames)} frames. Classifying using single frame.")
-        
-        logger.info(f"[detect_video] Frames sampled: {len(frames)}, Faces extracted: {len(extracted_frames)}")
-        frames = extracted_frames
-    
+
     # Preprocess frames
     preprocessed = []
     for frame in frames:
@@ -756,14 +773,8 @@ def detect_video_file(
     load_model(model_path, encoder, device)
     face_extractor = get_face_extractor(device)
 
-    crops: List[np.ndarray] = []
-    sampled_count = 0
-    for frame in frames:
-        sampled_count += 1
-        face = face_extractor.extract_face(frame)
-        if face is not None:
-            crops.append(face.copy())  # the crop is a view; copy so the full frame can be freed
-        del frame
+    crops, sampled_count, detector_errors = _extract_faces(frames, face_extractor)
+    error_notes = ["FACE_DETECTION_ERRORS"] if detector_errors else []
 
     if sampled_count == 0:
         raise NoVisualFramesException("Could not extract any visual frames")
@@ -774,9 +785,11 @@ def detect_video_file(
         return VideoDetectionResult(
             label="UNSURE", predicted_class=-1, fake_prob=None, real_prob=None,
             confidence_pct=None, device=device, num_frames_processed=sampled_count,
-            notes=["NO_FACE_DETECTED"]
+            notes=["NO_FACE_DETECTED", *error_notes]
         )
     if len(crops) == 1:
         logger.warning(f"[detect_video] Face detected in only 1 of {sampled_count} frames.")
 
-    return detect_video_frames(crops, model_path, encoder, device, extract_faces=False, target_size=target_size)
+    result = detect_video_frames(crops, model_path, encoder, device, extract_faces=False, target_size=target_size)
+    result.notes.extend(error_notes)
+    return result
