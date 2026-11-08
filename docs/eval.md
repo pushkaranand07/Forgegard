@@ -48,8 +48,7 @@ seed always produces byte-identical files.
 
 **Limits of this set:** 96 images is small (hence the wide intervals). The splices are
 naive copy-paste with no blending or resizing, so real-world manipulations are likely
-harder. Results on CASIA v2 (re-encoded to avoid its format shortcut) are pending
-phase 3b.
+harder. For CASIA v2 results see [Retraining on CASIA v2](#retraining-on-casia-v2-phase-3c-still-not-validated).
 
 ### Why the model may be at chance
 
@@ -59,6 +58,76 @@ quality, scaling, resize order) cannot be checked against inference. The noteboo
 train/test split also has no seed. ELA now lives in one module,
 [`core/pipeline/ela.py`](../core/pipeline/ela.py), so any retraining uses exactly the
 inference code.
+
+The retraining below rules this out as the main cause: a model trained on exactly
+the inference ELA also fails on Kodak.
+
+### Retraining on CASIA v2 (phase 3c): still not validated
+
+```bash
+# CASIA2.0-*.tar shards from huggingface.co/datasets/ductai199x/image-manipulation-dataset-compilation,
+# checked against their LFS SHA-256 (the data is not redistributed here)
+python scripts/prepare_casia.py --src eval/data/casia2-src --out eval/data/casia2
+python scripts/train_image.py --data eval/data/casia2 --out weights/model_c2.pth
+python scripts/eval_image.py --data eval/data/casia2 --split test --weights weights/model_c2.pth
+python scripts/eval_image.py --data eval/data/kodak-splice --weights weights/model_c2.pth
+```
+
+**Data.**
+- **JPEG-origin images only, in both classes.** CASIA v2 has a format shortcut: 99.3% of authentic images are JPEG, but 60% of tampered ones are TIFF. That leaves 7,437 authentic and 2,064 tampered images.
+- **Split by source image.** Each tampered image names the one or two authentic images it was built from. Tampered images and their sources are grouped by connected components, and whole groups go to train, val or test. No source picture appears in two splits.
+- **One large chain.** Shared sources chain 1,340 of the tampered images into one component, and it goes to train. The remaining groups are dealt out so val and test each get about 15% of each class.
+- **Split sizes:**
+  - train: 5,206 authentic / 1,445 tampered
+  - val: 1,116 / 310
+  - test: 1,115 / 309
+- **Format of this mirror.** It stores every image re-saved losslessly as PNG, so the model sees the original JPEG's decoded pixels, but not the original JPEG files.
+
+**Protocol (fixed before any result was seen).**
+- Train on train.
+- Pick the epoch by val AUC (early stopping).
+- Calibrate on val by temperature scaling, folded into the last layer so the checkpoint is a plain IMDModel `state_dict`.
+- Evaluate on test once.
+- Pass criterion: the validation rule on both the CASIA test split and the Kodak set.
+
+**Training run.**
+- Best epoch 17 of 25 (early stop), val AUC 0.970, temperature 1.41.
+- Report: [`eval/results/model_c2-train-2026-11-08.json`](../eval/results/model_c2-train-2026-11-08.json)
+
+| Model | CASIA v2 test (1,424; 309 tampered) | Kodak splice set (96; 48 tampered) |
+|---|---|---|
+| `model_c2.pth` (retrained) | AUC **0.962** (0.952–0.971), ECE 0.020 | AUC **0.576** (0.460–0.685), ECE 0.213 |
+| `model_c1.pth` (deployed) | AUC 0.780 (0.750–0.809)† | AUC 0.619 (0.500–0.728) |
+| Mean-ELA baseline | AUC 0.714 (0.685–0.742) | AUC 0.566 (0.448–0.686) |
+
+†`model_c1` was trained on an unrecorded CASIA-style subset with an unseeded split, so
+some of these test images may have been in its training data. Its CASIA number is an
+upper bound, not a held-out result.
+
+Result files: `eval/results/model_c2-casia2-test-2026-11-08.json`,
+`model_c2-kodak-splice-2026-11-08.json`, `model_c1-casia2-test-2026-11-08.json`.
+
+**Verdict: fails the criterion.**
+- On CASIA's own test split it is strong and well calibrated.
+- On Kodak splices it is indistinguishable from chance: its interval includes 0.5, and calibration does not transfer (ECE 0.21).
+- So it learned cues specific to CASIA, not splicing in general.
+
+The likeliest cue is JPEG history. CASIA's tampered images were saved with different
+compression from the camera originals, and even mean ELA, a heuristic with no learning,
+reaches 0.714 on CASIA. Other differences also exist: image size, for example, with
+portrait 256×384 at 25% of authentic images vs 10% of tampered ones. This was not
+isolated further.
+
+Kodak is small (96 images), so its intervals are wide. A passing model would need an
+interval clearly above 0.566, and this one is centred at 0.576.
+
+`model_c2.pth` is not deployed. Its hash is in the manifest so these results can be
+reproduced, with `validated: false` and no download URL. The service still uses
+`model_c1.pth` and gives no image verdict.
+
+**What would be needed:**
+- Training data whose two classes share the same compression history: for example, splices generated from the same camera JPEGs and re-saved identically, as in the Kodak recipe but at scale and with realistic blending.
+- Or a detector designed for this task rather than a 2-layer CNN on 128×128 ELA, which discards most of the spatial detail at that resize.
 
 ## Video model (`deepfake_detector_b7.pth`): indicative results only
 

@@ -68,8 +68,8 @@ ForgeGuard serves two models, each documented below. Metrics come only from comm
 | Evaluation | Result |
 |---|---|
 | **Kodak splice set** (96 JPEGs, `scripts/make_splice_set.py`), with 95 % CI | **AUC 0.619 (0.500–0.728)**, balanced accuracy 0.552; mean-ELA baseline AUC 0.566. **Fails the validation rule**, so the API gives no verdict (label `UNVALIDATED`) |
-| CASIA v2 (re-encoded), seeded held-out split, with 95 % CI | not yet evaluated |
-| Cross-dataset | not yet evaluated |
+| CASIA v2 test split (JPEG-origin only, split by source image, 1,424 images), with 95 % CI | AUC 0.780 (0.750–0.809). **Not a held-out result:** the training images were CASIA too (v1.0 shares authentic pictures with v2) and the split was not recorded |
+| Retrained on CASIA v2 (`model_c2.pth`, same architecture and ELA, not deployed) | CASIA test AUC 0.962 (0.952–0.971), but Kodak AUC 0.576 (0.460–0.685): **does not generalise**, also fails the rule. See [docs/eval.md](docs/eval.md#retraining-on-casia-v2-phase-3c-still-not-validated) |
 | Recompression stress test (JPEG q70, 50 % resize) | not yet evaluated |
 | Calibration (ECE) | 0.412 on the Kodak splice set (badly overconfident) |
 
@@ -78,7 +78,7 @@ The notebook printed 0.827 and 0.937 test accuracy. Neither is used here: the sp
 **Known failure modes and limitations:**
 - Small, single-source training set; heavy overfitting was visible in training (train loss 0.0009 vs test loss 0.71).
 - ELA signal is destroyed by re-encoding and resizing.
-- It's unverified whether the training-time ELA parameters match inference.
+- It's unverified whether the training-time ELA parameters match inference. Retraining with exactly the inference ELA did not fix generalisation, so this is not the main problem.
 - Phone firmware writes the EXIF `Software` tag, so the metadata hint produces false positives on unedited phone photos.
 
 ---
