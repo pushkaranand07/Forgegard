@@ -8,6 +8,7 @@ switches on the production hardening below.
 """
 
 import os
+import re
 import tempfile
 
 from django.core.exceptions import ImproperlyConfigured
@@ -69,6 +70,16 @@ ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost')
 
 # Origins allowed to POST forms with a CSRF token, e.g. https://forgeguard.example.com
 CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+
+# Browser origins allowed to call /api/ cross-origin (CORS), e.g. the Vercel frontend:
+# https://forgeguard.vercel.app. Exact origins only: no wildcard, no path, no credentials.
+CORS_ALLOWED_ORIGINS = env_list('DJANGO_CORS_ALLOWED_ORIGINS')
+for _origin in CORS_ALLOWED_ORIGINS:
+    if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:\d+)?', _origin):
+        raise ImproperlyConfigured(
+            f'DJANGO_CORS_ALLOWED_ORIGINS entry {_origin!r} must be an exact origin such as '
+            'https://forgeguard.vercel.app (scheme and host, no path, no trailing slash, no wildcard).'
+        )
 
 # Set when a reverse proxy / PaaS router sits in front of the app and sets
 # X-Forwarded-Proto and X-Forwarded-For. Never enable it without a proxy:
