@@ -105,6 +105,11 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           npm audit --audit-level=high
+      - name: npm audit (API type generator)
+        working-directory: web/tools/gen-api
+        run: |
+          npm ci --no-audit --no-fund
+          npm audit --audit-level=high
 
   secrets:
     name: Secret scan (gitleaks, full history)
@@ -135,6 +140,11 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - name: API types are generated from api/openapi.yaml and up to date
+        run: |
+          npm run gen:api
+          git diff --exit-code -- src/lib/api-schema.ts || {
+            echo "::error::web/src/lib/api-schema.ts is stale: run 'npm run gen:api' in web/ and commit it"; exit 1; }
       - run: npm test
       - name: Accessibility and layout (Playwright + axe, every route, both themes, 375/1280 px)
         run: |

@@ -144,7 +144,9 @@ describe("unified results (batch)", () => {
       processing_time_ms: 5,
       level1: { software_found: true, software_signature: "GIMP", notes: [] },
       level2: { authentic_prob: 0.4, tampered_prob: 0.6, method: "ELA + CNN", experimental: true, reason: "x" },
-    } as UnifiedApiResult;
+      model: { model_name: "m", weights_sha256: "abc", pipeline_version: "1" },
+      status: "success",
+    };
     const a = fromUnifiedResult(r, meta);
     expect(a.mediaType).toBe("image");
     expect(a.experimentalScore).toBe(0.6);

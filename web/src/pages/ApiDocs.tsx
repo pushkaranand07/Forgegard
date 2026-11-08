@@ -160,15 +160,19 @@ const ENDPOINTS: Endpoint[] = [
   },
 ];
 
+// Every error body is {"error", "status" (legacy), "code"}; switch on code. Mirrors
+// docs/api_reference.md and the ErrorCode enum in api/openapi.yaml.
 const ERRORS: [string, string][] = [
-  ["400", "Missing file, unsupported extension, file over the size limit, too many batch files, or unreadable media (status INVALID_IMAGE, INVALID_FILE, EMPTY_VIDEO, NO_VISUAL_FRAMES)."],
-  ["404", "Unknown API path (JSON body, status NOT_FOUND)."],
-  ["405", "Wrong HTTP method — detection endpoints accept POST only."],
-  ["413", "Request body larger than the server accepts (status TOO_LARGE)."],
-  ["422", "POST /api/detect/ only: the file was accepted but could not be analysed; the reason is in error."],
-  ["429", "Rate limit reached (status RATE_LIMITED); wait for the Retry-After header's seconds."],
-  ["500", "Inference failed on the server. Every response carries an X-Request-ID header to quote in bug reports."],
-  ["503", "Model weights are missing (status model_not_found) or all inference slots are busy (status BUSY, with Retry-After)."],
+  ["400 INVALID_INPUT", "No file, unsupported extension, empty or oversized file, too many batch files."],
+  ["400 / 422 INVALID_MEDIA", "The file could not be decoded, is truncated, over 50 megapixels, or has no frames."],
+  ["415 UNSUPPORTED_MEDIA", "An image format other than JPEG, PNG or WebP, or one that does not match the extension."],
+  ["413 PAYLOAD_TOO_LARGE", "Request body larger than the server accepts."],
+  ["404 NOT_FOUND", "Unknown API path, or an unknown or expired job or batch id."],
+  ["405 METHOD_NOT_ALLOWED", "Wrong HTTP method; the Allow header lists the right ones."],
+  ["429 RATE_LIMITED", "Per-IP limit reached; wait the Retry-After header's seconds."],
+  ["500 INTERNAL_ERROR", "Unexpected server failure. Quote the X-Request-ID header in bug reports."],
+  ["503 MODEL_UNAVAILABLE", "Model weights are missing, failed their hash check, or could not be loaded (see /api/health/)."],
+  ["503 BUSY", "The job queue is full; refused immediately, retry after Retry-After."],
 ];
 
 function CodeBlock({ code, label }: { code: string; label: string }) {
@@ -204,7 +208,7 @@ export default function ApiDocs() {
     <>
       <PageHeader
         title="API reference"
-        description="Every analysis in this app goes through these HTTP endpoints. Uploads use multipart/form-data; responses are JSON with an error message in the error field on failure."
+        description="Every analysis in this app goes through these HTTP endpoints. Uploads use multipart/form-data; responses are JSON; errors carry a stable code field. The machine-readable contract is api/openapi.yaml in the repository."
       />
       <div className="grid gap-8 lg:grid-cols-[200px_1fr]">
         <nav className="hidden lg:block" aria-label="Endpoints">
