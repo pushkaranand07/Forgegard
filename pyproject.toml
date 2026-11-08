@@ -13,7 +13,7 @@ dependencies = [
     "python-dotenv>=1.0,<2",
     # Background jobs (api/jobs.py): SQLite queue by default, Redis optional
     "huey>=3.5.4,<4",
-    "redis>=5,<7",
+    "redis>=8.1.0,<9",
     # Numerics, images & video
     "numpy>=2.0,<3",
     "Pillow>=13.0,<14",
