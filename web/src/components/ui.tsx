@@ -117,9 +117,23 @@ export function Badge({ tone = "neutral", className, children }: { tone?: Tone; 
   );
 }
 
-export function Stat({ label, value, hint, wrap }: { label: string; value: ReactNode; hint?: ReactNode; wrap?: boolean }) {
+// One name/value group for a <dl>. HTML allows a single <div> around each group, so
+// layout classes go on this div (className) rather than on an extra wrapper.
+export function Stat({
+  label,
+  value,
+  hint,
+  wrap,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  wrap?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="min-w-0">
+    <div className={cx("min-w-0", className)}>
       <dt className="text-xs font-medium uppercase tracking-wide text-ink-3">{label}</dt>
       <dd className={cx("mt-1 text-sm font-medium text-ink tabular", wrap ? "break-words" : "truncate")}>{value}</dd>
       {hint && <dd className="mt-0.5 text-xs text-ink-3">{hint}</dd>}
@@ -132,16 +146,19 @@ export function EmptyState({
   title,
   children,
   action,
+  heading: Heading = "h3",
 }: {
   icon: ReactNode;
   title: string;
   children?: ReactNode;
   action?: ReactNode;
+  /** "h1" when the empty state is the whole page (e.g. 404), so the page still has a top-level heading */
+  heading?: "h1" | "h2" | "h3";
 }) {
   return (
     <Card className="flex flex-col items-center px-6 py-16 text-center">
       <div className="mb-4 grid size-12 place-items-center rounded-xl bg-surface-2 text-ink-3">{icon}</div>
-      <h3 className="font-semibold text-ink">{title}</h3>
+      <Heading className="font-semibold text-ink">{title}</Heading>
       {children && <p className="mt-1 max-w-sm text-sm text-ink-2">{children}</p>}
       {action && <div className="mt-6">{action}</div>}
     </Card>

@@ -174,7 +174,9 @@ const ERRORS: [string, string][] = [
 function CodeBlock({ code, label }: { code: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="relative">
+    // min-w-0: a grid item is otherwise as wide as its longest code line, which pushed
+    // /docs 759 px past a phone screen (audit I20); the <pre> scrolls instead.
+    <div className="relative min-w-0">
       <div className="flex items-center justify-between rounded-t-lg border border-b-0 border-line bg-surface-2 px-3 py-1.5">
         <span className="text-xs font-medium text-ink-3">{label}</span>
         <button
@@ -191,7 +193,8 @@ function CodeBlock({ code, label }: { code: string; label: string }) {
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <pre className="overflow-x-auto rounded-b-lg border border-line bg-surface p-4 font-mono text-[13px] leading-relaxed text-ink">{code}</pre>
+      {/* Focusable so keyboard users can scroll long lines (WCAG 2.1.1) */}
+      <pre tabIndex={0} aria-label={`${label} example`} className="overflow-x-auto rounded-b-lg border border-line bg-surface p-4 font-mono text-[13px] leading-relaxed text-ink">{code}</pre>
     </div>
   );
 }
