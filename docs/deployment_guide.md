@@ -77,9 +77,32 @@ GUNICORN_FORWARDED_ALLOW_IPS=*
 Set `GUNICORN_FORWARDED_ALLOW_IPS=*` only when the container is reachable
 solely through the platform router.
 
-**Serverless platforms (Vercel, AWS Lambda) are not suitable**: PyTorch plus
-the B7 checkpoint far exceeds their bundle size limits, and a video analysis
-outlasts typical function timeouts.
+**Serverless platforms (Vercel, AWS Lambda) are not suitable** for the backend:
+PyTorch plus the B7 checkpoint far exceeds their bundle size limits, and a
+video analysis outlasts typical function timeouts.
+
+### Frontend on Vercel, backend elsewhere
+
+The UI can be hosted on Vercel while the API runs on a container host. The
+browser then calls the backend directly; uploads never pass through Vercel.
+
+1. **Backend:** allow the frontend's origin, and only that origin:
+
+   ```
+   DJANGO_CORS_ALLOWED_ORIGINS=https://<your-project>.vercel.app
+   ```
+
+   Use exact origins: scheme and host, no path, no trailing slash. Wildcards are
+   rejected at startup. Each Vercel preview deployment has its own URL, so
+   previews only work if their origin is listed too.
+2. **Vercel:** set the build variable `VITE_API_BASE=https://<backend-host>`
+   (no trailing slash) and redeploy. Uploads, job polling and health checks all
+   use it.
+
+Why not a Vercel rewrite (`/api/*` proxied to the backend)? Vercel documents a
+4.5 MB request-body limit for its functions, and does not say whether external
+rewrites share it. Video uploads go up to 100 MB, so this project avoids
+depending on undocumented behaviour.
 
 ## Configuration reference
 
@@ -92,6 +115,7 @@ defaults. The important ones:
 | `DJANGO_HTTPS` | `false` | HTTPS redirect, secure cookies, HSTS |
 | `DJANGO_HSTS_INCLUDE_SUBDOMAINS`, `DJANGO_HSTS_PRELOAD` | `false` | Opt-in HSTS extensions; enable only when every subdomain is HTTPS |
 | `DJANGO_BEHIND_PROXY` | `false` | Trust `X-Forwarded-Proto` / `X-Forwarded-For` |
+| `DJANGO_CORS_ALLOWED_ORIGINS` | *(empty)* | Exact browser origins allowed to call `/api/` cross-origin (e.g. the Vercel frontend). Empty: same-origin only |
 | `FORGEGUARD_MAX_UPLOAD_MB` | `100` | Per-file limit (UI reads it from `/api/health/`) |
 | `FORGEGUARD_MAX_BATCH_FILES` | `20` | Files per batch request |
 | `FORGEGUARD_MAX_REQUEST_MB` | `500` | Whole request body, rejected with 413 before reading |

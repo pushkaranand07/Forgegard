@@ -6,6 +6,13 @@ All endpoints speak JSON and accept `multipart/form-data` uploads. The web UI's
 Limits are configurable (see `docs/deployment_guide.md`); clients should read
 the live values from `GET /api/health/` rather than hard-coding them.
 
+**Browsers on another domain** can call the API only from origins listed in
+`DJANGO_CORS_ALLOWED_ORIGINS`.
+- Preflights (`OPTIONS`) get `204`.
+- Responses to listed origins carry `Access-Control-Allow-Origin` and expose `X-Request-ID` and `Retry-After`.
+- Credentials are never allowed.
+- Server-to-server clients (curl, scripts) are not affected by CORS.
+
 **Analysis runs as a background job.** The four `detect` endpoints keep the
 response shapes below: they wait up to `FORGEGUARD_SYNC_WAIT_SECONDS` (default
 20 s) for the job, which covers images. If the job takes longer (usually video,

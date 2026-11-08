@@ -8,6 +8,9 @@ middleware.py — Request context for every request
 - Turns unhandled exceptions in /api/ views into a JSON 500 that carries the
   request ID instead of an HTML error page or a stack trace.
 - Writes one access-log line per API request.
+- CORS for /api/: answers preflights and tags responses for the exact origins in
+  settings.CORS_ALLOWED_ORIGINS (e.g. the Vercel frontend). Other origins get no
+  CORS headers, so browsers block them. No credentials are ever allowed.
 """
 
 from __future__ import annotations
@@ -19,6 +22,8 @@ import time
 import uuid
 
 from django.conf import settings
+from django.http import HttpResponse
+from django.utils.cache import patch_vary_headers
 
 from .common import error_response
 
@@ -36,6 +41,18 @@ class RequestIdLogFilter(logging.Filter):
         return True
 
 
+CORS_ALLOW_METHODS = "GET, POST, OPTIONS"
+CORS_ALLOW_HEADERS = "Accept, Content-Type, X-Request-ID"
+CORS_EXPOSE_HEADERS = "X-Request-ID, Retry-After"
+CORS_MAX_AGE = "600"
+
+
+def _cors_origin(request) -> str | None:
+    """The request's Origin if it is allowed to call the API cross-origin, else None."""
+    origin = request.headers.get("Origin")
+    return origin if origin and origin in settings.CORS_ALLOWED_ORIGINS else None
+
+
 class RequestContextMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -47,8 +64,12 @@ class RequestContextMiddleware:
         request.request_id = request_id
         start = time.perf_counter()
         is_api = request.path.startswith("/api/")
+        cors_origin = _cors_origin(request) if is_api else None
         try:
-            response = self._too_large(request) if is_api else None
+            if is_api and request.method == "OPTIONS" and "Access-Control-Request-Method" in request.headers:
+                response = self._preflight(cors_origin)
+            else:
+                response = self._too_large(request) if is_api else None
             if response is None:
                 response = self.get_response(request)
             if is_api and response.status_code == 405 and not response.get("Content-Type", "").startswith(
@@ -59,6 +80,11 @@ class RequestContextMiddleware:
                                           "METHOD_NOT_ALLOWED")
                 response["Allow"] = allow
             response["X-Request-ID"] = request_id
+            if is_api and settings.CORS_ALLOWED_ORIGINS:
+                patch_vary_headers(response, ("Origin",))
+                if cors_origin:
+                    response["Access-Control-Allow-Origin"] = cors_origin
+                    response["Access-Control-Expose-Headers"] = CORS_EXPOSE_HEADERS
             if is_api:
                 logger.info(
                     "%s %s %s %.0fms",
@@ -79,6 +105,16 @@ class RequestContextMiddleware:
             "error",
             request_id=request.request_id,
         )
+
+    @staticmethod
+    def _preflight(cors_origin: str | None) -> HttpResponse:
+        """204 for a CORS preflight; the allow headers only when the origin is allowed."""
+        response = HttpResponse(status=204)
+        if cors_origin:
+            response["Access-Control-Allow-Methods"] = CORS_ALLOW_METHODS
+            response["Access-Control-Allow-Headers"] = CORS_ALLOW_HEADERS
+            response["Access-Control-Max-Age"] = CORS_MAX_AGE
+        return response
 
     @staticmethod
     def _too_large(request):
