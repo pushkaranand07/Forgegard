@@ -55,3 +55,6 @@ green in CI.
 | 2026-11-08 | Docker stack in CI (PR #22): web + worker + redis via docker-compose | Real video job queued → done (`UNSURE`, no face) through the worker; spool empty afterwards; both containers non-root. Memory: web 67 MB, worker 628 MB, redis 4 MB. Image 369 MB |
 | 2026-11-08 | Image model on the Kodak splice set (96 JPEGs, reproducible) | AUC 0.619 (95% CI 0.500–0.728), balanced accuracy 0.552, ECE 0.412; mean-ELA baseline AUC 0.566 (0.448–0.686). Fails the validation rule (CI lower bound must exceed max(0.5, baseline)) |
 | 2026-11-08 | Splice-set generator determinism | Two runs with the same seed: 97 files byte-identical |
+| 2026-11-08 | Video false positives investigated | 0.534 clip: per-face scores flip-flop 0.02–0.98, no consensus, average crossed 0.5. 0.987 clip: consistent scores on a beauty-filtered face (documented limitation) |
+| 2026-11-08 | Video model on the local face-swap set (17 clips), consensus rule vs old ≥ 0.5 rule | Consensus: 10 verdicts, accuracy 0.900, 7 UNSURE, 1 real called fake, 0 fakes called real. Old: 17 verdicts, accuracy 0.765, 2 real called fake, 2 fakes called real. AUC 0.889 (0.697–1.000) |
+
