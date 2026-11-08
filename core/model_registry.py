@@ -25,7 +25,7 @@ import hashlib
 import json
 import os
 import threading
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 MANIFEST_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model_manifest.json")
 
@@ -43,12 +43,12 @@ class CheckpointMismatchError(ModelUnavailableError):
 
 
 _lock = threading.Lock()
-_hash_cache: Dict[str, Tuple[int, int, str]] = {}  # abs path -> (size, mtime_ns, sha256)
-_state: Dict[str, Dict[str, Any]] = {}  # abs path -> {"state": "loaded"|"failed", "error": str}
-_manifest: Optional[Dict[str, Any]] = None
+_hash_cache: dict[str, tuple[int, int, str]] = {}  # abs path -> (size, mtime_ns, sha256)
+_state: dict[str, dict[str, Any]] = {}  # abs path -> {"state": "loaded"|"failed", "error": str}
+_manifest: dict[str, Any] | None = None
 
 
-def manifest() -> Dict[str, Any]:
+def manifest() -> dict[str, Any]:
     global _manifest
     if _manifest is None:
         with open(MANIFEST_PATH, encoding="utf-8") as f:
@@ -60,7 +60,7 @@ def pipeline_version() -> str:
     return manifest()["pipeline_version"]
 
 
-def manifest_entry(path: str) -> Optional[Dict[str, Any]]:
+def manifest_entry(path: str) -> dict[str, Any] | None:
     return manifest()["models"].get(os.path.basename(path))
 
 
@@ -119,7 +119,7 @@ def record_failed(path: str, error: BaseException) -> None:
         _state[os.path.abspath(path)] = {"state": "failed", "error": f"{type(error).__name__}: {error}"}
 
 
-def load_state(path: str) -> Dict[str, Any]:
+def load_state(path: str) -> dict[str, Any]:
     """{"state": "loaded"|"failed"|"not_loaded", "error": str|None}"""
     with _lock:
         return dict(_state.get(os.path.abspath(path), {"state": "not_loaded", "error": None}))
@@ -131,7 +131,7 @@ def reset_state() -> None:
         _state.clear()
 
 
-def model_info(path: str) -> Dict[str, Any]:
+def model_info(path: str) -> dict[str, Any]:
     """Version block for API responses: name, short hash and pipeline version."""
     entry = manifest_entry(path) or {}
     try:

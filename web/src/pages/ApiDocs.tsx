@@ -58,7 +58,8 @@ const ENDPOINTS: Endpoint[] = [
   "real_prob": 0.013,
   "confidence_pct": 98.7,
   "device": "cuda",
-  "num_frames_processed": 32,
+  "num_frames_sampled": 32,       // frames read from the video
+  "num_faces_analyzed": 32,       // faces classified (= frame_predictions length)
   "frame_predictions": [0.98, 0.97, ...],   // per-face fake probability
   "processing_time_ms": 2154.2,
   "notes": [],                    // e.g. ["NO_FACE_DETECTED"]
@@ -80,7 +81,7 @@ const ENDPOINTS: Endpoint[] = [
   "device": "cpu",
   "processing_time_ms": 16627.4,
   // images: "level1" {...}, "level2" {authentic_prob, tampered_prob, method}
-  // videos: "num_frames_processed", "frame_predictions", "notes"
+  // videos: "num_frames_sampled", "num_faces_analyzed", "frame_predictions", "notes"
   "status": "success"             // "error" (HTTP 422/500) with an "error" message on failure
 }`,
   },

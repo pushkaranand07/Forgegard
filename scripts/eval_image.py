@@ -26,6 +26,7 @@ import argparse
 import csv
 import datetime as dt
 import hashlib
+import itertools
 import json
 import os
 import sys
@@ -83,7 +84,7 @@ def ece(probs: np.ndarray, labels: np.ndarray, bins: int = 10) -> float:
     correct = (pred == labels).astype(float)
     edges = np.linspace(0.5, 1.0, bins + 1)
     total = 0.0
-    for lo, hi in zip(edges[:-1], edges[1:]):
+    for lo, hi in itertools.pairwise(edges):
         mask = (conf >= lo) & ((conf < hi) if hi < 1.0 else (conf <= hi))
         if mask.any():
             total += mask.mean() * abs(conf[mask].mean() - correct[mask].mean())
@@ -139,7 +140,7 @@ def main() -> int:
 
     results = {
         "dataset": args.data.name,
-        "n_images": int(len(y)),
+        "n_images": len(y),
         "n_tampered": int(y.sum()),
         "weights": args.weights.name,
         "weights_sha256": sha256_file(args.weights),
@@ -162,7 +163,8 @@ def main() -> int:
     print("| Scorer | AUC (95% CI) | Balanced acc. @0.5 | Balanced acc., best threshold (optimistic) | ECE |")
     print("|---|---|---|---|---|")
     print(f"| Model | {mm['auc']:.3f} ({mm['auc_95ci'][0]:.3f}-{mm['auc_95ci'][1]:.3f}) | "
-          f"{mm['balanced_accuracy_at_0.5']:.3f} | {mm['balanced_accuracy_best_threshold_optimistic']:.3f} | {mm['ece']:.3f} |")
+          f"{mm['balanced_accuracy_at_0.5']:.3f} | "
+          f"{mm['balanced_accuracy_best_threshold_optimistic']:.3f} | {mm['ece']:.3f} |")
     print(f"| Mean-ELA baseline | {bb['auc']:.3f} ({bb['auc_95ci'][0]:.3f}-{bb['auc_95ci'][1]:.3f}) | n/a | "
           f"{bb['balanced_accuracy_best_threshold_optimistic']:.3f} | n/a |")
     print(f"\nAUC by variant, model: {', '.join(f'{k} {x:.3f}' for k, x in mm['by_variant_auc'].items())}; "

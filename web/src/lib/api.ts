@@ -100,10 +100,11 @@ async function pollUntilDone<T>(pending: PendingBody, signal?: AbortSignal): Pro
   }
 }
 
+/** The error's standard code (api/errors.py), falling back to the legacy "status". */
 function codeOf(body: unknown): string | undefined {
-  return body && typeof body === "object" && "status" in body && typeof body.status === "string"
-    ? body.status
-    : undefined;
+  if (!body || typeof body !== "object") return undefined;
+  if ("code" in body && typeof body.code === "string") return body.code;
+  return "status" in body && typeof body.status === "string" ? body.status : undefined;
 }
 
 /** multipart POST via XHR — fetch() cannot report upload progress. A 202 is followed by polling. */

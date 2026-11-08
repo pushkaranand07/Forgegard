@@ -52,8 +52,10 @@ def api_detect_multi(request) -> JsonResponse:
     batch_id, failure = submit_batch_files(request)
     if failure is not None:
         return failure
+    assert batch_id is not None  # submit_batch_files returns exactly one of the two
 
     batch = jobs.get_batch(batch_id)
+    assert batch is not None  # just created; cannot have expired yet
     job_ids = [entry["job_id"] for entry in batch["jobs"]]
     if not jobs.wait_for(job_ids, settings.FORGEGUARD_SYNC_WAIT_SECONDS):
         return _pending("batch", batch_id)

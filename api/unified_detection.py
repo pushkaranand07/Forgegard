@@ -2,26 +2,27 @@
 unified_detection.py — Unified Image & Video Forgery Detection
 ==============================================================
 
-Combines image manipulation detection (ELA + CNN) and video deepfake 
+Combines image manipulation detection (ELA + CNN) and video deepfake
 detection (EfficientNet frame classifier) into a unified API.
 """
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Any
 
 import torch
 
+from core.model_registry import ModelUnavailableError
 from core.pipeline.image_processor import InvalidImageError, UnsupportedMediaError, detect_image_bytes
 from core.pipeline.video_processor import (
+    EmptyVideoException,
+    InvalidFileException,
+    NoVisualFramesException,
     detect_video_file,
-    InvalidFileException, EmptyVideoException, NoVisualFramesException,
 )
-
-from core.model_registry import ModelUnavailableError
 
 from . import common
 
@@ -35,24 +36,26 @@ logger = logging.getLogger("forgeguard.unified")
 @dataclass
 class UnifiedDetectionResult:
     """Unified result from image or video forgery detection."""
-    
+
     media_type: str  # "image" or "video"
     label: str  # "AUTHENTIC", "TAMPERED", "REAL", "FAKE", "UNSURE", "ERROR"
-    confidence_pct: Optional[float]  # None when there is no score
+    confidence_pct: float | None  # None when there is no score
     device: str
     processing_time_ms: float
-    
+
     # Image-specific fields
-    image_level1: Optional[Dict[str, Any]] = None
-    image_level2: Optional[Dict[str, Any]] = None
-    
+    image_level1: dict[str, Any] | None = None
+    image_level2: dict[str, Any] | None = None
+
     # Video-specific fields
-    num_frames_processed: Optional[int] = None
-    frame_predictions: Optional[list] = None
+    num_frames_processed: int | None = None  # deprecated
+    num_frames_sampled: int | None = None
+    num_faces_analyzed: int | None = None
+    frame_predictions: list | None = None
 
     # Pipeline notes (e.g. NO_FACE_DETECTED) and failure reason, if any
-    notes: Optional[list] = None
-    error: Optional[str] = None
+    notes: list | None = None
+    error: str | None = None
     # True when the failure was ours (bug, OOM, ...) rather than a bad upload
     internal_error: bool = False
     # True when the model exists but cannot be served (hash mismatch, bad checkpoint)
@@ -60,24 +63,26 @@ class UnifiedDetectionResult:
     # True when the file is an image format ForgeGuard does not decode (HTTP 415)
     unsupported_media: bool = False
     # Version block: model name, weights hash, pipeline version
-    model: Optional[Dict[str, Any]] = None
-    
-    def to_dict(self) -> Dict[str, Any]:
+    model: dict[str, Any] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert result to JSON-serializable dictionary."""
-        result = {
+        result: dict[str, Any] = {
             'media_type': self.media_type,
             'label': self.label,
             'confidence_pct': self.confidence_pct,
             'device': self.device,
             'processing_time_ms': self.processing_time_ms,
         }
-        
+
         if self.image_level1:
             result['level1'] = self.image_level1
         if self.image_level2:
             result['level2'] = self.image_level2
         if self.num_frames_processed is not None:
             result['num_frames_processed'] = self.num_frames_processed
+            result['num_frames_sampled'] = self.num_frames_sampled
+            result['num_faces_analyzed'] = self.num_faces_analyzed
         if self.frame_predictions:
             result['frame_predictions'] = self.frame_predictions
         if self.notes:
@@ -86,7 +91,7 @@ class UnifiedDetectionResult:
             result['error'] = self.error
         if self.model:
             result['model'] = self.model
-        
+
         return result
 
 
@@ -96,30 +101,28 @@ class UnifiedDetectionResult:
 
 def detect_file(
     file_path: str,
-    auto_detect_type: bool = True,
-    image_model_path: Optional[str] = None,
-    video_model_path: Optional[str] = None,
-    device: Optional[str] = None
+    image_model_path: str | None = None,
+    video_model_path: str | None = None,
+    device: str | None = None
 ) -> UnifiedDetectionResult:
     """
     Detect forgery in an image or video file.
-    
+
     Args:
         file_path: Path to media file
-        auto_detect_type: Whether to auto-detect media type from file extension
         image_model_path: Path to image model weights
         video_model_path: Path to video model weights
         device: Computation device ("cuda" or "cpu")
-    
+
     Returns:
         UnifiedDetectionResult with detection results
     """
     import time
     start_time = time.time()
-    
+
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     if not os.path.exists(file_path):
         return UnifiedDetectionResult(
             media_type="unknown",
@@ -129,7 +132,7 @@ def detect_file(
             processing_time_ms=(time.time() - start_time) * 1000,
             error="File not found.",
         )
-    
+
     # Extension decides the model (same rules as the upload validation)
     media_type = common.media_type_for(file_path)
 
@@ -151,39 +154,39 @@ def detect_file(
 
 def _detect_image(
     file_path: str,
-    model_path: Optional[str] = None,
-    device: Optional[str] = None,
-    start_time: float = None
+    model_path: str | None = None,
+    device: str | None = None,
+    start_time: float | None = None
 ) -> UnifiedDetectionResult:
     """Detect forgery in an image file."""
     import time
-    
+
     if start_time is None:
         start_time = time.time()
-    
+
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     if model_path is None:
         model_path = common.image_model_path()
-    
+
     try:
         # Read image bytes
         with open(file_path, 'rb') as f:
             image_bytes = f.read()
-        
+
         # Run image detection
         imd_result = detect_image_bytes(image_bytes, model_path, extension=common.extension_of(file_path))
-        
+
         # Map to unified result
         # Label policy lives in the image pipeline: AUTHENTIC/TAMPERED only from a
         # validated model, UNVALIDATED for an experimental score, UNSUPPORTED for non-JPEG.
         body = imd_result.as_dict()
         label = body["label"]
         confidence = body["confidence_pct"]
-        
+
         processing_time = (time.time() - start_time) * 1000
-        
+
         return UnifiedDetectionResult(
             media_type="image",
             label=label,
@@ -204,7 +207,7 @@ def _detect_image(
             },
             model=common.model_info(model_path),
         )
-    
+
     except UnsupportedMediaError as e:
         return UnifiedDetectionResult(
             media_type="image",
@@ -252,22 +255,22 @@ def _detect_image(
 
 def _detect_video(
     file_path: str,
-    model_path: Optional[str] = None,
-    device: Optional[str] = None,
-    start_time: float = None
+    model_path: str | None = None,
+    device: str | None = None,
+    start_time: float | None = None
 ) -> UnifiedDetectionResult:
     """Detect deepfakes in a video file."""
     import time
-    
+
     if start_time is None:
         start_time = time.time()
-    
+
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     if model_path is None:
         model_path = common.video_model_path()
-    
+
     try:
         # Run video detection
         vmd_result = detect_video_file(
@@ -278,9 +281,9 @@ def _detect_video(
             extract_faces=True,
             target_size=380
         )
-        
+
         processing_time = (time.time() - start_time) * 1000
-        
+
         return UnifiedDetectionResult(
             media_type="video",
             label=vmd_result.label,
@@ -288,11 +291,13 @@ def _detect_video(
             device=device,
             processing_time_ms=processing_time,
             num_frames_processed=vmd_result.num_frames_processed,
+            num_frames_sampled=vmd_result.num_frames_sampled,
+            num_faces_analyzed=vmd_result.num_faces_analyzed,
             frame_predictions=vmd_result.frame_predictions,
             notes=list(vmd_result.notes) or None,
             model=common.model_info(model_path),
         )
-    
+
     except (InvalidFileException, EmptyVideoException, NoVisualFramesException) as e:
         error = str(e)
     except ModelUnavailableError:

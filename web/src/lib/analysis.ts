@@ -127,7 +127,7 @@ export function fromVideoResponse(r: VideoApiResponse, meta: FileMeta): Analysis
         ? { authentic: r.real_prob, manipulated: r.fake_prob }
         : null,
     video: {
-      framesSampled: r.num_frames_processed,
+      framesSampled: r.num_frames_sampled ?? r.num_frames_processed,
       framePredictions: r.frame_predictions,
       notes: r.notes ?? [],
     },
@@ -179,7 +179,7 @@ export function fromUnifiedResult(r: UnifiedApiResult, meta: FileMeta): Analysis
     ...common,
     probs,
     video: {
-      framesSampled: r.num_frames_processed ?? 0,
+      framesSampled: r.num_frames_sampled ?? r.num_frames_processed ?? 0,
       framePredictions: preds,
       notes: r.notes ?? [],
     },

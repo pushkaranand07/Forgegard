@@ -52,7 +52,7 @@ def _send(req, timeout: float):
             status, raw = resp.status, resp.read()
     except urllib.error.HTTPError as err:
         status, raw = err.code, err.read()
-    except Exception as err:  # timeout, connection refused, ...
+    except Exception as err:  # noqa: BLE001 — record any client-side failure (timeout, refused, ...)
         return None, {"error": type(err).__name__}, time.perf_counter() - started
     try:
         payload = json.loads(raw)
@@ -118,13 +118,15 @@ def main() -> int:
     print(f"| 503 BUSY responses | {codes.count(503)} |")
     print(f"| Image request during load | HTTP {image_result[0]} in {image_result[2]:.2f} s |")
     if ok_probes:
-        print(f"| Liveness probes | {len(ok_probes)}/{len(probes)} OK; median {statistics.median(ok_probes) * 1000:.0f} ms, "
+        median_ms = statistics.median(ok_probes) * 1000
+        print(f"| Liveness probes | {len(ok_probes)}/{len(probes)} OK; median {median_ms:.0f} ms, "
               f"max {max(ok_probes) * 1000:.0f} ms; {failed_probes} failed/timed out (> {args.probe_timeout:.0f} s) |")
     else:
         print(f"| Liveness probes | 0/{len(probes)} OK |")
     if finished_at:
         done = sorted(finished_at.values())
-        print(f"| Queued videos finished | {len(done)} jobs; first after {done[0]:.0f} s, last after {done[-1]:.0f} s |")
+        print(f"| Queued videos finished | {len(done)} jobs; "
+              f"first after {done[0]:.0f} s, last after {done[-1]:.0f} s |")
     print(f"| Total wall time | {total:.0f} s |")
     return 0
 

@@ -50,7 +50,7 @@ def test_failed_analysis_is_reported_on_the_job(client, fake_weights):
     record = client.get(f"/api/jobs/{job_id}/").json()
     assert record["status"] == "failed"
     assert record["http_status"] == 400
-    assert record["result"] == {"error": "bad", "status": "INVALID_IMAGE"}
+    assert record["result"] == {"error": "bad", "status": "INVALID_IMAGE", "code": "INVALID_MEDIA"}
 
 
 def test_unknown_job_is_json_404(client):

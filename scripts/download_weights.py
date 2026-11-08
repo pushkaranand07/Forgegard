@@ -25,8 +25,8 @@ import re
 import shutil
 import sys
 import urllib.request
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MANIFEST = ROOT / "core" / "model_manifest.json"
@@ -46,13 +46,13 @@ def env_var_for(name: str) -> str:
     return "FORGEGUARD_WEIGHTS_URL_" + re.sub(r"[^A-Za-z0-9]", "_", name).upper()
 
 
-def url_for(name: str, entry: dict) -> Optional[str]:
+def url_for(name: str, entry: dict) -> str | None:
     return os.getenv(env_var_for(name)) or entry.get("url")
 
 
 def download(url: str, target: Path) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "forgeguard-weights-downloader"})
-    with urllib.request.urlopen(request, timeout=60) as response, target.open("wb") as out:  # noqa: S310
+    with urllib.request.urlopen(request, timeout=60) as response, target.open("wb") as out:
         shutil.copyfileobj(response, out, CHUNK)
 
 
@@ -94,7 +94,7 @@ def fetch(name: str, entry: dict, dest: Path, allow_missing: bool) -> bool:
     return True
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--dest", type=Path, default=DEFAULT_DEST)

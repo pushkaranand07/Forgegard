@@ -87,9 +87,22 @@ target-version = "py311"
 extend-exclude = ["web", "frontend", "training", "staticfiles"]
 
 [tool.ruff.lint]
-# Real bugs only: pyflakes, syntax/IO errors, bare excepts, pytest/bugbear essentials
-select = ["F", "E9", "E722", "B006", "B008", "B904", "TID251"]
+# pycodestyle, pyflakes, import order, bugbear, pyupgrade, simplify, blind except,
+# comprehensions, ruff-specific, and the banned-API rule below
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "BLE", "C4", "RUF", "TID251"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # intentional typography in messages (×, –, →)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["api", "config", "core", "scripts", "tests"]
 
 # Untrusted images must go through core.pipeline.safe_image.open_untrusted (I4)
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "PIL.Image.open".msg = "Use core.pipeline.safe_image.open_untrusted(): it restricts Pillow to JPEG/PNG/WebP decoders."
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+explicit_package_bases = true
+exclude = ["core/models/"]  # untracked local files; not part of the repository

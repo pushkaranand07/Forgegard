@@ -44,7 +44,10 @@ export interface VideoApiResponse {
   real_prob: number | null;
   confidence_pct: number | null;
   device: string;
+  /** Deprecated: faces if decided, frames otherwise. Use the two fields below. */
   num_frames_processed: number;
+  num_frames_sampled?: number;
+  num_faces_analyzed?: number;
   frame_predictions: number[];
   processing_time_ms: number;
   notes: string[];
@@ -68,6 +71,8 @@ export interface UnifiedApiResult {
     reason?: string | null;
   };
   num_frames_processed?: number;
+  num_frames_sampled?: number;
+  num_faces_analyzed?: number;
   frame_predictions?: number[];
   notes?: string[];
   error?: string;

@@ -26,16 +26,19 @@ jobs:
           version: ${{ env.UV_VERSION }}
       - name: Ruff
         run: uvx ruff@0.17.3 check .
+      - name: Dead code (vulture)
+        # Names below are used by Django/PyTorch/Huey/tests by name, not by direct call
+        run: >-
+          uvx vulture@2.14 api core scripts --min-confidence 60 --exclude "api/tests.py"
+          --ignore-names "ApiConfig,Command,help,add_arguments,handle,app_name,urlpatterns,handler404,RequestIdLogFilter,RequestContextMiddleware,process_exception,forward,purge_expired_periodically,invalidate_caches"
       - name: actionlint
         run: |
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
           ./actionlint -color
 
   typecheck:
-    name: Typecheck (mypy, not yet blocking)
+    name: Typecheck (mypy)
     runs-on: ubuntu-latest
-    # 13 known errors; made blocking in remediation phase 4 (docs/remediation.md)
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
@@ -43,7 +46,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
       - run: uv sync --frozen
-      - run: uv run mypy api core --ignore-missing-imports --explicit-package-bases
+      - run: uv run mypy api core   # settings in pyproject.toml [tool.mypy]
 
   test:
     name: Setup from scratch + tests
@@ -111,9 +114,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: gitleaks
+        # The official image from Docker Hub, pinned by digest: does not depend on
+        # GitHub release downloads (which returned 504s on 2026-11-08).
         run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz | tar -xz gitleaks
-          ./gitleaks git --redact --no-banner --config .gitleaks.toml .
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" -w /repo \
+            zricethezav/gitleaks:v8.28.0@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854 \
+            git --redact --no-banner --config .gitleaks.toml .
 
   web:
     name: Web UI (typecheck + build)

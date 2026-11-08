@@ -8,7 +8,7 @@ def main():
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     os.environ["PYTORCH_JIT"] = "0"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    
+
     # Add project root to sys.path so ml_core can be imported
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     if project_root not in sys.path:
@@ -22,7 +22,7 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
-    execute_from_command_line(sys.argv) 
+    execute_from_command_line(sys.argv)
 
 
 if __name__ == '__main__':

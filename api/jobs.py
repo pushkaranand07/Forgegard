@@ -20,13 +20,14 @@ synchronously at enqueue time with in-memory storage.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import tempfile
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.conf import settings
 from huey import PriorityRedisHuey, SqliteHuey, crontab
@@ -70,13 +71,13 @@ def _key(kind: str, ident: str) -> str:
     return f"{kind}:{ident}"
 
 
-def _save(key: str, record: Dict[str, Any]) -> None:
+def _save(key: str, record: dict[str, Any]) -> None:
     # put() overwrites atomically on every backend (dict, Redis HSET, SQLite
     # INSERT OR REPLACE), so readers never see the record missing mid-update.
     huey.put(key, record)
 
 
-def _load(key: str) -> Optional[Dict[str, Any]]:
+def _load(key: str) -> dict[str, Any] | None:
     record = huey.get(key, peek=True)
     if record is None:
         return None
@@ -86,11 +87,11 @@ def _load(key: str) -> Optional[Dict[str, Any]]:
     return record
 
 
-def get_job(job_id: str) -> Optional[Dict[str, Any]]:
+def get_job(job_id: str) -> dict[str, Any] | None:
     return _load(_key("job", job_id))
 
 
-def get_batch(batch_id: str) -> Optional[Dict[str, Any]]:
+def get_batch(batch_id: str) -> dict[str, Any] | None:
     return _load(_key("batch", batch_id))
 
 
@@ -132,7 +133,7 @@ def _keep_copy(upload) -> str:
     return name
 
 
-def _new_job_record(job_id: str, kind: str, upload, path: str, batch_id: Optional[str], index: Optional[int]):
+def _new_job_record(job_id: str, kind: str, upload, path: str, batch_id: str | None, index: int | None):
     now = time.time()
     return {
         "job_id": job_id,
@@ -152,11 +153,11 @@ def _new_job_record(job_id: str, kind: str, upload, path: str, batch_id: Optiona
     }
 
 
-def priority_for(record: Dict[str, Any]) -> int:
+def priority_for(record: dict[str, Any]) -> int:
     return IMAGE_PRIORITY if common.media_type_for(record["file_name"]) == "image" else VIDEO_PRIORITY
 
 
-def _enqueue(record: Dict[str, Any]) -> None:
+def _enqueue(record: dict[str, Any]) -> None:
     _save(_key("job", record["job_id"]), record)
     try:
         run_job(record["job_id"], priority=priority_for(record))
@@ -178,7 +179,7 @@ def submit(kind: str, upload) -> str:
     return job_id
 
 
-def submit_batch(uploads: List[Any], rejected: List[Dict[str, Any]]) -> str:
+def submit_batch(uploads: list[Any], rejected: list[dict[str, Any]]) -> str:
     """Enqueue one unified job per upload under a batch id.
 
     ``rejected`` lists files that failed validation, reported with the batch.
@@ -210,7 +211,7 @@ def submit_batch(uploads: List[Any], rejected: List[Dict[str, Any]]) -> str:
 # Waiting (used by the synchronous compatibility endpoints)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_waiters: Optional[threading.BoundedSemaphore] = None
+_waiters: threading.BoundedSemaphore | None = None
 _waiters_lock = threading.Lock()
 
 
@@ -222,7 +223,7 @@ def _waiter_slots() -> threading.BoundedSemaphore:
         return _waiters
 
 
-def wait_for(ids: List[str], timeout: float) -> bool:
+def wait_for(ids: list[str], timeout: float) -> bool:
     """Block until every job in ``ids`` is finished, up to ``timeout`` seconds.
 
     Only FORGEGUARD_MAX_SYNC_WAITERS requests may wait at once, so web threads
@@ -251,12 +252,10 @@ def wait_for(ids: List[str], timeout: float) -> bool:
 # Worker side
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _discard(path: Optional[str]) -> None:
+def _discard(path: str | None) -> None:
     if path:
-        try:
+        with contextlib.suppress(OSError):
             os.remove(path)
-        except OSError:
-            pass
 
 
 @huey.task()
@@ -279,6 +278,9 @@ def run_job(job_id: str) -> None:
         status, body = 500, common.error_response_body("Analysis failed due to a server error.")
     finally:
         _discard(record["path"])
+    from .errors import with_code
+
+    body = with_code(body, status)
     _update_job(
         job_id,
         status=DONE if status < 400 else FAILED,
@@ -290,10 +292,10 @@ def run_job(job_id: str) -> None:
 
 def write_heartbeat() -> None:
     """Record that a worker is alive, with what it has loaded (read by /api/health/)."""
+    import torch
+
     from core import model_registry
     from core.pipeline import image_processor, video_processor
-
-    import torch
 
     cuda = torch.cuda.is_available()
     beat = {
@@ -315,7 +317,7 @@ def write_heartbeat() -> None:
     _save(HEARTBEAT_KEY, beat)
 
 
-def read_heartbeat() -> Optional[Dict[str, Any]]:
+def read_heartbeat() -> dict[str, Any] | None:
     return huey.get(HEARTBEAT_KEY, peek=True)
 
 
@@ -342,7 +344,7 @@ def purge_expired() -> int:
             continue
         try:
             record = huey.serializer.deserialize(raw)
-        except Exception:
+        except Exception:  # noqa: BLE001 — skip any record that cannot be deserialised; purge is best effort
             continue
         if isinstance(record, dict) and record.get("expires_at", float("inf")) < now:
             huey.delete(name)

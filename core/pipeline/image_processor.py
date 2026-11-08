@@ -28,7 +28,7 @@ import logging
 import os
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import torch
 from PIL import Image
@@ -48,8 +48,15 @@ from core.pipeline.safe_image import (  # re-exported: callers import these from
 logger = logging.getLogger("forgeguard.image")
 
 __all__ = [
-    "MAX_IMAGE_PIXELS", "InvalidImageError", "UnsupportedMediaError", "IMDModel",
-    "ImageDetectionResult", "load_model", "detect_image_file", "detect_image_bytes", "is_model_loaded",
+    "MAX_IMAGE_PIXELS",
+    "IMDModel",
+    "ImageDetectionResult",
+    "InvalidImageError",
+    "UnsupportedMediaError",
+    "detect_image_bytes",
+    "detect_image_file",
+    "is_model_loaded",
+    "load_model",
 ]
 
 
@@ -132,25 +139,26 @@ class ImageDetectionResult:
 
     label: str
     predicted_class: int
-    authentic_prob: Optional[float]
-    tampered_prob: Optional[float]
+    authentic_prob: float | None
+    tampered_prob: float | None
     device: str
     software_found: bool = False
     software_signature: str = ""
-    level1_notes: List[str] = field(default_factory=list)
+    level1_notes: list[str] = field(default_factory=list)
     experimental: bool = False
-    reason: Optional[str] = None
+    reason: str | None = None
 
-    def as_dict(self) -> Dict[str, Any]:
-        has_score = self.tampered_prob is not None and self.authentic_prob is not None
-        is_verdict = self.label in VERDICT_LABELS
+    def as_dict(self) -> dict[str, Any]:
+        authentic, tampered = self.authentic_prob, self.tampered_prob
+        scores = (authentic, tampered) if authentic is not None and tampered is not None else None
+        # A confidence figure is only shown for a validated verdict (audit I16)
+        confidence = round(max(scores) * 100, 2) if scores and self.label in VERDICT_LABELS else None
         return {
             "label": self.label,
             "predicted_class": int(self.predicted_class),
-            "authentic_prob": round(float(self.authentic_prob), 4) if has_score else None,
-            "tampered_prob": round(float(self.tampered_prob), 4) if has_score else None,
-            # A confidence figure is only shown for a validated verdict (audit I16)
-            "confidence_pct": round(max(self.authentic_prob, self.tampered_prob) * 100, 2) if is_verdict else None,
+            "authentic_prob": round(float(scores[0]), 4) if scores else None,
+            "tampered_prob": round(float(scores[1]), 4) if scores else None,
+            "confidence_pct": confidence,
             "experimental": self.experimental,
             "reason": self.reason,
             "device": self.device,
@@ -167,7 +175,7 @@ class ImageDetectionResult:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _MODEL_LOCK: threading.Lock = threading.Lock()
-_MODEL_CACHE: Dict[Tuple[str, str], nn.Module] = {}
+_MODEL_CACHE: dict[tuple[str, str], nn.Module] = {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -179,7 +187,7 @@ def _select_device() -> torch.device:
     try:
         if torch.cuda.is_available():
             return torch.device("cuda")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — a broken CUDA install must fall back to CPU, whatever it raises
         logger.warning(f"[IMD] CUDA check failed ({exc}), falling back to CPU.")
     return torch.device("cpu")
 
@@ -188,7 +196,7 @@ def _select_device() -> torch.device:
 # Level 1 — Metadata analysis
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
+def _analyse_metadata(img: Image.Image) -> tuple[bool, str, list[str]]:
     """
     Inspect EXIF tags for software signatures.
 
@@ -196,7 +204,7 @@ def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
     -------
     (software_found, software_value, notes)
     """
-    notes: List[str] = []
+    notes: list[str] = []
     software_found = False
     software_value = ""
 
@@ -228,8 +236,10 @@ def _analyse_metadata(img: Image.Image) -> Tuple[bool, str, List[str]]:
         else:
             notes.append("No software signature in EXIF — metadata looks clean.")
 
-    except Exception as exc:
-        notes.append(f"Metadata scan failed: {exc}")
+    except Exception:  # malformed EXIF can raise anything; metadata is advisory only
+        # Log the details; never echo exception text into the API response
+        logger.warning("[IMD] Metadata scan failed", exc_info=True)
+        notes.append("Metadata could not be read.")
 
     return software_found, software_value, notes
 
@@ -247,7 +257,7 @@ _preprocess = ela.to_model_input
 # Model loading (cached)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Module:
+def load_model(model_path: str, device: torch.device | None = None) -> nn.Module:
     """
     Load and cache the image manipulation detector model.
 
@@ -309,7 +319,7 @@ def load_model(model_path: str, device: Optional[torch.device] = None) -> nn.Mod
 # Core inference
 # ─────────────────────────────────────────────────────────────────────────────
 
-def tampering_score(pil_img: Image.Image, model_path: str, device: Optional[torch.device] = None) -> float:
+def tampering_score(pil_img: Image.Image, model_path: str, device: torch.device | None = None) -> float:
     """The model's raw P(tampered) for an RGB JPEG-decoded image (no verdict policy).
 
     Used by the API path below and by scripts/eval_image.py, so the evaluation
@@ -324,7 +334,7 @@ def tampering_score(pil_img: Image.Image, model_path: str, device: Optional[torc
 
 
 def _run_inference(pil_img: Image.Image, model_path: str,
-                   device: Optional[torch.device] = None) -> ImageDetectionResult:
+                   device: torch.device | None = None) -> ImageDetectionResult:
     """
     Shared inference logic used by both public entry-points.
     Runs Level 1 (metadata) and, for JPEGs, Level 2 (ELA + CNN).
@@ -333,7 +343,8 @@ def _run_inference(pil_img: Image.Image, model_path: str,
 
     # Level 1 — metadata (on the image as opened, before RGB conversion)
     software_found, software_sig, notes = _analyse_metadata(pil_img)
-    level1 = dict(software_found=software_found, software_signature=software_sig, level1_notes=notes)
+    level1: dict[str, Any] = {"software_found": software_found, "software_signature": software_sig,
+                              "level1_notes": notes}
 
     # ELA measures JPEG recompression error; for any other format it is noise (audit I2)
     if pil_img.format != "JPEG":
@@ -377,7 +388,7 @@ def _run_inference(pil_img: Image.Image, model_path: str,
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _open_image(source, extension: Optional[str] = None) -> Image.Image:
+def _open_image(source, extension: str | None = None) -> Image.Image:
     """Open and fully decode an untrusted image (see core/pipeline/safe_image.py)."""
     return open_untrusted(source, extension)
 
@@ -392,7 +403,7 @@ def is_model_loaded(model_path: str) -> bool:
 def detect_image_file(
     image_path: str,
     model_path: str,
-    device: Optional[torch.device] = None,
+    device: torch.device | None = None,
 ) -> ImageDetectionResult:
     """
     Analyse an image file on disk.
@@ -412,8 +423,8 @@ def detect_image_file(
 def detect_image_bytes(
     raw_bytes: bytes,
     model_path: str,
-    device: Optional[torch.device] = None,
-    extension: Optional[str] = None,
+    device: torch.device | None = None,
+    extension: str | None = None,
 ) -> ImageDetectionResult:
     """
     Analyse an image provided as raw bytes (e.g. from Django request.FILES).

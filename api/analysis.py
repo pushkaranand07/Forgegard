@@ -16,13 +16,14 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Any, Dict, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from .common import error_response_body, extension_of, image_model_path, video_model_path
 
 logger = logging.getLogger("forgeguard.analysis")
 
-Result = Tuple[int, Dict[str, Any]]
+Result = tuple[int, dict[str, Any]]
 
 # Video pipeline configuration (shared with /api/health/)
 DEFAULT_ENCODER = "tf_efficientnet_b7_ns"
@@ -32,11 +33,11 @@ TARGET_FRAME_SIZE = 380
 MODEL_UNAVAILABLE_MESSAGE = "The {kind} model is unavailable on this server. See /api/health/."
 
 
-def _num(value) -> Optional[float]:
+def _num(value) -> float | None:
     return None if value is None else float(value)
 
 
-def _model_info(path: str) -> Dict[str, Any]:
+def _model_info(path: str) -> dict[str, Any]:
     from core import model_registry
 
     return model_registry.model_info(path)
@@ -46,7 +47,7 @@ def _model_info(path: str) -> Dict[str, Any]:
 # Image  (/api/detect-image/)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run_image(path: str, file_name: str, saved_name: Optional[str] = None) -> Result:
+def run_image(path: str, file_name: str, saved_name: str | None = None) -> Result:
     from core.model_registry import ModelUnavailableError
     from core.pipeline import image_processor
 
@@ -127,7 +128,9 @@ def run_video(path: str, file_name: str) -> Result:
         "real_prob": _num(result.real_prob),
         "confidence_pct": _num(result.confidence_pct),
         "device": result.device,
-        "num_frames_processed": result.num_frames_processed,
+        "num_frames_processed": result.num_frames_processed,  # deprecated, see below
+        "num_frames_sampled": result.num_frames_sampled,
+        "num_faces_analyzed": result.num_faces_analyzed,
         "frame_predictions": [float(p) for p in result.frame_predictions],
         "processing_time_ms": (time.time() - start) * 1000,
         "notes": list(result.notes),
@@ -162,4 +165,5 @@ def run_unified(path: str, file_name: str) -> Result:
     return status, body
 
 
-RUNNERS = {"image": run_image, "video": run_video, "unified": run_unified}
+# Image runners take the kept-upload name as a third argument
+RUNNERS: dict[str, Callable[..., Result]] = {"image": run_image, "video": run_video, "unified": run_unified}

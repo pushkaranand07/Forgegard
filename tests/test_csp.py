@@ -44,8 +44,9 @@ def test_spa_sends_a_strict_policy(client, spa_index):
     assert policy["object-src"] == ["'none'"]
     assert policy["frame-ancestors"] == ["'none'"]
     assert policy["base-uri"] == ["'self'"]
-    assert "'unsafe-inline'" not in sum(policy.values(), [])
-    assert "'unsafe-eval'" not in sum(policy.values(), [])
+    sources = [src for values in policy.values() for src in values]
+    assert "'unsafe-inline'" not in sources
+    assert "'unsafe-eval'" not in sources
 
 
 def test_inline_scripts_are_allowed_by_exact_hash(client, spa_index):

@@ -6,7 +6,7 @@ These tests verify that the API routes return the correct HTTP status codes.
 a GPU or a trained model file, making them suitable for CI environments.
 """
 
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.urls import reverse
 
 

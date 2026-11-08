@@ -47,10 +47,10 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
 from core import model_registry
-from .common import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, image_model_path, video_model_path
+
 from . import jobs
 from .analysis import NUM_FRAMES
-
+from .common import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, image_model_path, video_model_path
 
 # A worker that has not reported for this long is considered gone
 WORKER_STALE_SECONDS = 30
@@ -62,7 +62,7 @@ def _worker_status() -> dict:
         depth = jobs.queue_depth()
         beat = jobs.read_heartbeat()
         reachable = True
-    except Exception:  # queue backend down (e.g. Redis unreachable)
+    except Exception:  # noqa: BLE001 — Redis and SQLite raise unrelated error types; any failure = unreachable
         depth, beat, reachable = None, None, False
 
     if jobs.huey.immediate:

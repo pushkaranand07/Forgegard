@@ -18,11 +18,12 @@ Public entry-points
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
-import logging
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Iterator, List, Optional, Tuple
+from typing import Any
 
 import cv2
 import numpy as np
@@ -109,31 +110,31 @@ encoder_params["tf_efficientnet_b4_ns"] = encoder_params["tf_efficientnet_b4.ns_
 class DeepFakeClassifier(nn.Module):
     """
     EfficientNet-based binary classifier for deepfake detection.
-    
+
     Architecture from the upstream DFDC solution.
 
     Input: RGB image tensor normalized to ImageNet statistics
     Output: one logit per face; sigmoid(logit) = P(fake)
     """
-    
+
     def __init__(self, encoder: str = "tf_efficientnet_b7_ns", dropout_rate: float = 0.0) -> None:
         super().__init__()
         if encoder not in encoder_params:
             raise ValueError(f"Unknown encoder: {encoder}. Available: {list(encoder_params.keys())}")
-        
+
         params = encoder_params[encoder]
-        
+
         if params["init_op"] is None:
             raise ImportError(
                 "EfficientNet encoder not available. "
                 "Install timm: pip install timm>=0.9.0"
             )
-        
+
         self.encoder = params["init_op"]()
         self.avg_pool = AdaptiveAvgPool2d((1, 1))
         self.dropout = Dropout(dropout_rate)
         self.fc = Linear(params["features"], 1)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
@@ -152,9 +153,17 @@ class DeepFakeClassifier(nn.Module):
 # Video Reading Utilities
 # ─────────────────────────────────────────────────────────────────────────────
 
-class InvalidFileException(Exception): pass
-class EmptyVideoException(Exception): pass
-class NoVisualFramesException(Exception): pass
+class InvalidFileException(Exception):
+    """The file cannot be opened as a video, or is too large to analyse."""
+
+
+class EmptyVideoException(Exception):
+    """The file is 0 bytes."""
+
+
+class NoVisualFramesException(Exception):
+    """The video has no readable frames (audio only, or corrupt)."""
+
 
 # Videos larger than this are rejected before any frame is decoded: decoding one
 # 8K frame alone takes ~100 MB, and 32 of them used to be held at once.
@@ -245,7 +254,7 @@ class FaceDetectionEngine:
         boxes *= 2                                                # scale boxes back
         p_h = h // 3, p_w = w // 3                              # 33% padding
     """
-    
+
     def __init__(self, device: str = "cuda", verbose: bool = True):
         """
         Args:
@@ -254,67 +263,64 @@ class FaceDetectionEngine:
         """
         if MTCNN is None:
             raise ImportError("facenet-pytorch not installed. Install with: pip install facenet-pytorch")
-        
+
         self.device = device
         self.verbose = verbose
         # EXACT thresholds from training kernel_utils.py line 202
         self.detector = MTCNN(margin=0, thresholds=[0.7, 0.8, 0.8], device=device, keep_all=True)
         self._lock = threading.Lock()
-    
-    def extract_face(self, frame: np.ndarray) -> Optional[np.ndarray]:
+
+    def extract_face(self, frame: np.ndarray) -> np.ndarray | None:
         """
         Extracts the most-confident face from a frame.
         Crop matches upstream kernel_utils.py; upstream keeps every face.
 
         Args:
             frame: RGB numpy array (H, W, 3), uint8
-        
+
         Returns:
             RGB face crop (numpy array) or None if no face detected
+
+        Detector errors propagate: the caller decides how to report them, so a
+        failing detector is never mistaken for a frame with no face (audit I9).
         """
-        try:
-            h, w = frame.shape[:2]
-            logger.debug(f"[extract_face] Frame shape: {frame.shape}, dtype: {frame.dtype}, "
-                         f"R_mean: {frame[:,:,0].mean():.2f}, B_mean: {frame[:,:,2].mean():.2f}")
+        h, w = frame.shape[:2]
+        logger.debug(f"[extract_face] Frame shape: {frame.shape}, dtype: {frame.dtype}, "
+                     f"R_mean: {frame[:,:,0].mean():.2f}, B_mean: {frame[:,:,2].mean():.2f}")
 
-            # STEP 1: Detect on half-size image (matches training exactly)
-            img = Image.fromarray(frame)
-            half_img = img.resize([s // 2 for s in img.size])
-            batch_boxes, probs = self.detector.detect(half_img, landmarks=False)
+        # STEP 1: Detect on half-size image (matches training exactly)
+        img = Image.fromarray(frame)
+        half_img = img.resize([s // 2 for s in img.size])
+        batch_boxes, probs = self.detector.detect(half_img, landmarks=False)
 
-            if batch_boxes is None or len(batch_boxes) == 0:
-                return None
-
-            # STEP 2: Pick best face (highest probability)
-            best_idx = int(np.argmax(probs))
-            bbox = batch_boxes[best_idx]
-            if bbox is None:
-                return None
-
-            # STEP 3: Scale box back to full resolution (boxes were from half-size)
-            xmin, ymin, xmax, ymax = [int(b * 2) for b in bbox]
-            bw = xmax - xmin
-            bh = ymax - ymin
-
-            # STEP 4: Add padding exactly as training does (h//3, w//3 of bbox)
-            p_h = bh // 3
-            p_w = bw // 3
-            x1 = max(xmin - p_w, 0)
-            y1 = max(ymin - p_h, 0)
-            x2 = min(xmax + p_w, w)
-            y2 = min(ymax + p_h, h)
-
-            face = frame[y1:y2, x1:x2]
-
-            if face.size == 0:
-                return None
-
-            return face
-
-        except Exception as e:
-            if self.verbose:
-                logger.warning(f"[extract_face] Face detection error: {e}")
+        if batch_boxes is None or len(batch_boxes) == 0:
             return None
+
+        # STEP 2: Pick best face (highest probability)
+        best_idx = int(np.argmax(probs))
+        bbox = batch_boxes[best_idx]
+        if bbox is None:
+            return None
+
+        # STEP 3: Scale box back to full resolution (boxes were from half-size)
+        xmin, ymin, xmax, ymax = [int(b * 2) for b in bbox]
+        bw = xmax - xmin
+        bh = ymax - ymin
+
+        # STEP 4: Add padding exactly as training does (h//3, w//3 of bbox)
+        p_h = bh // 3
+        p_w = bw // 3
+        x1 = max(xmin - p_w, 0)
+        y1 = max(ymin - p_h, 0)
+        x2 = min(xmax + p_w, w)
+        y2 = min(ymax + p_h, h)
+
+        face = frame[y1:y2, x1:x2]
+
+        if face.size == 0:
+            return None
+
+        return face
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -324,47 +330,54 @@ class FaceDetectionEngine:
 @dataclass
 class VideoDetectionResult:
     """Results from video deepfake detection."""
-    
+
     label: str  # "REAL", "FAKE", "UNSURE", "UNKNOWN" or "ERROR"
     predicted_class: int  # 0 = FAKE, 1 = REAL, -1 = no decision
     # None when the model produced no score (no faces, unreadable input)
-    fake_prob: Optional[float]
-    real_prob: Optional[float]
-    confidence_pct: Optional[float]
+    fake_prob: float | None
+    real_prob: float | None
+    confidence_pct: float | None
     device: str
+    # Deprecated: faces classified for decided videos, frames sampled when no face
+    # was found. Use num_frames_sampled / num_faces_analyzed (audit I18).
     num_frames_processed: int
-    frame_predictions: List[float] = field(default_factory=list)
-    notes: List[str] = field(default_factory=list)
+    frame_predictions: list[float] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    num_frames_sampled: int = 0
+
+    @property
+    def num_faces_analyzed(self) -> int:
+        return len(self.frame_predictions)
 
 
-def confident_strategy(predictions: List[float], threshold: float = 0.8) -> float:
+def confident_strategy(predictions: list[float], threshold: float = 0.8) -> float:
     """
     Aggregate per-face P(fake) scores (upstream kernel_utils.py, unchanged).
-    
+
     Returns average of high-confidence predictions if most frames agree,
     otherwise returns overall average.
-    
+
     Args:
         predictions: List of frame-level prediction scores [0, 1]
         threshold: Confidence threshold for selecting predictions
-    
+
     Returns:
         Aggregated prediction score
     """
     pred_array = np.array(predictions)
     num_frames = len(pred_array)
-    
+
     # Count confident fake predictions
     confident_fakes = np.count_nonzero(pred_array > threshold)
-    
+
     # If enough frames have high confidence fake, return average of those
     if confident_fakes > num_frames // 2.5 and confident_fakes > 11:
         return float(np.mean(pred_array[pred_array > threshold]))
-    
+
     # If most frames are confidently real
     elif np.count_nonzero(pred_array < 0.2) > 0.9 * num_frames:
         return float(np.mean(pred_array[pred_array < 0.2]))
-    
+
     # Otherwise return simple average
     else:
         return float(np.mean(pred_array))
@@ -377,7 +390,7 @@ CONFIDENT_FAKE = 0.8   # same thresholds as confident_strategy
 CONFIDENT_REAL = 0.2
 
 
-def decide(predictions: List[float]) -> Tuple[str, float, Optional[str]]:
+def decide(predictions: list[float]) -> tuple[str, float, str | None]:
     """
     Turn per-face P(fake) scores into (label, score, note).
 
@@ -475,13 +488,13 @@ def preprocess_frame(
 # Model Loading
 # ─────────────────────────────────────────────────────────────────────────────
 
-_model_cache = {}
+_model_cache: dict[tuple[str, str, str], nn.Module] = {}
 _cache_lock = threading.Lock()
 
-_face_extractor_cache = {}
+_face_extractor_cache: dict[str, FaceDetectionEngine] = {}
 _face_extractor_lock = threading.Lock()
 
-def get_face_extractor(device: str) -> 'FaceDetectionEngine':
+def get_face_extractor(device: str) -> FaceDetectionEngine:
     """
     Get or create a FaceDetectionEngine singleton for the given device.
     NOTE: If MTCNN settings change, call invalidate_caches() to rebuild.
@@ -507,7 +520,7 @@ def invalidate_caches():
 def load_model(
     model_path: str,
     encoder: str = "tf_efficientnet_b7_ns",
-    device: Optional[str] = None
+    device: str | None = None
 ) -> nn.Module:
     """
     Load a deepfake classifier model (cached per weights/encoder/device).
@@ -542,7 +555,7 @@ def load_model(
             # NumPy 1.x name; NumPy 2 moved it to numpy._core, so allow-list it by
             # the old name. These are plain data types, not code.
             np_core = getattr(np, "_core", None) or np.core
-            safe_globals = [
+            safe_globals: list[Any] = [  # (function, name) pairs and types, as torch accepts
                 (np_core.multiarray.scalar, "numpy.core.multiarray.scalar"),
                 np.dtype,
                 type(np.dtype("float64")),
@@ -590,18 +603,50 @@ def is_model_loaded(model_path: str) -> bool:
 # Detection Functions
 # ─────────────────────────────────────────────────────────────────────────────
 
+class FaceDetectionError(RuntimeError):
+    """The face detector failed on every sampled frame (a bug or resource problem, not "no face")."""
+
+
+# Errors a detector run can raise on a bad frame. MemoryError and anything
+# unexpected propagate and fail the job.
+_DETECTOR_ERRORS = (RuntimeError, ValueError, cv2.error)
+
+
+def _extract_faces(frames, face_extractor) -> tuple[list[np.ndarray], int, int]:
+    """Run face detection over frames. Returns (face crops, frames seen, frames that errored).
+
+    Each detector error is logged with its traceback; if every frame errors,
+    FaceDetectionError is raised rather than reporting "no face".
+    """
+    crops: list[np.ndarray] = []
+    seen = errors = 0
+    for frame in frames:
+        seen += 1
+        try:
+            face = face_extractor.extract_face(frame)
+        except _DETECTOR_ERRORS:
+            errors += 1
+            logger.exception("Face detection failed on sampled frame %d", seen - 1)
+            continue
+        if face is not None:
+            crops.append(face.copy())  # the crop is a view; copy so the full frame can be freed
+    if seen and errors == seen:
+        raise FaceDetectionError(f"Face detection failed on every sampled frame ({seen}); see the log.")
+    return crops, seen, errors
+
+
 def detect_video_frames(
-    frames: List[np.ndarray],
+    frames: list[np.ndarray],
     model_path: str,
     encoder: str = "tf_efficientnet_b7_ns",
-    device: Optional[str] = None,
+    device: str | None = None,
     extract_faces: bool = True,
     target_size: int = 380,
     batch_size: int = 8
 ) -> VideoDetectionResult:
     """
     Detect deepfakes in a list of frames.
-    
+
     Args:
         frames: List of RGB numpy arrays
         model_path: Path to model checkpoint
@@ -611,64 +656,52 @@ def detect_video_frames(
         target_size: Target frame size for model
         batch_size: Faces per forward pass. 8 keeps peak RAM ~1.7 GB on CPU
             (32 peaks at ~4 GB) with the same throughput and identical outputs.
-    
+
     Returns:
         VideoDetectionResult with predictions
     """
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     if not frames:
         return VideoDetectionResult(
             label="UNKNOWN", predicted_class=-1, fake_prob=None, real_prob=None,
             confidence_pct=None, device=device, num_frames_processed=0,
             notes=["No frames provided"]
         )
-    
+
     # Load model
     model = load_model(model_path, encoder, device)
-    
-    # Extract faces if needed
-    notes = []
+
+    notes: list[str] = []
     if extract_faces:
-        face_extractor = get_face_extractor(device)
-        extracted_frames = []
-        for frame in frames:
-            face = face_extractor.extract_face(frame)
-            if face is not None:
-                extracted_frames.append(face)
-        
-        if not extracted_frames:
-            logger.warning(f"[detect_video] No faces found in any of {len(frames)} frames → returning UNSURE")
+        frames, sampled, errors = _extract_faces(frames, get_face_extractor(device))
+        if errors:
+            notes.append("FACE_DETECTION_ERRORS")
+        if not frames:
             return VideoDetectionResult(
                 label="UNSURE", predicted_class=-1, fake_prob=None, real_prob=None,
-                confidence_pct=None, device=device, num_frames_processed=len(frames),
-                notes=["NO_FACE_DETECTED"]
+                confidence_pct=None, device=device, num_frames_processed=sampled,
+                notes=["NO_FACE_DETECTED", *notes]
             )
-            
-        if len(extracted_frames) == 1:
-            logger.warning(f"[detect_video] Face detected in only 1 of {len(frames)} frames. Classifying using single frame.")
-        
-        logger.info(f"[detect_video] Frames sampled: {len(frames)}, Faces extracted: {len(extracted_frames)}")
-        frames = extracted_frames
-    
+
     # Preprocess frames
     preprocessed = []
     for frame in frames:
         try:
             tensor = preprocess_frame(frame, target_size, normalize=True)
             preprocessed.append(tensor)
-        except Exception as e:
-            logger.warning(f"[detect_video] Skipping frame that failed preprocessing: {e}")
+        except (ValueError, RuntimeError, cv2.error):
+            logger.warning("[detect_video] Skipping a face crop that failed preprocessing", exc_info=True)
             continue
-    
+
     if not preprocessed:
         return VideoDetectionResult(
             label="UNKNOWN", predicted_class=-1, fake_prob=None, real_prob=None,
             confidence_pct=None, device=device, num_frames_processed=0,
             notes=["Failed to preprocess frames"]
         )
-    
+
     # Inference
     frame_predictions = []
     with torch.no_grad():
@@ -677,21 +710,21 @@ def detect_video_frames(
             logits = model(batch)
             probs = torch.sigmoid(logits).cpu().numpy().flatten()
             frame_predictions.extend(probs.tolist())
-    
+
     # Aggregate: a verdict only when the faces agree (see decide())
     label, aggregated_score, decision_note = decide(frame_predictions)
     fake_prob = aggregated_score
     real_prob = 1.0 - aggregated_score
     if label == "UNSURE":
         predicted_class, confidence_pct = -1, None
-        notes.append(decision_note)
+        notes.append(decision_note or "NO_CONSENSUS")  # always set for UNSURE
     else:
         predicted_class = 1 if label == "REAL" else 0
         confidence_pct = max(fake_prob, real_prob) * 100
 
     logger.info(f"[classify] Label={label}, FakeScore={fake_prob:.4f}, faces={len(frame_predictions)}"
                 + (f", note={decision_note}" if decision_note else ""))
-    
+
     return VideoDetectionResult(
         label=label,
         predicted_class=predicted_class,
@@ -700,6 +733,7 @@ def detect_video_frames(
         confidence_pct=confidence_pct,
         device=device,
         num_frames_processed=len(frames),
+        num_frames_sampled=len(frames),
         frame_predictions=frame_predictions,
         notes=notes
     )
@@ -709,7 +743,7 @@ def detect_video_file(
     video_path: str,
     model_path: str,
     encoder: str = "tf_efficientnet_b7_ns",
-    device: Optional[str] = None,
+    device: str | None = None,
     num_frames: int = 32,
     extract_faces: bool = True,
     target_size: int = 380
@@ -756,14 +790,8 @@ def detect_video_file(
     load_model(model_path, encoder, device)
     face_extractor = get_face_extractor(device)
 
-    crops: List[np.ndarray] = []
-    sampled_count = 0
-    for frame in frames:
-        sampled_count += 1
-        face = face_extractor.extract_face(frame)
-        if face is not None:
-            crops.append(face.copy())  # the crop is a view; copy so the full frame can be freed
-        del frame
+    crops, sampled_count, detector_errors = _extract_faces(frames, face_extractor)
+    error_notes = ["FACE_DETECTION_ERRORS"] if detector_errors else []
 
     if sampled_count == 0:
         raise NoVisualFramesException("Could not extract any visual frames")
@@ -774,9 +802,12 @@ def detect_video_file(
         return VideoDetectionResult(
             label="UNSURE", predicted_class=-1, fake_prob=None, real_prob=None,
             confidence_pct=None, device=device, num_frames_processed=sampled_count,
-            notes=["NO_FACE_DETECTED"]
+            num_frames_sampled=sampled_count, notes=["NO_FACE_DETECTED", *error_notes]
         )
     if len(crops) == 1:
         logger.warning(f"[detect_video] Face detected in only 1 of {sampled_count} frames.")
 
-    return detect_video_frames(crops, model_path, encoder, device, extract_faces=False, target_size=target_size)
+    result = detect_video_frames(crops, model_path, encoder, device, extract_faces=False, target_size=target_size)
+    result.notes.extend(error_notes)
+    result.num_frames_sampled = sampled_count
+    return result
