@@ -9,7 +9,7 @@ dependencies = [
     # Web
     "Django>=5.2,<6.1",
     "whitenoise>=6.7,<7",
-    "gunicorn>=26.2,<27",
+    "gunicorn>=27.0.0,<28",
     "python-dotenv>=1.0,<2",
     # Background jobs (api/jobs.py): SQLite queue by default, Redis optional
     "huey>=3.5.4,<4",
